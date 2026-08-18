@@ -104,6 +104,10 @@
   --sidebar-accent-foreground: #4f46e5;
   --sidebar-border: #e2e8f0;
   --sidebar-ring: #4f46e5;
+
+  /* Sombra sutil de dos capas para cards (spec: borde 1px + sombra). */
+  --shadow-card:
+    0 1px 2px rgb(15 23 42 / 0.04), 0 4px 12px rgb(15 23 42 / 0.06);
 }
 
 .dark {
@@ -140,6 +144,10 @@
   --sidebar-accent-foreground: #818cf8;
   --sidebar-border: #334155;
   --sidebar-ring: #818cf8;
+
+  /* Sobre superficie oscura una sombra tan sutil casi no se ve, así que el
+     tratamiento queda liderado por el borde de la card en vez de la sombra. */
+  --shadow-card: none;
 }
 
 @layer base {
@@ -168,5 +176,68 @@
   *::-webkit-scrollbar-thumb {
     background-color: var(--border);
     border-radius: 9999px;
+  }
+
+  /* Tiptap no trae estilos propios; @tailwindcss/typography no está
+     instalado, así que el contenido del editor se estiliza a mano acá en
+     vez de clases prose por elemento. */
+  .tiptap-content {
+    height: 100%;
+    font-size: 0.9375rem;
+    line-height: 1.7;
+    color: var(--foreground);
+  }
+  .tiptap-content p {
+    margin-block: 0.5em;
+  }
+  .tiptap-content h1,
+  .tiptap-content h2,
+  .tiptap-content h3 {
+    margin-block: 0.75em 0.35em;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+  .tiptap-content h1 {
+    font-size: 1.5em;
+  }
+  .tiptap-content h2 {
+    font-size: 1.25em;
+  }
+  .tiptap-content h3 {
+    font-size: 1.1em;
+  }
+  .tiptap-content ul,
+  .tiptap-content ol {
+    margin-block: 0.5em;
+    padding-inline-start: 1.5em;
+  }
+  .tiptap-content ul {
+    list-style: disc;
+  }
+  .tiptap-content ol {
+    list-style: decimal;
+  }
+  .tiptap-content blockquote {
+    margin-block: 0.5em;
+    border-inline-start: 3px solid var(--border);
+    padding-inline-start: 1em;
+    color: var(--muted-foreground);
+  }
+  .tiptap-content code {
+    border-radius: 0.25em;
+    background: var(--muted);
+    padding-inline: 0.3em;
+    font-size: 0.9em;
+  }
+  .tiptap-content pre {
+    margin-block: 0.5em;
+    overflow-x: auto;
+    border-radius: var(--radius-md);
+    background: var(--muted);
+    padding: 0.75em 1em;
+  }
+  .tiptap-content pre code {
+    background: none;
+    padding: 0;
   }
 }

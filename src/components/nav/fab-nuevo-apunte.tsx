@@ -1,3 +1,6 @@
+"use client";
+
+import Link from "next/link";
 import { PlusIcon } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
@@ -8,9 +11,6 @@ type NuevoApunteButtonProps = {
   className?: string;
 };
 
-// El editor de apuntes (Tiptap) todavía no existe, así que el CTA queda
-// visible pero deshabilitado en esta pasada, en vez de simular una pantalla
-// que aún no está construida.
 export function NuevoApunteButton({
   variant,
   className,
@@ -18,11 +18,10 @@ export function NuevoApunteButton({
   if (variant === "fab") {
     return (
       <Button
-        type="button"
-        disabled
-        title="Próximamente"
-        aria-label="Crear nuevo apunte, próximamente"
+        aria-label="Crear nuevo apunte"
         size="icon-lg"
+        nativeButton={false}
+        render={<Link href="/apuntes/nuevo" />}
         className={cn(
           "rounded-full ring-4 ring-background shadow-lg",
           className,
@@ -34,7 +33,11 @@ export function NuevoApunteButton({
   }
 
   return (
-    <Button type="button" disabled title="Próximamente" className={className}>
+    <Button
+      nativeButton={false}
+      render={<Link href="/apuntes/nuevo" />}
+      className={className}
+    >
       <PlusIcon aria-hidden />
       Nuevo apunte
     </Button>

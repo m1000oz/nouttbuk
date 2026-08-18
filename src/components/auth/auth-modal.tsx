@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 import {
   Dialog,
   DialogContent,
@@ -38,6 +40,16 @@ export function AuthModal({
   onOpenChange,
   onModeChange,
 }: AuthModalProps) {
+  const router = useRouter();
+
+  function handleAuthSuccess() {
+    onOpenChange(false);
+    // El layout del shell lee la sesión en un Server Component, así que
+    // sin este refresh el nav se queda con el estado desautenticado hasta
+    // la próxima navegación server-side.
+    router.refresh();
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -48,13 +60,13 @@ export function AuthModal({
 
         {mode === "login" && (
           <LoginForm
-            onSuccess={() => onOpenChange(false)}
+            onSuccess={handleAuthSuccess}
             onIrARecuperar={() => onModeChange("recuperar")}
           />
         )}
         {mode === "signup" && (
           <SignupForm
-            onSuccess={() => onOpenChange(false)}
+            onSuccess={handleAuthSuccess}
             onIrALogin={() => onModeChange("login")}
           />
         )}
