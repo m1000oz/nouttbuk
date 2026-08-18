@@ -1,6 +1,6 @@
 # Project TODO, Nouttbuk (MVP v1: web + PWA)
 
-- [ ] Configurar la identidad visual y la navegación principal de Nouttbuk (nav lateral en desktop, layout responsive).
+- [x] Configurar la identidad visual y la navegación principal de Nouttbuk (nav lateral en desktop, layout responsive).
 - [ ] Implementar el inicio con accesos rápidos, actividad y apuntes recientes.
 - [ ] Implementar la biblioteca de apuntes con búsqueda y creación de carpetas.
 - [ ] Implementar el editor de apuntes (Tiptap) y detalle de carpetas académicas.
@@ -9,8 +9,8 @@
 - [ ] Implementar el flujo de compartir y colaboración con permisos de lectura o edición.
 - [ ] Implementar coedición en tiempo real (Tiptap + Liveblocks) para apuntes `group` con permiso `edit`.
 - [ ] Implementar el board de feedback dentro de la app (separado del feed académico).
-- [ ] Restringir el registro a correos que terminan en `@pucp.edu.pe` (validación en el signup y a nivel de base de datos).
-- [ ] Modelar y aplicar Row Level Security en Supabase para las reglas de visibilidad `private`/`group`/`community`.
+- [x] Restringir el registro a correos que terminan en `@pucp.edu.pe` (validación en el signup y a nivel de base de datos).
+- [x] Modelar y aplicar Row Level Security en Supabase para las reglas de visibilidad `private`/`group`/`community`.
 - [ ] Configurar manifest + service worker para instalación como PWA (Android/iOS).
 - [ ] Generar el icono de Nouttbuk y aplicar el branding (favicon, manifest, meta tags).
 - [ ] Añadir pruebas, comprobar tipos y validar los flujos clave.
