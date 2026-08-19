@@ -18,7 +18,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { resolverColorCarpeta } from "@/lib/carpetas/colores";
-import type { ApunteVisibilidad, Json } from "@/lib/types/database.types";
+import type { Json } from "@/lib/types/database.types";
+import type { ApunteVisibilidad } from "@/lib/types/enums";
 
 type Carpeta = { id: string; nombre: string; color: string };
 

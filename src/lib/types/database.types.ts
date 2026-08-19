@@ -1,184 +1,491 @@
-// Generado a mano como placeholder temporal, porque este entorno todavía no
-// tiene Docker para correr `supabase start`. En cuanto el stack local esté
-// arriba, regenerar con:
-//   npx supabase gen types typescript --local > src/lib/types/database.types.ts
-// y borrar este comentario. No editar los tipos de tabla a mano después de
-// esa primera generación real.
-
 export type Json =
   | string
   | number
   | boolean
   | null
   | { [key: string]: Json | undefined }
-  | Json[];
+  | Json[]
 
-export type ApunteVisibilidad = "private" | "group" | "community";
-export type PermisoColaborador = "read" | "edit";
-
-export interface Database {
+export type Database = {
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
-      profiles: {
-        Row: {
-          id: string;
-          nombre: string;
-          usuario: string;
-          carrera: string | null;
-          universidad: string;
-          avatar_url: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id: string;
-          nombre: string;
-          usuario: string;
-          carrera?: string | null;
-          universidad?: string;
-          avatar_url?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["profiles"]["Insert"]>;
-        Relationships: [];
-      };
-      carpetas: {
-        Row: {
-          id: string;
-          nombre: string;
-          color: string;
-          icono: string | null;
-          descripcion: string | null;
-          propietario_id: string;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          nombre: string;
-          color: string;
-          icono?: string | null;
-          descripcion?: string | null;
-          propietario_id: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["carpetas"]["Insert"]>;
-        Relationships: [];
-      };
       apuntes: {
         Row: {
-          id: string;
-          titulo: string;
-          contenido: Json;
-          etiquetas: string[];
-          carpeta_id: string | null;
-          autor_id: string;
-          favorito: boolean;
-          visibilidad: ApunteVisibilidad;
-          created_at: string;
-          updated_at: string;
-        };
+          autor_id: string
+          carpeta_id: string | null
+          contenido: Json
+          created_at: string
+          etiquetas: string[]
+          favorito: boolean
+          id: string
+          titulo: string
+          updated_at: string
+          visibilidad: Database["public"]["Enums"]["apunte_visibilidad"]
+        }
         Insert: {
-          id?: string;
-          titulo: string;
-          contenido?: Json;
-          etiquetas?: string[];
-          carpeta_id?: string | null;
-          autor_id: string;
-          favorito?: boolean;
-          visibilidad?: ApunteVisibilidad;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["apuntes"]["Insert"]>;
-        Relationships: [];
-      };
-      publicaciones: {
+          autor_id: string
+          carpeta_id?: string | null
+          contenido?: Json
+          created_at?: string
+          etiquetas?: string[]
+          favorito?: boolean
+          id?: string
+          titulo: string
+          updated_at?: string
+          visibilidad?: Database["public"]["Enums"]["apunte_visibilidad"]
+        }
+        Update: {
+          autor_id?: string
+          carpeta_id?: string | null
+          contenido?: Json
+          created_at?: string
+          etiquetas?: string[]
+          favorito?: boolean
+          id?: string
+          titulo?: string
+          updated_at?: string
+          visibilidad?: Database["public"]["Enums"]["apunte_visibilidad"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "apuntes_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "apuntes_carpeta_id_fkey"
+            columns: ["carpeta_id"]
+            isOneToOne: false
+            referencedRelation: "carpetas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      carpetas: {
         Row: {
-          id: string;
-          apunte_id: string;
-          created_at: string;
-        };
+          color: string
+          created_at: string
+          descripcion: string | null
+          icono: string | null
+          id: string
+          nombre: string
+          propietario_id: string
+          updated_at: string
+        }
         Insert: {
-          id?: string;
-          apunte_id: string;
-          created_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["publicaciones"]["Insert"]>;
-        Relationships: [];
-      };
-      reacciones: {
-        Row: {
-          id: string;
-          publicacion_id: string;
-          perfil_id: string;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          publicacion_id: string;
-          perfil_id: string;
-          created_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["reacciones"]["Insert"]>;
-        Relationships: [];
-      };
-      guardados: {
-        Row: {
-          id: string;
-          publicacion_id: string;
-          perfil_id: string;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          publicacion_id: string;
-          perfil_id: string;
-          created_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["guardados"]["Insert"]>;
-        Relationships: [];
-      };
-      comentarios: {
-        Row: {
-          id: string;
-          publicacion_id: string;
-          autor_id: string;
-          texto: string;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          publicacion_id: string;
-          autor_id: string;
-          texto: string;
-          created_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["comentarios"]["Insert"]>;
-        Relationships: [];
-      };
+          color: string
+          created_at?: string
+          descripcion?: string | null
+          icono?: string | null
+          id?: string
+          nombre: string
+          propietario_id: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          descripcion?: string | null
+          icono?: string | null
+          id?: string
+          nombre?: string
+          propietario_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "carpetas_propietario_id_fkey"
+            columns: ["propietario_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       colaboradores: {
         Row: {
-          apunte_id: string;
-          perfil_id: string;
-          permiso: PermisoColaborador;
-          created_at: string;
-        };
+          apunte_id: string
+          created_at: string
+          perfil_id: string
+          permiso: Database["public"]["Enums"]["permiso_colaborador"]
+        }
         Insert: {
-          apunte_id: string;
-          perfil_id: string;
-          permiso?: PermisoColaborador;
-          created_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["colaboradores"]["Insert"]>;
-        Relationships: [];
-      };
-    };
-    Views: Record<string, never>;
-    Functions: Record<string, never>;
-    Enums: Record<string, never>;
-    CompositeTypes: Record<string, never>;
-  };
+          apunte_id: string
+          created_at?: string
+          perfil_id: string
+          permiso?: Database["public"]["Enums"]["permiso_colaborador"]
+        }
+        Update: {
+          apunte_id?: string
+          created_at?: string
+          perfil_id?: string
+          permiso?: Database["public"]["Enums"]["permiso_colaborador"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "colaboradores_apunte_id_fkey"
+            columns: ["apunte_id"]
+            isOneToOne: false
+            referencedRelation: "apuntes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "colaboradores_perfil_id_fkey"
+            columns: ["perfil_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comentarios: {
+        Row: {
+          autor_id: string
+          created_at: string
+          id: string
+          publicacion_id: string
+          texto: string
+        }
+        Insert: {
+          autor_id: string
+          created_at?: string
+          id?: string
+          publicacion_id: string
+          texto: string
+        }
+        Update: {
+          autor_id?: string
+          created_at?: string
+          id?: string
+          publicacion_id?: string
+          texto?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comentarios_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comentarios_publicacion_id_fkey"
+            columns: ["publicacion_id"]
+            isOneToOne: false
+            referencedRelation: "publicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guardados: {
+        Row: {
+          created_at: string
+          id: string
+          perfil_id: string
+          publicacion_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          perfil_id: string
+          publicacion_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          perfil_id?: string
+          publicacion_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guardados_perfil_id_fkey"
+            columns: ["perfil_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guardados_publicacion_id_fkey"
+            columns: ["publicacion_id"]
+            isOneToOne: false
+            referencedRelation: "publicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          carrera: string | null
+          created_at: string
+          id: string
+          nombre: string
+          universidad: string
+          updated_at: string
+          usuario: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          carrera?: string | null
+          created_at?: string
+          id: string
+          nombre: string
+          universidad?: string
+          updated_at?: string
+          usuario: string
+        }
+        Update: {
+          avatar_url?: string | null
+          carrera?: string | null
+          created_at?: string
+          id?: string
+          nombre?: string
+          universidad?: string
+          updated_at?: string
+          usuario?: string
+        }
+        Relationships: []
+      }
+      publicaciones: {
+        Row: {
+          apunte_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          apunte_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          apunte_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "publicaciones_apunte_id_fkey"
+            columns: ["apunte_id"]
+            isOneToOne: true
+            referencedRelation: "apuntes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reacciones: {
+        Row: {
+          created_at: string
+          id: string
+          perfil_id: string
+          publicacion_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          perfil_id: string
+          publicacion_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          perfil_id?: string
+          publicacion_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reacciones_perfil_id_fkey"
+            columns: ["perfil_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reacciones_publicacion_id_fkey"
+            columns: ["publicacion_id"]
+            isOneToOne: false
+            referencedRelation: "publicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      get_publicacion_counts: {
+        Args: { publicacion_ids: string[] }
+        Returns: {
+          comentarios: number
+          guardados: number
+          publicacion_id: string
+          reacciones: number
+        }[]
+      }
+    }
+    Enums: {
+      apunte_visibilidad: "private" | "group" | "community"
+      permiso_colaborador: "read" | "edit"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
 }
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
+  public: {
+    Enums: {
+      apunte_visibilidad: ["private", "group", "community"],
+      permiso_colaborador: ["read", "edit"],
+    },
+  },
+} as const
+
