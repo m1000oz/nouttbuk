@@ -340,6 +340,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_perfil_stats: {
+        Args: never
+        Returns: {
+          aportes: number
+          apuntes: number
+          contactos: number
+        }[]
+      }
       get_publicacion_counts: {
         Args: { publicacion_ids: string[] }
         Returns: {

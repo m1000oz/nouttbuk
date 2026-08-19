@@ -20,7 +20,7 @@ La aplicación es responsiva de verdad, no una adaptación de la app móvil: nav
 | **Detalle de publicación** | Apunte completo, autor, reacciones/guardados/comentarios, conversación. | Reaccionar, guardar, comentar, compartir. |
 | **Compartir** | Hoja inferior con opciones de visibilidad (privado/grupo/comunidad) e invitación de colaboradores con permiso de lectura o edición. | Definir audiencia e invitar estudiantes. |
 | **Perfil** | Avatar, carrera, universidad, stats (apuntes/aportes/contactos), apuntes públicos. | Editar perfil, enviar feedback, cerrar sesión. |
-| **Editar perfil** | Overlay con nombre, usuario y carrera (select); universidad fija, no editable. | Actualizar los datos del perfil. |
+| **Editar perfil** | Overlay con nombre, usuario y carrera (texto libre, sin catálogo de carreras); universidad fija, no editable. | Actualizar los datos del perfil. |
 | **Login / Registro** | Modal con toggle entre iniciar sesión y crear cuenta. El registro pide nombre, usuario, carrera, universidad (fija en PUCP) y correo institucional; solo se admiten correos `@pucp.edu.pe`. | Entrar o crear cuenta sin abandonar el flujo actual. |
 | **Recuperar contraseña** | Alcanzable desde el login. Pide correo institucional y muestra confirmación de envío. | Restablecer el acceso sin exponer si la cuenta existe. |
 | **Board de feedback** | Composer + lista de ideas de la comunidad cerrada, con voto y estado (Nueva/En revisión/Hecho). | Proponer ideas, ver qué se está evaluando o ya se hizo. |
@@ -48,7 +48,7 @@ Cuatro destinos estables: **Inicio**, **Mis apuntes**, **Comunidad** y **Perfil*
 | **Perfil** | id, nombre, usuario, carrera, avatar, universidad | Publica apuntes y participa en comentarios. |
 | **Carpeta** | id, nombre, color, icono, descripción, propietario | Agrupa apuntes por materia. |
 | **Apunte** | id, título, contenido, etiquetas, estado, fecha, carpetaId, autorId | Pertenece a una carpeta y puede convertirse en publicación. |
-| **Publicación** | id, apunteId, audiencia, reacciones, guardados, fecha | Representa un apunte visible en la comunidad o grupo. |
+| **Publicación** | id, apunteId, audiencia, fecha | Representa un apunte visible en la comunidad o grupo. Reacciones, guardados y comentarios no son campos propios, se cuentan en vivo desde sus tablas (`reacciones`, `guardados`, `comentarios`). |
 | **Comentario** | id, publicaciónId, autorId, texto, fecha | Inicia conversación académica. |
 | **Colaboración** | apunteId, perfilId, permiso | Define lectura o edición para apuntes compartidos. |
 
@@ -73,7 +73,7 @@ Botones solo-ícono con `aria-label`, íconos decorativos con `aria-hidden`, tou
 | Área | Resultado esperado |
 |---|---|
 | Biblioteca | Las personas pueden crear apuntes y clasificarlos en carpetas desde web o PWA instalada. |
-| Comunidad | Se puede explorar, reaccionar, comentar y guardar publicaciones de apuntes, incluso sin sesión (feed de lectura pública). |
+| Comunidad | Se puede explorar el feed y el detalle de cada publicación incluso sin sesión (lectura pública, con contadores agregados de reacciones/guardados/comentarios). Reaccionar, comentar y guardar requieren sesión iniciada; sin ella, la acción abre el inicio de sesión. |
 | Compartir | Un apunte permite establecer visibilidad y abrir el flujo de colaboración, incluida la coedición en vivo para apuntes de grupo. |
 | Navegación | Los cuatro destinos principales y sus overlays de detalle no contienen acciones sin respuesta ni salidas ocultas. |
 | Instalación | La PWA se instala en Android e iOS sin perder funcionalidad respecto a la versión web. |

@@ -32,6 +32,34 @@ export function consultaFeedComunidad(
     .range(from, to);
 }
 
+// Las publicaciones community de un usuario, para la sección "Apuntes
+// públicos" de Perfil. Misma forma que consultaFeedComunidad (comparten
+// PublicacionFeedRow y mapearPublicacionFeed), sin paginación: es un resumen
+// dentro de Perfil, no una vista dedicada, un rango generoso alcanza.
+export function consultaPublicacionesDeUsuario(
+  supabase: SupabaseClient<Database>,
+  perfilId: string,
+) {
+  return supabase
+    .from("publicaciones")
+    .select(
+      `
+      id,
+      created_at,
+      apunte:apuntes!inner(
+        id,
+        titulo,
+        contenido,
+        created_at,
+        autor:profiles!apuntes_autor_id_fkey(id, nombre, usuario, avatar_url)
+      )
+    `,
+    )
+    .eq("apunte.autor_id", perfilId)
+    .order("created_at", { ascending: false })
+    .range(0, 49);
+}
+
 export type PublicacionFeedRow = NonNullable<
   Awaited<ReturnType<typeof consultaFeedComunidad>>["data"]
 >[number];

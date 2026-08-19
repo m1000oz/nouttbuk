@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { NAV_ITEMS, type NavItem } from "@/components/nav/nav-items";
 import { NuevoApunteButton } from "@/components/nav/fab-nuevo-apunte";
 import { AuthModal, type AuthModalMode } from "@/components/auth/auth-modal";
+import { AuthGateProvider } from "@/components/nav/auth-gate";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
@@ -179,7 +180,9 @@ export function AppShell({ session, children }: AppShellProps) {
 
       <div className="flex flex-1 flex-col">
         <main className="flex flex-1 flex-col pb-20 md:pb-0">
-          {children}
+          <AuthGateProvider abrirLogin={() => abrirAuth("login")}>
+            {children}
+          </AuthGateProvider>
         </main>
       </div>
 

@@ -4,8 +4,8 @@
 - [x] Implementar el inicio con accesos rápidos, actividad y apuntes recientes.
 - [x] Implementar la biblioteca de apuntes con búsqueda y creación de carpetas.
 - [x] Implementar el editor de apuntes (Tiptap) y detalle de carpetas académicas.
-- [ ] Implementar el feed social (lectura pública sin login), detalle de publicación, reacciones y comentarios.
-- [ ] Implementar perfil de estudiante y resumen de contribuciones.
+- [x] Implementar el feed social (lectura pública sin login), detalle de publicación, reacciones y comentarios.
+- [x] Implementar perfil de estudiante y resumen de contribuciones.
 - [ ] Implementar el flujo de compartir y colaboración con permisos de lectura o edición.
 - [ ] Implementar coedición en tiempo real (Tiptap + Liveblocks) para apuntes `group` con permiso `edit`.
 - [ ] Implementar el board de feedback dentro de la app (separado del feed académico).
