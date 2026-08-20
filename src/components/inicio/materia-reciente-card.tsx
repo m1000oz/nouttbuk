@@ -2,9 +2,8 @@
 
 import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
-import { FolderSimpleIcon } from "@phosphor-icons/react";
+import { FolderIcon } from "@phosphor-icons/react";
 
-import { Card, CardContent } from "@/components/ui/card";
 import { resolverColorCarpeta } from "@/lib/carpetas/colores";
 
 type MateriaRecienteCardProps = {
@@ -15,6 +14,9 @@ type MateriaRecienteCardProps = {
   index: number;
 };
 
+// Tile vertical centrado en el ícono, al estilo de un explorador de archivos
+// de escritorio (ícono de carpeta grande arriba, nombre abajo) en vez del
+// cuadrado de color con un ícono chico adentro que se usaba antes.
 export function MateriaRecienteCard({
   id,
   nombre,
@@ -30,9 +32,7 @@ export function MateriaRecienteCard({
     // ítem lo consuma en vez de reinventar la navegación.
     <Link href={`/apuntes?carpeta=${id}`} className="block">
       <motion.div
-        initial={
-          prefiereMenosMovimiento ? false : { opacity: 0, y: 12 }
-        }
+        initial={prefiereMenosMovimiento ? false : { opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{
           duration: 0.2,
@@ -41,27 +41,17 @@ export function MateriaRecienteCard({
         }}
         whileHover={prefiereMenosMovimiento ? undefined : { y: -2 }}
         whileTap={prefiereMenosMovimiento ? undefined : { y: 0 }}
+        className="flex flex-col items-center gap-1.5 rounded-xl border border-transparent px-3 py-4 text-center hover:border-border hover:bg-muted/50"
       >
-        <Card
-          size="sm"
-          className="border border-border shadow-[var(--shadow-card)] ring-0"
-        >
-          <CardContent className="flex items-center gap-3">
-            <span
-              className="flex size-9 shrink-0 items-center justify-center rounded-lg"
-              style={{ backgroundColor: colorResuelto }}
-            >
-              <FolderSimpleIcon
-                weight="fill"
-                className="size-4 text-white"
-                aria-hidden
-              />
-            </span>
-            <span className="truncate text-sm font-medium text-foreground">
-              {nombre}
-            </span>
-          </CardContent>
-        </Card>
+        <FolderIcon
+          weight="fill"
+          className="size-12"
+          style={{ color: colorResuelto }}
+          aria-hidden
+        />
+        <span className="w-full truncate text-sm font-medium text-foreground">
+          {nombre}
+        </span>
       </motion.div>
     </Link>
   );

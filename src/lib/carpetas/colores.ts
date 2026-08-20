@@ -3,8 +3,12 @@
 export const COLORES_CARPETA = {
   coral: "var(--color-folder-coral)",
   amber: "var(--color-folder-amber)",
-  violet: "var(--color-folder-violet)",
+  lime: "var(--color-folder-lime)",
+  cyan: "var(--color-folder-cyan)",
   blue: "var(--color-folder-blue)",
+  violet: "var(--color-folder-violet)",
+  fuchsia: "var(--color-folder-fuchsia)",
+  pink: "var(--color-folder-pink)",
 } as const;
 
 export type ColorCarpeta = keyof typeof COLORES_CARPETA;

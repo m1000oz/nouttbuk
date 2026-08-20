@@ -2,7 +2,12 @@
 
 import { type FormEvent, type ReactElement, useState } from "react";
 import { useRouter } from "next/navigation";
-import { PlusIcon, CheckIcon, PencilSimpleIcon } from "@phosphor-icons/react";
+import {
+  PlusIcon,
+  CheckCircleIcon,
+  FolderIcon,
+  PencilSimpleIcon,
+} from "@phosphor-icons/react";
 
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -32,8 +37,12 @@ type CarpetaSheetProps = {
 const NOMBRES_COLOR: Record<ColorCarpeta, string> = {
   coral: "Coral",
   amber: "Ámbar",
-  violet: "Violeta",
+  lime: "Lima",
+  cyan: "Cian",
   blue: "Azul",
+  violet: "Violeta",
+  fuchsia: "Fucsia",
+  pink: "Rosa",
 };
 
 export function CarpetaSheet({ carpeta, trigger }: CarpetaSheetProps) {
@@ -155,7 +164,7 @@ export function CarpetaSheet({ carpeta, trigger }: CarpetaSheetProps) {
             <legend className="text-sm font-medium text-foreground">
               Color
             </legend>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-1">
               {(Object.keys(COLORES_CARPETA) as ColorCarpeta[]).map(
                 (clave) => (
                   <button
@@ -165,15 +174,20 @@ export function CarpetaSheet({ carpeta, trigger }: CarpetaSheetProps) {
                     aria-pressed={color === clave}
                     aria-label={NOMBRES_COLOR[clave]}
                     className={cn(
-                      "flex size-9 items-center justify-center rounded-full outline-none transition-transform focus-visible:ring-3 focus-visible:ring-ring/50",
-                      color === clave && "ring-2 ring-offset-2 ring-ring",
+                      "relative flex size-11 items-center justify-center rounded-lg outline-none transition-transform focus-visible:ring-3 focus-visible:ring-ring/50",
+                      color === clave && "bg-muted",
                     )}
-                    style={{ backgroundColor: COLORES_CARPETA[clave] }}
                   >
+                    <FolderIcon
+                      weight="fill"
+                      className="size-7"
+                      style={{ color: COLORES_CARPETA[clave] }}
+                      aria-hidden
+                    />
                     {color === clave && (
-                      <CheckIcon
-                        weight="bold"
-                        className="size-4 text-white"
+                      <CheckCircleIcon
+                        weight="fill"
+                        className="absolute -right-0.5 -bottom-0.5 size-4 rounded-full bg-background text-ring"
                         aria-hidden
                       />
                     )}

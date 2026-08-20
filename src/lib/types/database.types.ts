@@ -318,6 +318,7 @@ export type Database = {
           universidad: string
           updated_at: string
           usuario: string
+          usuario_actualizado_en: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -328,6 +329,7 @@ export type Database = {
           universidad?: string
           updated_at?: string
           usuario: string
+          usuario_actualizado_en?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -338,6 +340,7 @@ export type Database = {
           universidad?: string
           updated_at?: string
           usuario?: string
+          usuario_actualizado_en?: string | null
         }
         Relationships: []
       }

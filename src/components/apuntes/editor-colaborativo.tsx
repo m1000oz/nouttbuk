@@ -13,6 +13,12 @@ import { getYjsProviderForRoom } from "@liveblocks/yjs";
 import { prosemirrorJSONToYXmlFragment } from "y-prosemirror";
 import { useEditor, EditorContent, getSchema, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import Underline from "@tiptap/extension-underline";
+import Highlight from "@tiptap/extension-highlight";
+import TextStyle from "@tiptap/extension-text-style";
+import Color from "@tiptap/extension-color";
+import Link from "@tiptap/extension-link";
+import CharacterCount from "@tiptap/extension-character-count";
 import Collaboration from "@tiptap/extension-collaboration";
 import CollaborationCursor from "@tiptap/extension-collaboration-cursor";
 import { UsersThreeIcon } from "@phosphor-icons/react";
@@ -26,7 +32,20 @@ import {
 import { colorParaUsuario } from "@/lib/liveblocks/color-usuario";
 import type { Json } from "@/lib/types/database.types";
 
-const EXTENSIONES_ESQUEMA = [StarterKit.configure({ history: false })];
+// Tiene que coincidir con editor-estatico.tsx y detalle-publicacion.tsx: si
+// un apunte con negrita/resaltado/enlaces se coedita acá, se lee en modo
+// solo lectura, o se publica a Comunidad, tiene que verse igual en los tres
+// lugares. `history` queda apagado (lo maneja Yjs vía Collaboration), y este
+// mismo array alimenta tanto el editor en vivo como getSchema() más abajo.
+const EXTENSIONES_ESQUEMA = [
+  StarterKit.configure({ history: false }),
+  Underline,
+  TextStyle,
+  Color,
+  Highlight.configure({ multicolor: true }),
+  Link.configure({ openOnClick: false, autolink: true }),
+  CharacterCount,
+];
 
 function iniciales(nombre: string): string {
   return nombre

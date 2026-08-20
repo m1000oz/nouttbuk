@@ -3,6 +3,12 @@
 import { useEffect } from "react";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import Underline from "@tiptap/extension-underline";
+import Highlight from "@tiptap/extension-highlight";
+import TextStyle from "@tiptap/extension-text-style";
+import Color from "@tiptap/extension-color";
+import Link from "@tiptap/extension-link";
+import CharacterCount from "@tiptap/extension-character-count";
 
 import type { Json } from "@/lib/types/database.types";
 
@@ -14,14 +20,29 @@ type EditorEstaticoProps = {
 
 // El editor sin coedición: creación de apuntes nuevos, apuntes no `group`,
 // y colaboradores con permiso `read` (la coedición en vivo se acota a
-// `group`+`edit`, ver editor-colaborativo.tsx).
+// `group`+`edit`, ver editor-colaborativo.tsx). El set de extensiones (más
+// allá de StarterKit) tiene que coincidir con editor-colaborativo.tsx y
+// detalle-publicacion.tsx: si un apunte con negrita/resaltado/enlaces se lee
+// acá o se publica a Comunidad, tiene que verse igual en los tres lugares.
+// La barra de formato y el contador de palabras no se renderizan acá: los
+// monta ApunteEditor (el padre), que es quien conoce el layout completo del
+// overlay (header, ancho del contenido) — este componente solo entrega la
+// instancia del editor vía onEditorListo.
 export function EditorEstatico({
   contenido,
   editable,
   onEditorListo,
 }: EditorEstaticoProps) {
   const editor = useEditor({
-    extensions: [StarterKit],
+    extensions: [
+      StarterKit,
+      Underline,
+      TextStyle,
+      Color,
+      Highlight.configure({ multicolor: true }),
+      Link.configure({ openOnClick: false, autolink: true }),
+      CharacterCount,
+    ],
     content: contenido as object | undefined,
     editable,
     // Evita el mismatch de hidratación: ProseMirror necesita el DOM real
@@ -31,6 +52,7 @@ export function EditorEstatico({
     editorProps: {
       attributes: {
         class: "tiptap-content focus:outline-none",
+        spellcheck: "true",
       },
     },
   });

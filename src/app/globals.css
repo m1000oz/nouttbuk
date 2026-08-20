@@ -47,8 +47,12 @@
   /* Colores de carpeta/materia, sin variante por tema. */
   --color-folder-coral: #f2704f;
   --color-folder-amber: #f5a623;
-  --color-folder-violet: #8b5cf6;
+  --color-folder-lime: #84cc16;
+  --color-folder-cyan: #06b6d4;
   --color-folder-blue: #3b82f6;
+  --color-folder-violet: #8b5cf6;
+  --color-folder-fuchsia: #d946ef;
+  --color-folder-pink: #ec4899;
 
   /* Colores semánticos, sin variante por tema. */
   --color-success: #10b981;
@@ -239,5 +243,18 @@
   .tiptap-content pre code {
     background: none;
     padding: 0;
+  }
+  .tiptap-content mark {
+    border-radius: 0.2em;
+    padding-inline: 0.05em;
+    box-decoration-break: clone;
+  }
+  .tiptap-content u {
+    text-decoration-line: underline;
+  }
+  .tiptap-content a {
+    color: var(--primary);
+    text-decoration-line: underline;
+    text-underline-offset: 0.15em;
   }
 }

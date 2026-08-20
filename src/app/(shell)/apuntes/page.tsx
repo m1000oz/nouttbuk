@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeftIcon, FolderSimpleIcon } from "@phosphor-icons/react/dist/ssr";
+import { ArrowLeftIcon, FolderIcon, FolderSimpleIcon } from "@phosphor-icons/react/dist/ssr";
 
 import { createClient } from "@/lib/supabase/server";
 import { SeccionVacia } from "@/components/shared/seccion-vacia";
@@ -9,7 +9,8 @@ import { CarpetaSheet } from "@/components/apuntes/carpeta-sheet";
 import { ApuntesExplorer } from "@/components/apuntes/apuntes-explorer";
 import { resolverColorCarpeta } from "@/lib/carpetas/colores";
 
-const SELECT_APUNTE = "id, titulo, carpeta_id, favorito, visibilidad, updated_at";
+const SELECT_APUNTE =
+  "id, titulo, contenido, carpeta_id, favorito, visibilidad, updated_at";
 const SELECT_APUNTE_COMPARTIDO = `${SELECT_APUNTE}, autor:profiles!apuntes_autor_id_fkey(nombre)`;
 
 export default async function MisApuntesPage(props: PageProps<"/apuntes">) {
@@ -71,9 +72,12 @@ export default async function MisApuntesPage(props: PageProps<"/apuntes">) {
   // cubre el 100% de los apuntes con carpeta, sin la limitación parcial de
   // la versión de Inicio. Objeto plano (no Map) porque cruza el límite
   // Server → Client Component como prop de ApuntesExplorer.
-  const nombreCarpetaPorId: Record<string, { nombre: string }> =
+  const nombreCarpetaPorId: Record<string, { nombre: string; color: string }> =
     Object.fromEntries(
-      materias.map((materia) => [materia.id, { nombre: materia.nombre }]),
+      materias.map((materia) => [
+        materia.id,
+        { nombre: materia.nombre, color: materia.color },
+      ]),
     );
 
   return (
@@ -88,11 +92,10 @@ export default async function MisApuntesPage(props: PageProps<"/apuntes">) {
             >
               <ArrowLeftIcon className="size-5" aria-hidden />
             </Link>
-            <span
-              className="size-3 shrink-0 rounded-full"
-              style={{
-                backgroundColor: resolverColorCarpeta(carpetaActiva.color),
-              }}
+            <FolderIcon
+              weight="fill"
+              className="size-6 shrink-0"
+              style={{ color: resolverColorCarpeta(carpetaActiva.color) }}
               aria-hidden
             />
             <h1 className="truncate text-2xl font-bold text-foreground">
@@ -149,19 +152,24 @@ export default async function MisApuntesPage(props: PageProps<"/apuntes">) {
           notas={notasVisibles.map((apunte) => ({
             id: apunte.id,
             titulo: apunte.titulo,
+            contenido: apunte.contenido,
             updatedAt: apunte.updated_at,
             carpetaId: apunte.carpeta_id,
             favorito: apunte.favorito,
+            visibilidad: apunte.visibilidad,
           }))}
           compartidos={compartidos.map((apunte) => ({
             id: apunte.id,
             titulo: apunte.titulo,
+            contenido: apunte.contenido,
             updatedAt: apunte.updated_at,
             carpetaId: apunte.carpeta_id,
             favorito: apunte.favorito,
+            visibilidad: apunte.visibilidad,
             propietario: apunte.autor?.nombre,
           }))}
           carpetaPorId={nombreCarpetaPorId}
+          carpetas={materias}
         />
       </section>
     </div>

@@ -11,22 +11,29 @@ import {
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { SeccionVacia } from "@/components/shared/seccion-vacia";
-import { ApunteRecienteCard } from "@/components/inicio/apunte-reciente-card";
+import { ApunteTarjeta } from "@/components/apuntes/apunte-tarjeta";
 import { NuevoApunteButton } from "@/components/nav/fab-nuevo-apunte";
+import type { Json } from "@/lib/types/database.types";
+import type { ApunteVisibilidad } from "@/lib/types/enums";
 
 type ApunteItem = {
   id: string;
   titulo: string;
+  contenido: Json;
   updatedAt: string;
   carpetaId: string | null;
   favorito: boolean;
+  visibilidad: ApunteVisibilidad;
   propietario?: string;
 };
+
+type CarpetaOpcion = { id: string; nombre: string; color: string };
 
 type ApuntesExplorerProps = {
   notas: ApunteItem[];
   compartidos: ApunteItem[];
-  carpetaPorId: Record<string, { nombre: string }>;
+  carpetaPorId: Record<string, { nombre: string; color: string }>;
+  carpetas: CarpetaOpcion[];
 };
 
 type TabValue = "todos" | "favoritos" | "compartidos";
@@ -44,12 +51,14 @@ function filtrarPorBusqueda(
 function ListaApuntes({
   lista,
   carpetaPorId,
+  carpetas,
   emptyIcon,
   emptyTitulo,
   emptyDescripcion,
 }: {
   lista: ApunteItem[];
-  carpetaPorId: Record<string, { nombre: string }>;
+  carpetaPorId: Record<string, { nombre: string; color: string }>;
+  carpetas: CarpetaOpcion[];
   emptyIcon: React.ComponentType<{
     className?: string;
     "aria-hidden"?: boolean;
@@ -69,17 +78,22 @@ function ListaApuntes({
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
       {lista.map((apunte, index) => (
-        <ApunteRecienteCard
+        <ApunteTarjeta
           key={apunte.id}
           id={apunte.id}
           titulo={apunte.titulo}
+          contenido={apunte.contenido}
           updatedAt={apunte.updatedAt}
+          carpetaId={apunte.carpetaId}
           carpeta={
             apunte.carpetaId ? (carpetaPorId[apunte.carpetaId] ?? null) : null
           }
+          favorito={apunte.favorito}
+          visibilidad={apunte.visibilidad}
           propietario={apunte.propietario}
+          carpetas={carpetas}
           index={index}
         />
       ))}
@@ -91,6 +105,7 @@ export function ApuntesExplorer({
   notas,
   compartidos,
   carpetaPorId,
+  carpetas,
 }: ApuntesExplorerProps) {
   const [tab, setTab] = useState<TabValue>("todos");
   const [busqueda, setBusqueda] = useState("");
@@ -145,6 +160,7 @@ export function ApuntesExplorer({
         <ListaApuntes
           lista={listaTodos}
           carpetaPorId={carpetaPorId}
+          carpetas={carpetas}
           emptyIcon={textoBusquedaVacia?.icon ?? NotePencilIcon}
           emptyTitulo={
             textoBusquedaVacia?.titulo ?? "Todavía no tienes apuntes"
@@ -160,6 +176,7 @@ export function ApuntesExplorer({
         <ListaApuntes
           lista={listaFavoritos}
           carpetaPorId={carpetaPorId}
+          carpetas={carpetas}
           emptyIcon={textoBusquedaVacia?.icon ?? StarIcon}
           emptyTitulo={
             textoBusquedaVacia?.titulo ?? "Todavía no tienes apuntes favoritos"
@@ -175,6 +192,7 @@ export function ApuntesExplorer({
         <ListaApuntes
           lista={listaCompartidos}
           carpetaPorId={carpetaPorId}
+          carpetas={carpetas}
           emptyIcon={textoBusquedaVacia?.icon ?? UsersThreeIcon}
           emptyTitulo={
             textoBusquedaVacia?.titulo ??

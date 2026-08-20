@@ -4,6 +4,11 @@ import { useState } from "react";
 import Link from "next/link";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import Underline from "@tiptap/extension-underline";
+import Highlight from "@tiptap/extension-highlight";
+import TextStyle from "@tiptap/extension-text-style";
+import Color from "@tiptap/extension-color";
+import TiptapLink from "@tiptap/extension-link";
 import { ChatCircleIcon, ShareNetworkIcon, XIcon } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
@@ -72,7 +77,14 @@ export function DetallePublicacion({
   }
 
   const editor = useEditor({
-    extensions: [StarterKit],
+    extensions: [
+      StarterKit,
+      Underline,
+      TextStyle,
+      Color,
+      Highlight.configure({ multicolor: true }),
+      TiptapLink.configure({ openOnClick: true, autolink: true }),
+    ],
     content: publicacion.contenido as object,
     editable: false,
     immediatelyRender: false,

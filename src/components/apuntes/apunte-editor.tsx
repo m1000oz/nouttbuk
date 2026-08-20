@@ -1,10 +1,15 @@
 "use client";
 
-import { type KeyboardEvent, useCallback, useRef, useState } from "react";
+import { type KeyboardEvent, useCallback, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Editor } from "@tiptap/react";
-import { StarIcon, UsersThreeIcon, XIcon } from "@phosphor-icons/react";
+import {
+  FolderIcon,
+  StarIcon,
+  UsersThreeIcon,
+  XIcon,
+} from "@phosphor-icons/react";
 
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -19,6 +24,10 @@ import {
 import { CompartirSheet } from "@/components/apuntes/compartir-sheet";
 import { EditorEstatico } from "@/components/apuntes/editor-estatico";
 import { EditorColaborativo } from "@/components/apuntes/editor-colaborativo";
+import {
+  EditorToolbar,
+  EditorContadorPalabras,
+} from "@/components/apuntes/editor-toolbar";
 import { resolverColorCarpeta } from "@/lib/carpetas/colores";
 import type { ColaboradorRow } from "@/lib/colaboradores/consultas";
 import type { Json } from "@/lib/types/database.types";
@@ -85,12 +94,13 @@ export function ApunteEditor({
 
   // El editor real vive en EditorEstatico o EditorColaborativo (cada uno con
   // su propio useEditor(), no se pueden llamar hooks condicionalmente pero
-  // sí montar un componente u otro); handleGuardar necesita la instancia
-  // actual sin re-renderizar ApunteEditor en cada cambio, por eso un ref y
-  // no un estado.
-  const editorRef = useRef<Editor | null>(null);
+  // sí montar un componente u otro). Va en estado (no un ref) porque
+  // EditorToolbar/EditorContadorPalabras, montados acá en el padre, necesitan
+  // re-renderizar cuando la instancia cambia (por ejemplo al pasar de
+  // EditorEstatico a EditorColaborativo).
+  const [editorInstancia, setEditorInstancia] = useState<Editor | null>(null);
   const handleEditorListo = useCallback((instancia: Editor | null) => {
-    editorRef.current = instancia;
+    setEditorInstancia(instancia);
   }, []);
 
   // Se acota a la visibilidad ya persistida (apunte?.visibilidad), no al
@@ -131,7 +141,7 @@ export function ApunteEditor({
   }
 
   async function handleGuardar() {
-    const editor = editorRef.current;
+    const editor = editorInstancia;
     if (!editor) return;
     setError(null);
     setGuardando(true);
@@ -245,11 +255,10 @@ export function ApunteEditor({
                 <SelectItem value="__ninguna__">Sin carpeta</SelectItem>
                 {carpetas.map((carpeta) => (
                   <SelectItem key={carpeta.id} value={carpeta.id}>
-                    <span
-                      className="size-2 rounded-full"
-                      style={{
-                        backgroundColor: resolverColorCarpeta(carpeta.color),
-                      }}
+                    <FolderIcon
+                      weight="fill"
+                      className="size-3.5"
+                      style={{ color: resolverColorCarpeta(carpeta.color) }}
                       aria-hidden
                     />
                     {carpeta.nombre}
@@ -295,6 +304,8 @@ export function ApunteEditor({
           )}
         </div>
       </header>
+
+      {!soloLectura && <EditorToolbar editor={editorInstancia} />}
 
       {error && (
         <p
@@ -385,6 +396,8 @@ export function ApunteEditor({
           />
         )}
       </div>
+
+      {!soloLectura && <EditorContadorPalabras editor={editorInstancia} />}
     </div>
   );
 }

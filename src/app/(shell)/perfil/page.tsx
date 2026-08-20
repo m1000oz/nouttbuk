@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { NotePencilIcon } from "@phosphor-icons/react/dist/ssr";
 
 import { createClient } from "@/lib/supabase/server";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { SeccionVacia } from "@/components/shared/seccion-vacia";
 import { NuevoApunteButton } from "@/components/nav/fab-nuevo-apunte";
@@ -41,7 +41,9 @@ export default async function PerfilPage() {
     await Promise.all([
       supabase
         .from("profiles")
-        .select("nombre, usuario, carrera, universidad")
+        .select(
+          "nombre, usuario, carrera, universidad, avatar_url, usuario_actualizado_en",
+        )
         .eq("id", user.id)
         .single(),
       supabase.rpc("get_perfil_stats").single(),
@@ -73,6 +75,7 @@ export default async function PerfilPage() {
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-6 py-10">
       <div className="flex flex-col items-center gap-3 text-center">
         <Avatar size="lg">
+          {perfil?.avatar_url && <AvatarImage src={perfil.avatar_url} alt="" />}
           <AvatarFallback>{iniciales(perfil?.nombre)}</AvatarFallback>
         </Avatar>
         <div>
@@ -96,6 +99,8 @@ export default async function PerfilPage() {
               nombre: perfil.nombre,
               usuario: perfil.usuario,
               carrera: perfil.carrera,
+              avatarUrl: perfil.avatar_url,
+              usuarioActualizadoEn: perfil.usuario_actualizado_en,
             }}
           />
         )}

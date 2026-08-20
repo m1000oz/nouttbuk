@@ -13,14 +13,14 @@ La aplicación es responsiva de verdad, no una adaptación de la app móvil: nav
 | Pantalla | Contenido principal | Funcionalidad |
 |---|---|---|
 | **Inicio** | Saludo, accesos rápidos (Nuevo apunte / Ver comunidad), materias recientes, últimos apuntes. | Abrir apuntes recientes, filtrar por carpeta, empezar una nota. |
-| **Mis apuntes** | Buscador, tabs (Todos/Favoritos/Compartidos), grid de apuntes. Incluye la vista de **Detalle de carpeta** como filtro por materia, con botón de volver. | Crear, abrir, buscar y clasificar apuntes. |
-| **Crear/editar carpeta** | Sheet con nombre de la materia y selector de color. | Crear una carpeta nueva o renombrar/recolorear una existente. |
-| **Editor de apunte** | Título, contenido de texto (Tiptap), etiquetas, selector de carpeta, selector de visibilidad. Si la visibilidad es "Grupo": indicador de coedición en vivo y botón para invitar colaborador. | Crear o editar un apunte; guardar como privado, grupo o comunidad. |
+| **Mis apuntes** | Buscador, tabs (Todos/Favoritos/Compartidos), grid de apuntes. Cada tarjeta tiene un botón de opciones (mover a carpeta, compartir, eliminar con verificación). Incluye la vista de **Detalle de carpeta** como filtro por materia, con botón de volver. | Crear, abrir, buscar y clasificar apuntes. |
+| **Crear/editar carpeta** | Sheet con nombre de la materia y selector de color (8 tonos, forma de carpeta real). | Crear una carpeta nueva o renombrar/recolorear una existente. |
+| **Editor de apunte** | Título, contenido de texto (Tiptap) con barra de formato (encabezados, negrita/cursiva/subrayado/tachado, resaltado, color de texto, listas, cita, enlace) y contador de palabras/caracteres, etiquetas, selector de carpeta, selector de visibilidad. Si la visibilidad es "Grupo": indicador de coedición en vivo y botón para invitar colaborador. | Crear o editar un apunte; guardar como privado, grupo o comunidad. |
 | **Comunidad** | Hero de bienvenida animado, feed de apuntes publicados. | Descubrir contenido, abrir una publicación. |
 | **Detalle de publicación** | Apunte completo, autor, reacciones/guardados/comentarios, conversación. | Reaccionar, guardar, comentar, compartir. |
 | **Compartir** | Hoja inferior con opciones de visibilidad (privado/grupo/comunidad) e invitación de colaboradores con permiso de lectura o edición. | Definir audiencia e invitar estudiantes. |
 | **Perfil** | Avatar, carrera, universidad, stats (apuntes/aportes/contactos), apuntes públicos. | Editar perfil, enviar feedback, cerrar sesión. |
-| **Editar perfil** | Overlay con nombre, usuario y carrera (texto libre, sin catálogo de carreras); universidad fija, no editable. | Actualizar los datos del perfil. |
+| **Editar perfil** | Overlay con foto de perfil (subida directa, sin recorte), nombre, usuario y carrera (texto libre, sin catálogo de carreras); universidad fija, no editable. El usuario solo se puede cambiar una vez cada 7 días, con chequeo de disponibilidad en vivo mientras se escribe. | Actualizar los datos del perfil. |
 | **Login / Registro** | Modal con toggle entre iniciar sesión y crear cuenta. El registro pide nombre, usuario, carrera, universidad (fija en PUCP) y correo institucional; solo se admiten correos `@pucp.edu.pe`. | Entrar o crear cuenta sin abandonar el flujo actual. |
 | **Recuperar contraseña** | Alcanzable desde el login. Pide correo institucional y muestra confirmación de envío. | Restablecer el acceso sin exponer si la cuenta existe. |
 | **Board de feedback** | Composer + lista de ideas de la comunidad cerrada, con voto y estado (Nueva/En revisión/Hecho). | Proponer ideas, ver qué se está evaluando o ya se hizo. |
@@ -54,7 +54,7 @@ Cuatro destinos estables: **Inicio**, **Mis apuntes**, **Comunidad** y **Perfil*
 
 ## Identidad visual
 
-Índigo profundo `#4F46E5` para las acciones principales, con la escala completa de Tailwind Indigo para estados y modo oscuro. Turquesa `#14B8A6` (Tailwind Teal) como acento de colaboración y comunidad. Neutro base **Slate** (frío, `#F8FAFC` en claro / `#0F172A` en oscuro) en vez del blanco cálido descrito en la idea original: el hex ya elegido coincidía exacto con Slate, así que se mantuvo tal cual en vez de introducir un neutro distinto. Colores de carpeta: Coral `#F2704F`, Ámbar `#F5A623`, Violeta `#8B5CF6`, Azul `#3B82F6`.
+Índigo profundo `#4F46E5` para las acciones principales, con la escala completa de Tailwind Indigo para estados y modo oscuro. Turquesa `#14B8A6` (Tailwind Teal) como acento de colaboración y comunidad. Neutro base **Slate** (frío, `#F8FAFC` en claro / `#0F172A` en oscuro) en vez del blanco cálido descrito en la idea original: el hex ya elegido coincidía exacto con Slate, así que se mantuvo tal cual en vez de introducir un neutro distinto. Colores de carpeta: Coral `#F2704F`, Ámbar `#F5A623`, Lima `#84CC16`, Cian `#06B6D4`, Azul `#3B82F6`, Violeta `#8B5CF6`, Fucsia `#D946EF`, Rosa `#EC4899` (ampliado de 4 a 8 en un pase de pulido posterior al cierre de Fase 2, evitando los tonos ya usados con significado semántico: Índigo, Teal, y los colores de estado success/warning/error/info).
 
 Tipografía: **DM Sans** como única familia (títulos y cuerpo), elegida por descarte de las fuentes más sobreusadas en interfaces generadas (Inter, Roboto, Plus Jakarta Sans, entre otras). Iconografía **Phosphor**, con variantes outline y relleno para marcar estados activos (reaccionado, guardado) sin duplicar íconos.
 
