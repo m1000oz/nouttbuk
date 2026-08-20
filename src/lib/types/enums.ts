@@ -5,3 +5,4 @@ import type { Database } from "@/lib/types/database.types";
 // tipos viven aparte para no perderse en cada regeneración.
 export type ApunteVisibilidad = Database["public"]["Enums"]["apunte_visibilidad"];
 export type PermisoColaborador = Database["public"]["Enums"]["permiso_colaborador"];
+export type FeedbackEstado = Database["public"]["Enums"]["feedback_estado"];

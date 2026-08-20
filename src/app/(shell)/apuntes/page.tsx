@@ -10,6 +10,7 @@ import { ApuntesExplorer } from "@/components/apuntes/apuntes-explorer";
 import { resolverColorCarpeta } from "@/lib/carpetas/colores";
 
 const SELECT_APUNTE = "id, titulo, carpeta_id, favorito, visibilidad, updated_at";
+const SELECT_APUNTE_COMPARTIDO = `${SELECT_APUNTE}, autor:profiles!apuntes_autor_id_fkey(nombre)`;
 
 export default async function MisApuntesPage(props: PageProps<"/apuntes">) {
   const supabase = await createClient();
@@ -44,13 +45,13 @@ export default async function MisApuntesPage(props: PageProps<"/apuntes">) {
   const materias = carpetas ?? [];
   const notas = apuntes ?? [];
 
-  // Todavía no existe UI para compartir apuntes (todo.md ítem 7), así que
-  // esta lista viene vacía para cualquier usuario real hoy, la query queda
-  // lista para cuando ese ítem exista en vez de simular datos.
   const apunteIdsCompartidos = (colaboraciones ?? []).map((c) => c.apunte_id);
   const { data: apuntesCompartidos } =
     apunteIdsCompartidos.length > 0
-      ? await supabase.from("apuntes").select(SELECT_APUNTE).in("id", apunteIdsCompartidos)
+      ? await supabase
+          .from("apuntes")
+          .select(SELECT_APUNTE_COMPARTIDO)
+          .in("id", apunteIdsCompartidos)
       : { data: [] };
   const compartidos = apuntesCompartidos ?? [];
 
@@ -158,6 +159,7 @@ export default async function MisApuntesPage(props: PageProps<"/apuntes">) {
             updatedAt: apunte.updated_at,
             carpetaId: apunte.carpeta_id,
             favorito: apunte.favorito,
+            propietario: apunte.autor?.nombre,
           }))}
           carpetaPorId={nombreCarpetaPorId}
         />

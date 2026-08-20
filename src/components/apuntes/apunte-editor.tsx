@@ -1,10 +1,9 @@
 "use client";
 
-import { type KeyboardEvent, useState } from "react";
+import { type KeyboardEvent, useCallback, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
+import type { Editor } from "@tiptap/react";
 import { StarIcon, UsersThreeIcon, XIcon } from "@phosphor-icons/react";
 
 import { createClient } from "@/lib/supabase/client";
@@ -17,11 +16,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CompartirSheet } from "@/components/apuntes/compartir-sheet";
+import { EditorEstatico } from "@/components/apuntes/editor-estatico";
+import { EditorColaborativo } from "@/components/apuntes/editor-colaborativo";
 import { resolverColorCarpeta } from "@/lib/carpetas/colores";
+import type { ColaboradorRow } from "@/lib/colaboradores/consultas";
 import type { Json } from "@/lib/types/database.types";
-import type { ApunteVisibilidad } from "@/lib/types/enums";
+import type { ApunteVisibilidad, PermisoColaborador } from "@/lib/types/enums";
 
 type Carpeta = { id: string; nombre: string; color: string };
+
+type PermisoApunte = "owner" | PermisoColaborador;
 
 type ApunteEditorProps = {
   carpetas: Carpeta[];
@@ -34,6 +39,9 @@ type ApunteEditorProps = {
     etiquetas: string[];
     favorito: boolean;
   };
+  permisoActual?: PermisoApunte;
+  autorNombre?: string;
+  colaboradoresIniciales?: ColaboradorRow[];
 };
 
 const ETIQUETAS_ROTAS = /[,\n]/;
@@ -48,9 +56,18 @@ const VISIBILIDAD_LABEL: Record<ApunteVisibilidad, string> = {
 // layout: cubre visualmente el nav lateral del shell sin duplicar el árbol
 // de rutas, tal como pide design.md para Editor ("overlay de pantalla
 // completa con salida explícita, nunca solo tocar afuera").
-export function ApunteEditor({ carpetas, apunte }: ApunteEditorProps) {
+export function ApunteEditor({
+  carpetas,
+  apunte,
+  permisoActual = "owner",
+  autorNombre,
+  colaboradoresIniciales = [],
+}: ApunteEditorProps) {
   const router = useRouter();
   const esEdicion = Boolean(apunte);
+  const esOwner = permisoActual === "owner";
+  const soloLectura = permisoActual === "read";
+  const carpetaActual = carpetas.find((carpeta) => carpeta.id === apunte?.carpetaId);
   const [titulo, setTitulo] = useState(apunte?.titulo ?? "");
   const [carpetaId, setCarpetaId] = useState<string | null>(
     apunte?.carpetaId ?? null,
@@ -66,19 +83,27 @@ export function ApunteEditor({ carpetas, apunte }: ApunteEditorProps) {
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const editor = useEditor({
-    extensions: [StarterKit],
-    content: apunte?.contenido as object | undefined,
-    // Evita el mismatch de hidratación: ProseMirror necesita el DOM real
-    // del navegador, así que el primer render no debe intentar coincidir
-    // con nada renderizado en el servidor.
-    immediatelyRender: false,
-    editorProps: {
-      attributes: {
-        class: "tiptap-content focus:outline-none",
-      },
-    },
-  });
+  // El editor real vive en EditorEstatico o EditorColaborativo (cada uno con
+  // su propio useEditor(), no se pueden llamar hooks condicionalmente pero
+  // sí montar un componente u otro); handleGuardar necesita la instancia
+  // actual sin re-renderizar ApunteEditor en cada cambio, por eso un ref y
+  // no un estado.
+  const editorRef = useRef<Editor | null>(null);
+  const handleEditorListo = useCallback((instancia: Editor | null) => {
+    editorRef.current = instancia;
+  }, []);
+
+  // Se acota a la visibilidad ya persistida (apunte?.visibilidad), no al
+  // Select local: así, cambiar el selector a "Grupo" sin guardar todavía no
+  // intenta abrir una sala (el endpoint de auth solo la concede si la
+  // columna en Postgres ya dice 'group', y Guardar siempre navega fuera del
+  // editor, así que el flujo real es guardar primero y recién ahí coeditar).
+  const modoColaborativo = Boolean(
+    esEdicion &&
+      apunte &&
+      apunte.visibilidad === "group" &&
+      permisoActual !== "read",
+  );
 
   function agregarEtiqueta() {
     const valor = etiquetaInput.trim();
@@ -106,6 +131,7 @@ export function ApunteEditor({ carpetas, apunte }: ApunteEditorProps) {
   }
 
   async function handleGuardar() {
+    const editor = editorRef.current;
     if (!editor) return;
     setError(null);
     setGuardando(true);
@@ -180,79 +206,93 @@ export function ApunteEditor({ carpetas, apunte }: ApunteEditorProps) {
         </Button>
 
         <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label={
-              favorito ? "Quitar de favoritos" : "Marcar como favorito"
-            }
-            aria-pressed={favorito}
-            onClick={() => setFavorito((actual) => !actual)}
-          >
-            <StarIcon
-              weight={favorito ? "fill" : "regular"}
-              className={favorito ? "text-warning" : undefined}
-              aria-hidden
-            />
-          </Button>
+          {!soloLectura && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label={
+                favorito ? "Quitar de favoritos" : "Marcar como favorito"
+              }
+              aria-pressed={favorito}
+              onClick={() => setFavorito((actual) => !actual)}
+            >
+              <StarIcon
+                weight={favorito ? "fill" : "regular"}
+                className={favorito ? "text-warning" : undefined}
+                aria-hidden
+              />
+            </Button>
+          )}
 
-          <Select
-            value={carpetaId ?? "__ninguna__"}
-            onValueChange={(valor) =>
-              setCarpetaId(valor === "__ninguna__" ? null : valor)
-            }
-            items={{
-              __ninguna__: "Sin carpeta",
-              ...Object.fromEntries(
-                carpetas.map((carpeta) => [carpeta.id, carpeta.nombre]),
-              ),
-            }}
-          >
-            <SelectTrigger size="sm">
-              <SelectValue placeholder="Carpeta" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__ninguna__">Sin carpeta</SelectItem>
-              {carpetas.map((carpeta) => (
-                <SelectItem key={carpeta.id} value={carpeta.id}>
-                  <span
-                    className="size-2 rounded-full"
-                    style={{
-                      backgroundColor: resolverColorCarpeta(carpeta.color),
-                    }}
-                    aria-hidden
-                  />
-                  {carpeta.nombre}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select
-            value={visibilidad}
-            onValueChange={(valor) =>
-              setVisibilidad(valor as ApunteVisibilidad)
-            }
-            items={VISIBILIDAD_LABEL}
-          >
-            <SelectTrigger size="sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {(Object.keys(VISIBILIDAD_LABEL) as ApunteVisibilidad[]).map(
-                (clave) => (
-                  <SelectItem key={clave} value={clave}>
-                    {VISIBILIDAD_LABEL[clave]}
-                  </SelectItem>
+          {esOwner ? (
+            <Select
+              value={carpetaId ?? "__ninguna__"}
+              onValueChange={(valor) =>
+                setCarpetaId(valor === "__ninguna__" ? null : valor)
+              }
+              items={{
+                __ninguna__: "Sin carpeta",
+                ...Object.fromEntries(
+                  carpetas.map((carpeta) => [carpeta.id, carpeta.nombre]),
                 ),
-              )}
-            </SelectContent>
-          </Select>
+              }}
+            >
+              <SelectTrigger size="sm">
+                <SelectValue placeholder="Carpeta" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__ninguna__">Sin carpeta</SelectItem>
+                {carpetas.map((carpeta) => (
+                  <SelectItem key={carpeta.id} value={carpeta.id}>
+                    <span
+                      className="size-2 rounded-full"
+                      style={{
+                        backgroundColor: resolverColorCarpeta(carpeta.color),
+                      }}
+                      aria-hidden
+                    />
+                    {carpeta.nombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            carpetaActual && (
+              <Badge variant="secondary">{carpetaActual.nombre}</Badge>
+            )
+          )}
 
-          <Button type="button" onClick={handleGuardar} loading={guardando}>
-            Guardar
-          </Button>
+          {esOwner ? (
+            <Select
+              value={visibilidad}
+              onValueChange={(valor) =>
+                setVisibilidad(valor as ApunteVisibilidad)
+              }
+              items={VISIBILIDAD_LABEL}
+            >
+              <SelectTrigger size="sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(VISIBILIDAD_LABEL) as ApunteVisibilidad[]).map(
+                  (clave) => (
+                    <SelectItem key={clave} value={clave}>
+                      {VISIBILIDAD_LABEL[clave]}
+                    </SelectItem>
+                  ),
+                )}
+              </SelectContent>
+            </Select>
+          ) : (
+            <Badge variant="secondary">{VISIBILIDAD_LABEL[visibilidad]}</Badge>
+          )}
+
+          {!soloLectura && (
+            <Button type="button" onClick={handleGuardar} loading={guardando}>
+              Guardar
+            </Button>
+          )}
         </div>
       </header>
 
@@ -266,10 +306,19 @@ export function ApunteEditor({ carpetas, apunte }: ApunteEditorProps) {
       )}
 
       <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-3 overflow-y-auto px-6 py-8">
+        {!esOwner && (
+          <div className="flex items-center gap-2 rounded-lg border border-dashed border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+            <UsersThreeIcon className="size-4" aria-hidden />
+            Compartido por {autorNombre ?? "otra persona"} ·{" "}
+            {soloLectura ? "Solo lectura" : "Puedes editar"}
+          </div>
+        )}
+
         <input
           value={titulo}
           onChange={(event) => setTitulo(event.target.value)}
           placeholder="Título del apunte"
+          readOnly={soloLectura}
           className="w-full border-none bg-transparent text-2xl font-bold text-foreground outline-none placeholder:text-muted-foreground"
         />
 
@@ -277,44 +326,64 @@ export function ApunteEditor({ carpetas, apunte }: ApunteEditorProps) {
           {etiquetas.map((etiqueta) => (
             <Badge key={etiqueta} variant="secondary">
               {etiqueta}
-              <button
-                type="button"
-                onClick={() => quitarEtiqueta(etiqueta)}
-                aria-label={`Quitar etiqueta ${etiqueta}`}
-                className="ml-0.5"
-              >
-                <XIcon className="size-3" aria-hidden />
-              </button>
+              {!soloLectura && (
+                <button
+                  type="button"
+                  onClick={() => quitarEtiqueta(etiqueta)}
+                  aria-label={`Quitar etiqueta ${etiqueta}`}
+                  className="ml-0.5"
+                >
+                  <XIcon className="size-3" aria-hidden />
+                </button>
+              )}
             </Badge>
           ))}
-          <input
-            value={etiquetaInput}
-            onChange={(event) =>
-              setEtiquetaInput(event.target.value.replace(ETIQUETAS_ROTAS, ""))
-            }
-            onKeyDown={handleEtiquetaKeyDown}
-            onBlur={agregarEtiqueta}
-            placeholder={
-              etiquetas.length === 0 ? "Agregar etiqueta y Enter" : ""
-            }
-            className="min-w-24 flex-1 border-none bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
-          />
+          {!soloLectura && (
+            <input
+              value={etiquetaInput}
+              onChange={(event) =>
+                setEtiquetaInput(
+                  event.target.value.replace(ETIQUETAS_ROTAS, ""),
+                )
+              }
+              onKeyDown={handleEtiquetaKeyDown}
+              onBlur={agregarEtiqueta}
+              placeholder={
+                etiquetas.length === 0 ? "Agregar etiqueta y Enter" : ""
+              }
+              className="min-w-24 flex-1 border-none bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+            />
+          )}
         </div>
 
-        {visibilidad === "group" && (
-          <div className="flex items-center justify-between gap-3 rounded-lg border border-dashed border-border bg-muted/50 px-3 py-2">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <UsersThreeIcon className="size-4" aria-hidden />
-              La coedición en vivo y la invitación a colaboradores llegan
-              pronto.
-            </div>
-            <Button type="button" variant="outline" size="sm" disabled>
-              Invitar colaborador
-            </Button>
+        {visibilidad === "group" && esOwner && (
+          <div className="flex items-center justify-end gap-3 rounded-lg border border-dashed border-border bg-muted/50 px-3 py-2">
+            {apunte?.id ? (
+              <CompartirSheet
+                apunteId={apunte.id}
+                colaboradores={colaboradoresIniciales}
+              />
+            ) : (
+              <Button type="button" variant="outline" size="sm" disabled>
+                Guarda el apunte para invitar colaboradores
+              </Button>
+            )}
           </div>
         )}
 
-        <EditorContent editor={editor} className="flex-1" />
+        {modoColaborativo && apunte ? (
+          <EditorColaborativo
+            apunteId={apunte.id}
+            contenidoInicial={apunte.contenido}
+            onEditorListo={handleEditorListo}
+          />
+        ) : (
+          <EditorEstatico
+            contenido={apunte?.contenido}
+            editable={!soloLectura}
+            onEditorListo={handleEditorListo}
+          />
+        )}
       </div>
     </div>
   );

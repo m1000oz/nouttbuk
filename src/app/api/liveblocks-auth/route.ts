@@ -1,0 +1,78 @@
+import { Liveblocks } from "@liveblocks/node";
+import { NextResponse } from "next/server";
+
+import { createClient } from "@/lib/supabase/server";
+import { colorParaUsuario } from "@/lib/liveblocks/color-usuario";
+
+const liveblocks = new Liveblocks({
+  secret: process.env.LIVEBLOCKS_SECRET_KEY!,
+});
+
+const PREFIJO_SALA = "apunte-";
+
+// La sala de un apunte solo se otorga a su dueño o a un colaborador con
+// permiso "edit" en un apunte de visibilidad "group", repitiendo en el
+// servidor la misma comprobación que ya hace apuntes/[id]/editar/page.tsx
+// para decidir qué UI mostrar (allá) y aquí para decidir si se emite la
+// sesión (la fuente de verdad real de acceso a datos sigue siendo RLS).
+export async function POST(request: Request) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  }
+
+  const { room } = (await request.json()) as { room?: string };
+
+  if (!room || !room.startsWith(PREFIJO_SALA)) {
+    return NextResponse.json({ error: "Sala inválida" }, { status: 400 });
+  }
+
+  const apunteId = room.slice(PREFIJO_SALA.length);
+
+  const { data: apunte } = await supabase
+    .from("apuntes")
+    .select("autor_id, visibilidad")
+    .eq("id", apunteId)
+    .single();
+
+  if (!apunte || apunte.visibilidad !== "group") {
+    return NextResponse.json({ error: "No permitido" }, { status: 403 });
+  }
+
+  let permitido = apunte.autor_id === user.id;
+  if (!permitido) {
+    const { data: colaboracion } = await supabase
+      .from("colaboradores")
+      .select("permiso")
+      .eq("apunte_id", apunteId)
+      .eq("perfil_id", user.id)
+      .maybeSingle();
+    permitido = colaboracion?.permiso === "edit";
+  }
+
+  if (!permitido) {
+    return NextResponse.json({ error: "No permitido" }, { status: 403 });
+  }
+
+  const { data: perfil } = await supabase
+    .from("profiles")
+    .select("nombre, avatar_url")
+    .eq("id", user.id)
+    .single();
+
+  const session = liveblocks.prepareSession(user.id, {
+    userInfo: {
+      name: perfil?.nombre ?? "Estudiante",
+      avatar: perfil?.avatar_url ?? undefined,
+      color: colorParaUsuario(user.id),
+    },
+  });
+  session.allow(room, ["room:write"]);
+
+  const { status, body } = await session.authorize();
+  return new Response(body, { status });
+}

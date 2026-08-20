@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { ApunteEditor } from "@/components/apuntes/apunte-editor";
+import { consultaColaboradores } from "@/lib/colaboradores/consultas";
 
 export default async function EditarApuntePage(
   props: PageProps<"/apuntes/[id]/editar">,
@@ -21,7 +22,7 @@ export default async function EditarApuntePage(
     supabase
       .from("apuntes")
       .select(
-        "id, titulo, contenido, carpeta_id, visibilidad, etiquetas, favorito, autor_id",
+        "id, titulo, contenido, carpeta_id, visibilidad, etiquetas, favorito, autor_id, autor:profiles!apuntes_autor_id_fkey(nombre)",
       )
       .eq("id", id)
       .single(),
@@ -32,11 +33,31 @@ export default async function EditarApuntePage(
       .order("nombre", { ascending: true }),
   ]);
 
-  // No existe, o no es del propio usuario: todavía no hay flujo de
-  // colaboración (todo.md ítem 7) que habilite editar apuntes ajenos.
-  if (!apunte || apunte.autor_id !== user.id) {
+  if (!apunte) {
     notFound();
   }
+
+  const esOwner = apunte.autor_id === user.id;
+
+  // Si no es el autor, el único otro camino de acceso es ser colaborador
+  // invitado (RLS ya lo permite vía private.can_edit_apunte/
+  // can_read_group_apunte, esta consulta solo determina qué UI mostrar).
+  const { data: colaboracion } = esOwner
+    ? { data: null }
+    : await supabase
+        .from("colaboradores")
+        .select("permiso")
+        .eq("apunte_id", id)
+        .eq("perfil_id", user.id)
+        .maybeSingle();
+
+  if (!esOwner && !colaboracion) {
+    notFound();
+  }
+
+  const { data: colaboradores } = esOwner
+    ? await consultaColaboradores(supabase, id)
+    : { data: [] };
 
   return (
     <ApunteEditor
@@ -50,6 +71,9 @@ export default async function EditarApuntePage(
         etiquetas: apunte.etiquetas,
         favorito: apunte.favorito,
       }}
+      permisoActual={esOwner ? "owner" : (colaboracion?.permiso ?? "read")}
+      autorNombre={apunte.autor?.nombre}
+      colaboradoresIniciales={colaboradores ?? []}
     />
   );
 }

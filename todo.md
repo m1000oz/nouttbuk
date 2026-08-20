@@ -6,9 +6,9 @@
 - [x] Implementar el editor de apuntes (Tiptap) y detalle de carpetas académicas.
 - [x] Implementar el feed social (lectura pública sin login), detalle de publicación, reacciones y comentarios.
 - [x] Implementar perfil de estudiante y resumen de contribuciones.
-- [ ] Implementar el flujo de compartir y colaboración con permisos de lectura o edición.
-- [ ] Implementar coedición en tiempo real (Tiptap + Liveblocks) para apuntes `group` con permiso `edit`.
-- [ ] Implementar el board de feedback dentro de la app (separado del feed académico).
+- [x] Implementar el flujo de compartir y colaboración con permisos de lectura o edición.
+- [x] Implementar coedición en tiempo real (Tiptap + Liveblocks) para apuntes `group` con permiso `edit`.
+- [x] Implementar el board de feedback dentro de la app (separado del feed académico).
 - [x] Restringir el registro a correos que terminan en `@pucp.edu.pe` (validación en el signup y a nivel de base de datos).
 - [x] Modelar y aplicar Row Level Security en Supabase para las reglas de visibilidad `private`/`group`/`community`.
 - [ ] Configurar manifest + service worker para instalación como PWA (Android/iOS).

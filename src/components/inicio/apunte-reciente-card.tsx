@@ -11,6 +11,7 @@ type ApunteRecienteCardProps = {
   titulo: string;
   updatedAt: string;
   carpeta?: { nombre: string } | null;
+  propietario?: string;
   index: number;
 };
 
@@ -19,6 +20,7 @@ export function ApunteRecienteCard({
   titulo,
   updatedAt,
   carpeta,
+  propietario,
   index,
 }: ApunteRecienteCardProps) {
   const prefiereMenosMovimiento = useReducedMotion();
@@ -40,9 +42,16 @@ export function ApunteRecienteCard({
           className="border border-border shadow-[var(--shadow-card)] ring-0"
         >
           <CardContent className="flex items-center justify-between gap-3">
-            <span className="truncate text-sm font-medium text-foreground">
-              {titulo}
-            </span>
+            <div className="flex min-w-0 flex-col">
+              <span className="truncate text-sm font-medium text-foreground">
+                {titulo}
+              </span>
+              {propietario && (
+                <span className="truncate text-xs text-muted-foreground">
+                  Compartido por {propietario}
+                </span>
+              )}
+            </div>
             <span className="shrink-0 text-xs text-muted-foreground">
               {carpeta ? `${carpeta.nombre} · ` : ""}
               {fechaRelativa(updatedAt)}

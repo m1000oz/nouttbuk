@@ -20,6 +20,7 @@ type ApunteItem = {
   updatedAt: string;
   carpetaId: string | null;
   favorito: boolean;
+  propietario?: string;
 };
 
 type ApuntesExplorerProps = {
@@ -78,6 +79,7 @@ function ListaApuntes({
           carpeta={
             apunte.carpetaId ? (carpetaPorId[apunte.carpetaId] ?? null) : null
           }
+          propietario={apunte.propietario}
           index={index}
         />
       ))}

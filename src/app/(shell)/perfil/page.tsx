@@ -9,7 +9,7 @@ import { NuevoApunteButton } from "@/components/nav/fab-nuevo-apunte";
 import { PublicacionCard } from "@/components/comunidad/publicacion-card";
 import { PerfilStats } from "@/components/perfil/perfil-stats";
 import { EditarPerfilSheet } from "@/components/perfil/editar-perfil-sheet";
-import { FeedbackStub } from "@/components/perfil/feedback-stub";
+import { FeedbackBoton } from "@/components/perfil/feedback-boton";
 import {
   consultaPublicacionesDeUsuario,
   mapearPublicacionFeed,
@@ -107,7 +107,7 @@ export default async function PerfilPage() {
         contactos={stats?.contactos ?? 0}
       />
 
-      <FeedbackStub />
+      <FeedbackBoton />
 
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-semibold text-muted-foreground">

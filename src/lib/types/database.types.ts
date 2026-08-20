@@ -204,6 +204,74 @@ export type Database = {
           },
         ]
       }
+      feedback: {
+        Row: {
+          autor_id: string
+          created_at: string
+          estado: Database["public"]["Enums"]["feedback_estado"]
+          id: string
+          texto: string
+        }
+        Insert: {
+          autor_id: string
+          created_at?: string
+          estado?: Database["public"]["Enums"]["feedback_estado"]
+          id?: string
+          texto: string
+        }
+        Update: {
+          autor_id?: string
+          created_at?: string
+          estado?: Database["public"]["Enums"]["feedback_estado"]
+          id?: string
+          texto?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feedback_votos: {
+        Row: {
+          created_at: string
+          feedback_id: string
+          id: string
+          perfil_id: string
+        }
+        Insert: {
+          created_at?: string
+          feedback_id: string
+          id?: string
+          perfil_id: string
+        }
+        Update: {
+          created_at?: string
+          feedback_id?: string
+          id?: string
+          perfil_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_votos_feedback_id_fkey"
+            columns: ["feedback_id"]
+            isOneToOne: false
+            referencedRelation: "feedback"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedback_votos_perfil_id_fkey"
+            columns: ["perfil_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guardados: {
         Row: {
           created_at: string
@@ -360,6 +428,7 @@ export type Database = {
     }
     Enums: {
       apunte_visibilidad: "private" | "group" | "community"
+      feedback_estado: "nueva" | "en_revision" | "hecho"
       permiso_colaborador: "read" | "edit"
     }
     CompositeTypes: {
@@ -492,6 +561,7 @@ export const Constants = {
   public: {
     Enums: {
       apunte_visibilidad: ["private", "group", "community"],
+      feedback_estado: ["nueva", "en_revision", "hecho"],
       permiso_colaborador: ["read", "edit"],
     },
   },

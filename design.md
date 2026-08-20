@@ -32,7 +32,7 @@ La aplicación es responsiva de verdad, no una adaptación de la app móvil: nav
 | **Tomar un apunte** | Inicio o Mis apuntes → "Nuevo apunte" → editar título y contenido → elegir carpeta → elegir visibilidad → guardar. |
 | **Clasificar apuntes** | Mis apuntes → filtrar por materia (Detalle de carpeta) o por tab (favoritos/compartidos). |
 | **Crear una carpeta** | Mis apuntes → "Nueva carpeta" → nombrar materia y elegir color → crear. |
-| **Compartir con estudiantes** | Editor → visibilidad "Grupo" o "Comunidad" → si es Grupo, "Invitar colaborador" → usuario/correo + permiso de lectura o edición. |
+| **Compartir con estudiantes** | Editor → visibilidad "Grupo" o "Comunidad" → si es Grupo, "Invitar colaborador" → nombre de usuario + permiso de lectura o edición. |
 | **Coeditar un apunte de grupo** | Abrir un apunte con colaboradores → el editor muestra quién más está editando en vivo, sin pasos extra. |
 | **Descubrir material útil** | Comunidad → abrir una publicación → reaccionar, guardar o comentar. |
 | **Proponer una idea** | Perfil → "Enviar feedback" → board de feedback → escribir y enviar. |
