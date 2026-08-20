@@ -6,14 +6,21 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Highlight from "@tiptap/extension-highlight";
-import TextStyle from "@tiptap/extension-text-style";
 import Color from "@tiptap/extension-color";
+import FontFamily from "@tiptap/extension-font-family";
 import TiptapLink from "@tiptap/extension-link";
+import TextAlign from "@tiptap/extension-text-align";
+import Image from "@tiptap/extension-image";
+import Table from "@tiptap/extension-table";
+import TableRow from "@tiptap/extension-table-row";
+import TableCell from "@tiptap/extension-table-cell";
+import TableHeader from "@tiptap/extension-table-header";
 import { ChatCircleIcon, ShareNetworkIcon, XIcon } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { fechaRelativa } from "@/lib/fecha/relativa";
+import { FontSize } from "@/lib/tiptap/font-size-extension";
 import { ReaccionBoton } from "@/components/comunidad/reaccion-boton";
 import { GuardarBoton } from "@/components/comunidad/guardar-boton";
 import { ComentarioForm } from "@/components/comunidad/comentario-form";
@@ -80,10 +87,17 @@ export function DetallePublicacion({
     extensions: [
       StarterKit,
       Underline,
-      TextStyle,
+      FontSize,
       Color,
+      FontFamily,
       Highlight.configure({ multicolor: true }),
       TiptapLink.configure({ openOnClick: true, autolink: true }),
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      Image,
+      Table.configure({ resizable: false }),
+      TableRow,
+      TableHeader,
+      TableCell,
     ],
     content: publicacion.contenido as object,
     editable: false,

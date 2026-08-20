@@ -1,20 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { type ChangeEvent, useRef, useState } from "react";
 import { useEditorState, type Editor } from "@tiptap/react";
 import {
+  ImageIcon,
   ListBulletsIcon,
   ListNumbersIcon,
   LinkSimpleIcon,
   ParagraphIcon,
   QuotesIcon,
+  TableIcon,
   TextAaIcon,
+  TextAlignCenterIcon,
+  TextAlignJustifyIcon,
+  TextAlignLeftIcon,
+  TextAlignRightIcon,
   TextBIcon,
   TextHOneIcon,
   TextHTwoIcon,
   TextHThreeIcon,
   TextItalicIcon,
   TextStrikethroughIcon,
+  TextTIcon,
   TextUnderlineIcon,
 } from "@phosphor-icons/react";
 
@@ -25,11 +32,36 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { createClient } from "@/lib/supabase/client";
 import { COLORES_CARPETA, type ColorCarpeta } from "@/lib/carpetas/colores";
+import { cn } from "@/lib/utils";
 
 type EditorToolbarProps = {
   editor: Editor | null;
 };
+
+const TAMANO_MAXIMO_IMAGEN = 5 * 1024 * 1024;
+
+const FUENTES: { label: string; valor: string | null; familia: string }[] = [
+  { label: "Predeterminada", valor: null, familia: "inherit" },
+  {
+    label: "Serif",
+    valor: "Georgia, 'Times New Roman', serif",
+    familia: "Georgia, 'Times New Roman', serif",
+  },
+  {
+    label: "Monoespaciada",
+    valor: "'Courier New', monospace",
+    familia: "'Courier New', monospace",
+  },
+];
+
+const TAMANOS: { label: string; valor: string | null }[] = [
+  { label: "Pequeño", valor: "12px" },
+  { label: "Normal", valor: null },
+  { label: "Grande", valor: "20px" },
+  { label: "Muy grande", valor: "28px" },
+];
 
 // editor.isActive(...)/editor.storage no son reactivos por sí solos: Tiptap
 // muta su estado interno fuera del ciclo de React, así que sin
@@ -55,6 +87,17 @@ function useEstadoEditor(editor: Editor | null) {
         cita: ed.isActive("blockquote"),
         enlace: ed.isActive("link"),
         urlEnlace: ed.getAttributes("link").href as string | undefined,
+        alinIzquierda: ed.isActive({ textAlign: "left" }),
+        alinCentro: ed.isActive({ textAlign: "center" }),
+        alinDerecha: ed.isActive({ textAlign: "right" }),
+        alinJustificado: ed.isActive({ textAlign: "justify" }),
+        fuenteActual: ed.getAttributes("textStyle").fontFamily as
+          | string
+          | undefined,
+        tamanoActual: ed.getAttributes("textStyle").fontSize as
+          | string
+          | undefined,
+        puedeInsertarTabla: ed.can().insertTable(),
         palabras: ed.storage.characterCount?.words() ?? 0,
         caracteres: ed.storage.characterCount?.characters() ?? 0,
       };
@@ -68,11 +111,13 @@ function Divisor() {
 
 function BotonToolbar({
   activo,
+  disabled,
   onClick,
   label,
   children,
 }: {
   activo?: boolean;
+  disabled?: boolean;
   onClick: () => void;
   label: string;
   children: React.ReactNode;
@@ -84,6 +129,7 @@ function BotonToolbar({
       size="icon-sm"
       aria-label={label}
       aria-pressed={activo}
+      disabled={disabled}
       onClick={onClick}
     >
       {children}
@@ -211,6 +257,187 @@ function SelectorEnlace({
   );
 }
 
+function SelectorFuente({
+  editor,
+  activo,
+}: {
+  editor: Editor;
+  activo: string | undefined;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger
+        render={
+          <Button type="button" variant="ghost" size="icon-sm" aria-label="Fuente" />
+        }
+      >
+        <TextTIcon aria-hidden />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-44 p-1">
+        {FUENTES.map((fuente) => (
+          <button
+            key={fuente.label}
+            type="button"
+            style={{ fontFamily: fuente.familia }}
+            className={cn(
+              "w-full rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted",
+              activo === fuente.valor && "bg-muted font-medium",
+            )}
+            onClick={() => {
+              if (fuente.valor) {
+                editor.chain().focus().setFontFamily(fuente.valor).run();
+              } else {
+                editor.chain().focus().unsetFontFamily().run();
+              }
+              setOpen(false);
+            }}
+          >
+            {fuente.label}
+          </button>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function SelectorTamano({
+  editor,
+  activo,
+}: {
+  editor: Editor;
+  activo: string | undefined;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Tamaño de texto"
+          />
+        }
+      >
+        <TextAaIcon aria-hidden />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-36 p-1">
+        {TAMANOS.map((tamano) => (
+          <button
+            key={tamano.label}
+            type="button"
+            className={cn(
+              "w-full rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted",
+              activo === tamano.valor && "bg-muted font-medium",
+            )}
+            onClick={() => {
+              if (tamano.valor) {
+                editor.chain().focus().setFontSize(tamano.valor).run();
+              } else {
+                editor.chain().focus().unsetFontSize().run();
+              }
+              setOpen(false);
+            }}
+          >
+            {tamano.label}
+          </button>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+// Sube la imagen al bucket apunte-imagenes (público, mismo modelo de RLS que
+// avatars: escritura solo dentro de la propia carpeta {user_id}/...) y la
+// inserta en el punto del cursor. No hace falta pasar el id del usuario
+// desde el padre, se resuelve acá mismo con getUser(), igual que otras
+// mutaciones puntuales de este proyecto (CarpetaSheet, etc.).
+function BotonImagen({ editor }: { editor: Editor }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [subiendo, setSubiendo] = useState(false);
+  const [error, setError] = useState(false);
+
+  async function handleFile(event: ChangeEvent<HTMLInputElement>) {
+    const archivo = event.target.files?.[0];
+    event.target.value = "";
+    if (!archivo) return;
+
+    if (!archivo.type.startsWith("image/")) {
+      setError(true);
+      return;
+    }
+    if (archivo.size > TAMANO_MAXIMO_IMAGEN) {
+      setError(true);
+      return;
+    }
+
+    setError(false);
+    setSubiendo(true);
+
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      setSubiendo(false);
+      setError(true);
+      return;
+    }
+
+    const extension = archivo.name.split(".").pop() ?? "jpg";
+    const ruta = `${user.id}/${Date.now()}.${extension}`;
+
+    const { error: subidaError } = await supabase.storage
+      .from("apunte-imagenes")
+      .upload(ruta, archivo);
+
+    setSubiendo(false);
+
+    if (subidaError) {
+      setError(true);
+      return;
+    }
+
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("apunte-imagenes").getPublicUrl(ruta);
+
+    editor.chain().focus().setImage({ src: publicUrl }).run();
+  }
+
+  return (
+    <>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        aria-label="Insertar imagen"
+        loading={subiendo}
+        onClick={() => inputRef.current?.click()}
+      >
+        <ImageIcon aria-hidden />
+      </Button>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFile}
+      />
+      {error && (
+        <span className="sr-only" role="alert">
+          No se pudo insertar la imagen.
+        </span>
+      )}
+    </>
+  );
+}
+
 // Barra de formato del editor: solo aparece cuando el documento es editable
 // (nunca en modo solo lectura). Reutiliza la paleta de colores de carpeta
 // (src/lib/carpetas/colores.ts) para resaltado y color de texto en vez de
@@ -284,6 +511,11 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
 
       <Divisor />
 
+      <SelectorFuente editor={editor} activo={estado.fuenteActual} />
+      <SelectorTamano editor={editor} activo={estado.tamanoActual} />
+
+      <Divisor />
+
       <SelectorColor
         label="Resaltado"
         icon={<TextAaIcon className="rounded bg-warning/30" aria-hidden />}
@@ -296,6 +528,37 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
         onElegir={(hex) => editor.chain().focus().setColor(hex).run()}
         onQuitar={() => editor.chain().focus().unsetColor().run()}
       />
+
+      <Divisor />
+
+      <BotonToolbar
+        label="Alinear a la izquierda"
+        activo={estado.alinIzquierda}
+        onClick={() => editor.chain().focus().setTextAlign("left").run()}
+      >
+        <TextAlignLeftIcon aria-hidden />
+      </BotonToolbar>
+      <BotonToolbar
+        label="Centrar"
+        activo={estado.alinCentro}
+        onClick={() => editor.chain().focus().setTextAlign("center").run()}
+      >
+        <TextAlignCenterIcon aria-hidden />
+      </BotonToolbar>
+      <BotonToolbar
+        label="Alinear a la derecha"
+        activo={estado.alinDerecha}
+        onClick={() => editor.chain().focus().setTextAlign("right").run()}
+      >
+        <TextAlignRightIcon aria-hidden />
+      </BotonToolbar>
+      <BotonToolbar
+        label="Justificar"
+        activo={estado.alinJustificado}
+        onClick={() => editor.chain().focus().setTextAlign("justify").run()}
+      >
+        <TextAlignJustifyIcon aria-hidden />
+      </BotonToolbar>
 
       <Divisor />
 
@@ -324,6 +587,20 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
       <Divisor />
 
       <SelectorEnlace editor={editor} activo={estado.enlace} urlActual={estado.urlEnlace} />
+      <BotonImagen editor={editor} />
+      <BotonToolbar
+        label="Insertar tabla"
+        disabled={!estado.puedeInsertarTabla}
+        onClick={() =>
+          editor
+            .chain()
+            .focus()
+            .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+            .run()
+        }
+      >
+        <TableIcon aria-hidden />
+      </BotonToolbar>
     </div>
   );
 }

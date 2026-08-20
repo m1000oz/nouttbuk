@@ -307,94 +307,106 @@ export function ApunteEditor({
 
       {!soloLectura && <EditorToolbar editor={editorInstancia} />}
 
-      {error && (
-        <p
-          role="alert"
-          className="mx-auto mt-3 w-full max-w-2xl rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"
-        >
-          {error}
-        </p>
-      )}
+      {/* Un único contenedor con scroll para metadata + hoja: así se
+          desplazan juntos y el lienzo de fondo se extiende naturalmente
+          hasta donde termine el contenido, sin dos barras de scroll. */}
+      <div className="flex flex-1 flex-col overflow-y-auto">
+        <div className="mx-auto flex w-full max-w-[794px] flex-col gap-3 px-6 pt-8">
+          {error && (
+            <p
+              role="alert"
+              className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"
+            >
+              {error}
+            </p>
+          )}
 
-      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-3 overflow-y-auto px-6 py-8">
-        {!esOwner && (
-          <div className="flex items-center gap-2 rounded-lg border border-dashed border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
-            <UsersThreeIcon className="size-4" aria-hidden />
-            Compartido por {autorNombre ?? "otra persona"} ·{" "}
-            {soloLectura ? "Solo lectura" : "Puedes editar"}
+          {!esOwner && (
+            <div className="flex items-center gap-2 rounded-lg border border-dashed border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+              <UsersThreeIcon className="size-4" aria-hidden />
+              Compartido por {autorNombre ?? "otra persona"} ·{" "}
+              {soloLectura ? "Solo lectura" : "Puedes editar"}
+            </div>
+          )}
+
+          <input
+            value={titulo}
+            onChange={(event) => setTitulo(event.target.value)}
+            placeholder="Título del apunte"
+            readOnly={soloLectura}
+            className="w-full border-none bg-transparent text-2xl font-bold text-foreground outline-none placeholder:text-muted-foreground"
+          />
+
+          <div className="flex flex-wrap items-center gap-1.5">
+            {etiquetas.map((etiqueta) => (
+              <Badge key={etiqueta} variant="secondary">
+                {etiqueta}
+                {!soloLectura && (
+                  <button
+                    type="button"
+                    onClick={() => quitarEtiqueta(etiqueta)}
+                    aria-label={`Quitar etiqueta ${etiqueta}`}
+                    className="ml-0.5"
+                  >
+                    <XIcon className="size-3" aria-hidden />
+                  </button>
+                )}
+              </Badge>
+            ))}
+            {!soloLectura && (
+              <input
+                value={etiquetaInput}
+                onChange={(event) =>
+                  setEtiquetaInput(
+                    event.target.value.replace(ETIQUETAS_ROTAS, ""),
+                  )
+                }
+                onKeyDown={handleEtiquetaKeyDown}
+                onBlur={agregarEtiqueta}
+                placeholder={
+                  etiquetas.length === 0 ? "Agregar etiqueta y Enter" : ""
+                }
+                className="min-w-24 flex-1 border-none bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+              />
+            )}
           </div>
-        )}
 
-        <input
-          value={titulo}
-          onChange={(event) => setTitulo(event.target.value)}
-          placeholder="Título del apunte"
-          readOnly={soloLectura}
-          className="w-full border-none bg-transparent text-2xl font-bold text-foreground outline-none placeholder:text-muted-foreground"
-        />
-
-        <div className="flex flex-wrap items-center gap-1.5">
-          {etiquetas.map((etiqueta) => (
-            <Badge key={etiqueta} variant="secondary">
-              {etiqueta}
-              {!soloLectura && (
-                <button
-                  type="button"
-                  onClick={() => quitarEtiqueta(etiqueta)}
-                  aria-label={`Quitar etiqueta ${etiqueta}`}
-                  className="ml-0.5"
-                >
-                  <XIcon className="size-3" aria-hidden />
-                </button>
+          {visibilidad === "group" && esOwner && (
+            <div className="flex items-center justify-end gap-3 rounded-lg border border-dashed border-border bg-muted/50 px-3 py-2">
+              {apunte?.id ? (
+                <CompartirSheet
+                  apunteId={apunte.id}
+                  colaboradores={colaboradoresIniciales}
+                />
+              ) : (
+                <Button type="button" variant="outline" size="sm" disabled>
+                  Guarda el apunte para invitar colaboradores
+                </Button>
               )}
-            </Badge>
-          ))}
-          {!soloLectura && (
-            <input
-              value={etiquetaInput}
-              onChange={(event) =>
-                setEtiquetaInput(
-                  event.target.value.replace(ETIQUETAS_ROTAS, ""),
-                )
-              }
-              onKeyDown={handleEtiquetaKeyDown}
-              onBlur={agregarEtiqueta}
-              placeholder={
-                etiquetas.length === 0 ? "Agregar etiqueta y Enter" : ""
-              }
-              className="min-w-24 flex-1 border-none bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
-            />
+            </div>
           )}
         </div>
 
-        {visibilidad === "group" && esOwner && (
-          <div className="flex items-center justify-end gap-3 rounded-lg border border-dashed border-border bg-muted/50 px-3 py-2">
-            {apunte?.id ? (
-              <CompartirSheet
+        {/* El lienzo (fondo con tinte índigo) y la hoja (siempre blanca,
+            forma A4) le dan al editor la sensación de "hoja de papel" en vez
+            de una cartulina infinita del mismo color que el resto de la app. */}
+        <div className="lienzo-editor mt-6 flex flex-1 justify-center px-4 py-10 sm:px-8">
+          <div className="hoja-editor min-h-[600px] w-full max-w-[794px] rounded-sm px-6 py-10 sm:min-h-[900px] sm:px-14 sm:py-14 lg:min-h-[1123px] lg:px-20 lg:py-16">
+            {modoColaborativo && apunte ? (
+              <EditorColaborativo
                 apunteId={apunte.id}
-                colaboradores={colaboradoresIniciales}
+                contenidoInicial={apunte.contenido}
+                onEditorListo={handleEditorListo}
               />
             ) : (
-              <Button type="button" variant="outline" size="sm" disabled>
-                Guarda el apunte para invitar colaboradores
-              </Button>
+              <EditorEstatico
+                contenido={apunte?.contenido}
+                editable={!soloLectura}
+                onEditorListo={handleEditorListo}
+              />
             )}
           </div>
-        )}
-
-        {modoColaborativo && apunte ? (
-          <EditorColaborativo
-            apunteId={apunte.id}
-            contenidoInicial={apunte.contenido}
-            onEditorListo={handleEditorListo}
-          />
-        ) : (
-          <EditorEstatico
-            contenido={apunte?.contenido}
-            editable={!soloLectura}
-            onEditorListo={handleEditorListo}
-          />
-        )}
+        </div>
       </div>
 
       {!soloLectura && <EditorContadorPalabras editor={editorInstancia} />}

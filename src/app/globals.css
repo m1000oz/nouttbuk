@@ -112,6 +112,12 @@
   /* Sombra sutil de dos capas para cards (spec: borde 1px + sombra). */
   --shadow-card:
     0 1px 2px rgb(15 23 42 / 0.04), 0 4px 12px rgb(15 23 42 / 0.06);
+
+  /* Sombra de la "hoja" del editor: a diferencia de --shadow-card, no se
+     apaga en modo oscuro, porque la hoja en sí siempre es blanca (ver
+     .hoja-editor) y necesita despegarse del lienzo detrás en los dos temas. */
+  --shadow-pagina:
+    0 2px 6px rgb(15 23 42 / 0.1), 0 20px 45px rgb(15 23 42 / 0.14);
 }
 
 .dark {
@@ -152,6 +158,11 @@
   /* Sobre superficie oscura una sombra tan sutil casi no se ve, así que el
      tratamiento queda liderado por el borde de la card en vez de la sombra. */
   --shadow-card: none;
+
+  /* Más marcada que en claro: la hoja blanca necesita una sombra fuerte
+     para leerse como "objeto flotando" sobre un fondo oscuro. */
+  --shadow-pagina:
+    0 2px 8px rgb(0 0 0 / 0.4), 0 24px 55px rgb(0 0 0 / 0.5);
 }
 
 @layer base {
@@ -256,5 +267,59 @@
     color: var(--primary);
     text-decoration-line: underline;
     text-underline-offset: 0.15em;
+  }
+  .tiptap-content table {
+    width: 100%;
+    margin-block: 0.75em;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  .tiptap-content th,
+  .tiptap-content td {
+    border: 1px solid var(--border);
+    padding: 0.4em 0.6em;
+    text-align: start;
+    vertical-align: top;
+  }
+  .tiptap-content th {
+    background: var(--muted);
+    font-weight: 600;
+  }
+  .tiptap-content img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--radius-md);
+    margin-block: 0.5em;
+  }
+
+  /* Lienzo detrás de la hoja del editor: un tinte muy suave del color
+     primario de la marca sobre el fondo, no un gris neutro genérico. */
+  .lienzo-editor {
+    background: color-mix(in oklch, var(--primary) 6%, var(--background));
+  }
+  .dark .lienzo-editor {
+    background: color-mix(in oklch, var(--primary) 10%, var(--background));
+  }
+
+  /* La hoja en sí: siempre blanca con tinta oscura fija, como una hoja
+     impresa, sin seguir el tema oscuro de la interfaz alrededor. Las reglas
+     de tabla de arriba usan tokens de tema (var(--muted)/var(--border)) para
+     el caso de solo-lectura fuera de la hoja (detalle de publicación); acá
+     adentro se fuerzan a los valores claros para que el encabezado de tabla
+     nunca quede con texto oscuro sobre fondo oscuro en modo oscuro. */
+  .hoja-editor {
+    background: #ffffff;
+    box-shadow: var(--shadow-pagina);
+  }
+  .hoja-editor .tiptap-content {
+    color: #1e293b;
+  }
+  .hoja-editor .tiptap-content th {
+    background: #f1f5f9;
+  }
+  .hoja-editor .tiptap-content th,
+  .hoja-editor .tiptap-content td {
+    border-color: #e2e8f0;
   }
 }

@@ -15,9 +15,15 @@ import { useEditor, EditorContent, getSchema, type Editor } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Highlight from "@tiptap/extension-highlight";
-import TextStyle from "@tiptap/extension-text-style";
 import Color from "@tiptap/extension-color";
+import FontFamily from "@tiptap/extension-font-family";
 import Link from "@tiptap/extension-link";
+import TextAlign from "@tiptap/extension-text-align";
+import Image from "@tiptap/extension-image";
+import Table from "@tiptap/extension-table";
+import TableRow from "@tiptap/extension-table-row";
+import TableCell from "@tiptap/extension-table-cell";
+import TableHeader from "@tiptap/extension-table-header";
 import CharacterCount from "@tiptap/extension-character-count";
 import Collaboration from "@tiptap/extension-collaboration";
 import CollaborationCursor from "@tiptap/extension-collaboration-cursor";
@@ -30,6 +36,7 @@ import {
   AvatarGroup,
 } from "@/components/ui/avatar";
 import { colorParaUsuario } from "@/lib/liveblocks/color-usuario";
+import { FontSize } from "@/lib/tiptap/font-size-extension";
 import type { Json } from "@/lib/types/database.types";
 
 // Tiene que coincidir con editor-estatico.tsx y detalle-publicacion.tsx: si
@@ -40,10 +47,17 @@ import type { Json } from "@/lib/types/database.types";
 const EXTENSIONES_ESQUEMA = [
   StarterKit.configure({ history: false }),
   Underline,
-  TextStyle,
+  FontSize,
   Color,
+  FontFamily,
   Highlight.configure({ multicolor: true }),
   Link.configure({ openOnClick: false, autolink: true }),
+  TextAlign.configure({ types: ["heading", "paragraph"] }),
+  Image,
+  Table.configure({ resizable: false }),
+  TableRow,
+  TableHeader,
+  TableCell,
   CharacterCount,
 ];
 
