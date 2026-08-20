@@ -6,9 +6,15 @@ select plan(4);
 
 -- Un correo que no termina en @pucp.edu.pe debe ser rechazado por el
 -- trigger de base de datos, sin importar el camino de creación del usuario.
+-- El trigger (20260817204401_auth_domain_restriction.sql) fuerza
+-- explícitamente `using errcode = 'check_violation'` para que el cliente lo
+-- vea como una violación de CHECK genuina en vez del P0001 por defecto de
+-- plpgsql; el código real es 23514 (check_violation), no P0001. El propio
+-- trigger siempre funcionó bien, era el código esperado acá el que estaba
+-- desactualizado.
 select throws_ok(
   $$ insert into auth.users (id, email) values (gen_random_uuid(), 'estudiante@gmail.com') $$,
-  'P0001',
+  '23514',
   'El registro solo está permitido con un correo institucional @pucp.edu.pe'
 );
 

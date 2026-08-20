@@ -11,9 +11,9 @@
 - [x] Implementar el board de feedback dentro de la app (separado del feed académico).
 - [x] Restringir el registro a correos que terminan en `@pucp.edu.pe` (validación en el signup y a nivel de base de datos).
 - [x] Modelar y aplicar Row Level Security en Supabase para las reglas de visibilidad `private`/`group`/`community`.
-- [ ] Configurar manifest + service worker para instalación como PWA (Android/iOS).
-- [ ] Generar el icono de Nouttbuk y aplicar el branding (favicon, manifest, meta tags).
-- [ ] Añadir pruebas, comprobar tipos y validar los flujos clave.
+- [x] Configurar manifest + service worker para instalación como PWA (Android/iOS).
+- [x] Generar el icono de Nouttbuk y aplicar el branding (favicon, manifest, meta tags).
+- [x] Añadir pruebas, comprobar tipos y validar los flujos clave.
 
 ## Diferido a v2.0 (no construir en el MVP)
 
