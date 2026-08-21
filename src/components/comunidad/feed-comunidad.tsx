@@ -16,11 +16,15 @@ import { PublicacionCard } from "@/components/comunidad/publicacion-card";
 type FeedComunidadProps = {
   publicacionesIniciales: PublicacionCardData[];
   hayMasIniciales: boolean;
+  carreraId?: string;
+  cursoId?: string;
 };
 
 export function FeedComunidad({
   publicacionesIniciales,
   hayMasIniciales,
+  carreraId,
+  cursoId,
 }: FeedComunidadProps) {
   const [publicaciones, setPublicaciones] = useState(publicacionesIniciales);
   const [hayMas, setHayMas] = useState(hayMasIniciales);
@@ -32,7 +36,10 @@ export function FeedComunidad({
     const from = publicaciones.length;
     const to = from + TAMANIO_PAGINA - 1;
 
-    const { data } = await consultaFeedComunidad(supabase, from, to);
+    const { data } = await consultaFeedComunidad(supabase, from, to, {
+      carreraId,
+      cursoId,
+    });
     const filas = data ?? [];
 
     let conteosPorId = new Map<string, ConteosPublicacion>();

@@ -40,6 +40,7 @@ export type Database = {
           carpeta_id: string | null
           contenido: Json
           created_at: string
+          curso_id: string | null
           etiquetas: string[]
           favorito: boolean
           id: string
@@ -52,6 +53,7 @@ export type Database = {
           carpeta_id?: string | null
           contenido?: Json
           created_at?: string
+          curso_id?: string | null
           etiquetas?: string[]
           favorito?: boolean
           id?: string
@@ -64,6 +66,7 @@ export type Database = {
           carpeta_id?: string | null
           contenido?: Json
           created_at?: string
+          curso_id?: string | null
           etiquetas?: string[]
           favorito?: boolean
           id?: string
@@ -84,6 +87,13 @@ export type Database = {
             columns: ["carpeta_id"]
             isOneToOne: false
             referencedRelation: "carpetas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "apuntes_curso_id_fkey"
+            columns: ["curso_id"]
+            isOneToOne: false
+            referencedRelation: "cursos"
             referencedColumns: ["id"]
           },
         ]
@@ -128,6 +138,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      carreras: {
+        Row: {
+          facultad: string
+          id: string
+          nombre: string
+        }
+        Insert: {
+          facultad: string
+          id?: string
+          nombre: string
+        }
+        Update: {
+          facultad?: string
+          id?: string
+          nombre?: string
+        }
+        Relationships: []
       }
       colaboradores: {
         Row: {
@@ -200,6 +228,32 @@ export type Database = {
             columns: ["publicacion_id"]
             isOneToOne: false
             referencedRelation: "publicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cursos: {
+        Row: {
+          carrera_id: string
+          id: string
+          nombre: string
+        }
+        Insert: {
+          carrera_id: string
+          id?: string
+          nombre: string
+        }
+        Update: {
+          carrera_id?: string
+          id?: string
+          nombre?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cursos_carrera_id_fkey"
+            columns: ["carrera_id"]
+            isOneToOne: false
+            referencedRelation: "carreras"
             referencedColumns: ["id"]
           },
         ]
@@ -311,7 +365,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
-          carrera: string | null
+          carrera_id: string | null
           created_at: string
           id: string
           nombre: string
@@ -322,7 +376,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
-          carrera?: string | null
+          carrera_id?: string | null
           created_at?: string
           id: string
           nombre: string
@@ -333,7 +387,7 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
-          carrera?: string | null
+          carrera_id?: string | null
           created_at?: string
           id?: string
           nombre?: string
@@ -342,7 +396,15 @@ export type Database = {
           usuario?: string
           usuario_actualizado_en?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_carrera_id_fkey"
+            columns: ["carrera_id"]
+            isOneToOne: false
+            referencedRelation: "carreras"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       publicaciones: {
         Row: {

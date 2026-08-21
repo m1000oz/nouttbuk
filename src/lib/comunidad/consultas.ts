@@ -5,15 +5,24 @@ import { extraerTextoPlano } from "@/lib/tiptap/extraer-texto-plano";
 
 export const TAMANIO_PAGINA = 12;
 
+export type FiltrosFeedComunidad = {
+  carreraId?: string;
+  cursoId?: string;
+};
+
 // Compartida entre el render inicial (Server Component) y "Cargar más"
 // (Client Component) para que ambas páginas del feed tengan exactamente la
-// misma forma de consulta.
+// misma forma de consulta. autor pasa a !inner (no cambia el resultado sin
+// filtro, autor_id es not null) porque un filtro por carrera necesita que
+// PostgREST excluya la fila top-level cuando el embed no matchea, no solo
+// devolver el embed vacío.
 export function consultaFeedComunidad(
   supabase: SupabaseClient<Database>,
   from: number,
   to: number,
+  filtros: FiltrosFeedComunidad = {},
 ) {
-  return supabase
+  let query = supabase
     .from("publicaciones")
     .select(
       `
@@ -24,12 +33,22 @@ export function consultaFeedComunidad(
         titulo,
         contenido,
         created_at,
-        autor:profiles!apuntes_autor_id_fkey(id, nombre, usuario, avatar_url)
+        curso:cursos(nombre),
+        autor:profiles!apuntes_autor_id_fkey!inner(id, nombre, usuario, avatar_url, carrera_id)
       )
     `,
     )
     .order("created_at", { ascending: false })
     .range(from, to);
+
+  if (filtros.carreraId) {
+    query = query.eq("apunte.autor.carrera_id", filtros.carreraId);
+  }
+  if (filtros.cursoId) {
+    query = query.eq("apunte.curso_id", filtros.cursoId);
+  }
+
+  return query;
 }
 
 // Las publicaciones community de un usuario, para la sección "Apuntes
@@ -51,7 +70,8 @@ export function consultaPublicacionesDeUsuario(
         titulo,
         contenido,
         created_at,
-        autor:profiles!apuntes_autor_id_fkey(id, nombre, usuario, avatar_url)
+        curso:cursos(nombre),
+        autor:profiles!apuntes_autor_id_fkey!inner(id, nombre, usuario, avatar_url, carrera_id)
       )
     `,
     )
@@ -76,6 +96,7 @@ export type PublicacionCardData = {
   extracto: string;
   createdAt: string;
   autor: { nombre: string; usuario: string; avatarUrl: string | null };
+  curso: string | null;
   conteos: ConteosPublicacion;
 };
 
@@ -101,6 +122,7 @@ export function mapearPublicacionFeed(
       usuario: fila.apunte.autor?.usuario ?? "",
       avatarUrl: fila.apunte.autor?.avatar_url ?? null,
     },
+    curso: fila.apunte.curso?.nombre ?? null,
     conteos: conteosPorId.get(fila.id) ?? CONTEOS_VACIOS,
   };
 }

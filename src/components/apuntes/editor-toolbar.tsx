@@ -105,8 +105,16 @@ function useEstadoEditor(editor: Editor | null) {
   });
 }
 
-function Divisor() {
-  return <div className="mx-0.5 h-5 w-px shrink-0 bg-border" aria-hidden />;
+// Agrupa controles relacionados en un mismo "chip" visual (fondo sutil +
+// radio), para que la jerarquía de la barra se lea por agrupación en vez de
+// por líneas divisorias sueltas, y para que un grupo entero pase a la
+// siguiente línea junto al hacer wrap en vez de partirse a la mitad.
+function GrupoToolbar({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-0.5 rounded-md border border-border/70 bg-muted/60 px-1 py-0.5">
+      {children}
+    </div>
+  );
 }
 
 function BotonToolbar({
@@ -448,159 +456,161 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
   if (!editor || !editor.isEditable || !estado) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-0.5 border-b border-border px-4 py-1.5">
-      <BotonToolbar
-        label="Párrafo"
-        activo={estado.parrafo}
-        onClick={() => editor.chain().focus().setParagraph().run()}
-      >
-        <ParagraphIcon aria-hidden />
-      </BotonToolbar>
-      <BotonToolbar
-        label="Encabezado 1"
-        activo={estado.h1}
-        onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-      >
-        <TextHOneIcon aria-hidden />
-      </BotonToolbar>
-      <BotonToolbar
-        label="Encabezado 2"
-        activo={estado.h2}
-        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-      >
-        <TextHTwoIcon aria-hidden />
-      </BotonToolbar>
-      <BotonToolbar
-        label="Encabezado 3"
-        activo={estado.h3}
-        onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-      >
-        <TextHThreeIcon aria-hidden />
-      </BotonToolbar>
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-border px-4 py-1.5">
+      <GrupoToolbar>
+        <BotonToolbar
+          label="Párrafo"
+          activo={estado.parrafo}
+          onClick={() => editor.chain().focus().setParagraph().run()}
+        >
+          <ParagraphIcon aria-hidden />
+        </BotonToolbar>
+        <BotonToolbar
+          label="Encabezado 1"
+          activo={estado.h1}
+          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+        >
+          <TextHOneIcon aria-hidden />
+        </BotonToolbar>
+        <BotonToolbar
+          label="Encabezado 2"
+          activo={estado.h2}
+          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+        >
+          <TextHTwoIcon aria-hidden />
+        </BotonToolbar>
+        <BotonToolbar
+          label="Encabezado 3"
+          activo={estado.h3}
+          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+        >
+          <TextHThreeIcon aria-hidden />
+        </BotonToolbar>
+      </GrupoToolbar>
 
-      <Divisor />
+      <GrupoToolbar>
+        <BotonToolbar
+          label="Negrita"
+          activo={estado.bold}
+          onClick={() => editor.chain().focus().toggleBold().run()}
+        >
+          <TextBIcon aria-hidden />
+        </BotonToolbar>
+        <BotonToolbar
+          label="Cursiva"
+          activo={estado.italic}
+          onClick={() => editor.chain().focus().toggleItalic().run()}
+        >
+          <TextItalicIcon aria-hidden />
+        </BotonToolbar>
+        <BotonToolbar
+          label="Subrayado"
+          activo={estado.subrayado}
+          onClick={() => editor.chain().focus().toggleUnderline().run()}
+        >
+          <TextUnderlineIcon aria-hidden />
+        </BotonToolbar>
+        <BotonToolbar
+          label="Tachado"
+          activo={estado.tachado}
+          onClick={() => editor.chain().focus().toggleStrike().run()}
+        >
+          <TextStrikethroughIcon aria-hidden />
+        </BotonToolbar>
+      </GrupoToolbar>
 
-      <BotonToolbar
-        label="Negrita"
-        activo={estado.bold}
-        onClick={() => editor.chain().focus().toggleBold().run()}
-      >
-        <TextBIcon aria-hidden />
-      </BotonToolbar>
-      <BotonToolbar
-        label="Cursiva"
-        activo={estado.italic}
-        onClick={() => editor.chain().focus().toggleItalic().run()}
-      >
-        <TextItalicIcon aria-hidden />
-      </BotonToolbar>
-      <BotonToolbar
-        label="Subrayado"
-        activo={estado.subrayado}
-        onClick={() => editor.chain().focus().toggleUnderline().run()}
-      >
-        <TextUnderlineIcon aria-hidden />
-      </BotonToolbar>
-      <BotonToolbar
-        label="Tachado"
-        activo={estado.tachado}
-        onClick={() => editor.chain().focus().toggleStrike().run()}
-      >
-        <TextStrikethroughIcon aria-hidden />
-      </BotonToolbar>
+      <GrupoToolbar>
+        <SelectorFuente editor={editor} activo={estado.fuenteActual} />
+        <SelectorTamano editor={editor} activo={estado.tamanoActual} />
+      </GrupoToolbar>
 
-      <Divisor />
+      <GrupoToolbar>
+        <SelectorColor
+          label="Resaltado"
+          icon={<TextAaIcon className="rounded bg-warning/30" aria-hidden />}
+          onElegir={(hex) => editor.chain().focus().toggleHighlight({ color: hex }).run()}
+          onQuitar={() => editor.chain().focus().unsetHighlight().run()}
+        />
+        <SelectorColor
+          label="Color de texto"
+          icon={<TextAaIcon aria-hidden />}
+          onElegir={(hex) => editor.chain().focus().setColor(hex).run()}
+          onQuitar={() => editor.chain().focus().unsetColor().run()}
+        />
+      </GrupoToolbar>
 
-      <SelectorFuente editor={editor} activo={estado.fuenteActual} />
-      <SelectorTamano editor={editor} activo={estado.tamanoActual} />
+      <GrupoToolbar>
+        <BotonToolbar
+          label="Alinear a la izquierda"
+          activo={estado.alinIzquierda}
+          onClick={() => editor.chain().focus().setTextAlign("left").run()}
+        >
+          <TextAlignLeftIcon aria-hidden />
+        </BotonToolbar>
+        <BotonToolbar
+          label="Centrar"
+          activo={estado.alinCentro}
+          onClick={() => editor.chain().focus().setTextAlign("center").run()}
+        >
+          <TextAlignCenterIcon aria-hidden />
+        </BotonToolbar>
+        <BotonToolbar
+          label="Alinear a la derecha"
+          activo={estado.alinDerecha}
+          onClick={() => editor.chain().focus().setTextAlign("right").run()}
+        >
+          <TextAlignRightIcon aria-hidden />
+        </BotonToolbar>
+        <BotonToolbar
+          label="Justificar"
+          activo={estado.alinJustificado}
+          onClick={() => editor.chain().focus().setTextAlign("justify").run()}
+        >
+          <TextAlignJustifyIcon aria-hidden />
+        </BotonToolbar>
+      </GrupoToolbar>
 
-      <Divisor />
+      <GrupoToolbar>
+        <BotonToolbar
+          label="Lista con viñetas"
+          activo={estado.listaVinetas}
+          onClick={() => editor.chain().focus().toggleBulletList().run()}
+        >
+          <ListBulletsIcon aria-hidden />
+        </BotonToolbar>
+        <BotonToolbar
+          label="Lista numerada"
+          activo={estado.listaNumerada}
+          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+        >
+          <ListNumbersIcon aria-hidden />
+        </BotonToolbar>
+        <BotonToolbar
+          label="Cita"
+          activo={estado.cita}
+          onClick={() => editor.chain().focus().toggleBlockquote().run()}
+        >
+          <QuotesIcon aria-hidden />
+        </BotonToolbar>
+      </GrupoToolbar>
 
-      <SelectorColor
-        label="Resaltado"
-        icon={<TextAaIcon className="rounded bg-warning/30" aria-hidden />}
-        onElegir={(hex) => editor.chain().focus().toggleHighlight({ color: hex }).run()}
-        onQuitar={() => editor.chain().focus().unsetHighlight().run()}
-      />
-      <SelectorColor
-        label="Color de texto"
-        icon={<TextAaIcon aria-hidden />}
-        onElegir={(hex) => editor.chain().focus().setColor(hex).run()}
-        onQuitar={() => editor.chain().focus().unsetColor().run()}
-      />
-
-      <Divisor />
-
-      <BotonToolbar
-        label="Alinear a la izquierda"
-        activo={estado.alinIzquierda}
-        onClick={() => editor.chain().focus().setTextAlign("left").run()}
-      >
-        <TextAlignLeftIcon aria-hidden />
-      </BotonToolbar>
-      <BotonToolbar
-        label="Centrar"
-        activo={estado.alinCentro}
-        onClick={() => editor.chain().focus().setTextAlign("center").run()}
-      >
-        <TextAlignCenterIcon aria-hidden />
-      </BotonToolbar>
-      <BotonToolbar
-        label="Alinear a la derecha"
-        activo={estado.alinDerecha}
-        onClick={() => editor.chain().focus().setTextAlign("right").run()}
-      >
-        <TextAlignRightIcon aria-hidden />
-      </BotonToolbar>
-      <BotonToolbar
-        label="Justificar"
-        activo={estado.alinJustificado}
-        onClick={() => editor.chain().focus().setTextAlign("justify").run()}
-      >
-        <TextAlignJustifyIcon aria-hidden />
-      </BotonToolbar>
-
-      <Divisor />
-
-      <BotonToolbar
-        label="Lista con viñetas"
-        activo={estado.listaVinetas}
-        onClick={() => editor.chain().focus().toggleBulletList().run()}
-      >
-        <ListBulletsIcon aria-hidden />
-      </BotonToolbar>
-      <BotonToolbar
-        label="Lista numerada"
-        activo={estado.listaNumerada}
-        onClick={() => editor.chain().focus().toggleOrderedList().run()}
-      >
-        <ListNumbersIcon aria-hidden />
-      </BotonToolbar>
-      <BotonToolbar
-        label="Cita"
-        activo={estado.cita}
-        onClick={() => editor.chain().focus().toggleBlockquote().run()}
-      >
-        <QuotesIcon aria-hidden />
-      </BotonToolbar>
-
-      <Divisor />
-
-      <SelectorEnlace editor={editor} activo={estado.enlace} urlActual={estado.urlEnlace} />
-      <BotonImagen editor={editor} />
-      <BotonToolbar
-        label="Insertar tabla"
-        disabled={!estado.puedeInsertarTabla}
-        onClick={() =>
-          editor
-            .chain()
-            .focus()
-            .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
-            .run()
-        }
-      >
-        <TableIcon aria-hidden />
-      </BotonToolbar>
+      <GrupoToolbar>
+        <SelectorEnlace editor={editor} activo={estado.enlace} urlActual={estado.urlEnlace} />
+        <BotonImagen editor={editor} />
+        <BotonToolbar
+          label="Insertar tabla"
+          disabled={!estado.puedeInsertarTabla}
+          onClick={() =>
+            editor
+              .chain()
+              .focus()
+              .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+              .run()
+          }
+        >
+          <TableIcon aria-hidden />
+        </BotonToolbar>
+      </GrupoToolbar>
     </div>
   );
 }

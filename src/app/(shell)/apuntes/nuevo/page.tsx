@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { ApunteEditor } from "@/components/apuntes/apunte-editor";
+import { consultaCursos } from "@/lib/cursos/consultas";
 
 export default async function NuevoApuntePage() {
   const supabase = await createClient();
@@ -13,11 +14,14 @@ export default async function NuevoApuntePage() {
     redirect("/?login=1");
   }
 
-  const { data: carpetas } = await supabase
-    .from("carpetas")
-    .select("id, nombre, color")
-    .eq("propietario_id", user.id)
-    .order("nombre", { ascending: true });
+  const [{ data: carpetas }, cursos] = await Promise.all([
+    supabase
+      .from("carpetas")
+      .select("id, nombre, color")
+      .eq("propietario_id", user.id)
+      .order("nombre", { ascending: true }),
+    consultaCursos(supabase),
+  ]);
 
-  return <ApunteEditor carpetas={carpetas ?? []} />;
+  return <ApunteEditor carpetas={carpetas ?? []} cursos={cursos} />;
 }

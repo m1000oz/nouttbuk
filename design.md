@@ -16,12 +16,12 @@ La aplicación es responsiva de verdad, no una adaptación de la app móvil: nav
 | **Mis apuntes** | Buscador, tabs (Todos/Favoritos/Compartidos), grid de apuntes. Cada tarjeta tiene un botón de opciones (mover a carpeta, compartir, eliminar con verificación). Incluye la vista de **Detalle de carpeta** como filtro por materia, con botón de volver. | Crear, abrir, buscar y clasificar apuntes. |
 | **Crear/editar carpeta** | Sheet con nombre de la materia y selector de color (8 tonos, forma de carpeta real). | Crear una carpeta nueva o renombrar/recolorear una existente. |
 | **Editor de apunte** | Título, contenido de texto (Tiptap) sobre una hoja de ancho A4 con sombra propia, flotando sobre un lienzo con tinte índigo de la marca. Barra de formato: encabezados, negrita/cursiva/subrayado/tachado, fuente y tamaño de texto, resaltado, color de texto, alineación (izquierda/centro/derecha/justificado), listas, cita, enlace, insertar imagen, insertar tabla, y una píldora fija con el contador de palabras/caracteres. Corrector ortográfico nativo del navegador. Etiquetas, selector de carpeta, selector de visibilidad. Si la visibilidad es "Grupo": indicador de coedición en vivo y botón para invitar colaborador. | Crear o editar un apunte; guardar como privado, grupo o comunidad. |
-| **Comunidad** | Hero de bienvenida animado, feed de apuntes publicados. | Descubrir contenido, abrir una publicación. |
+| **Comunidad** | Hero de bienvenida animado, filtro por carrera y curso, feed de apuntes publicados. | Descubrir contenido, filtrar por carrera/curso, abrir una publicación. |
 | **Detalle de publicación** | Apunte completo, autor, reacciones/guardados/comentarios, conversación. | Reaccionar, guardar, comentar, compartir. |
 | **Compartir** | Hoja inferior con opciones de visibilidad (privado/grupo/comunidad) e invitación de colaboradores con permiso de lectura o edición. | Definir audiencia e invitar estudiantes. |
 | **Perfil** | Avatar, carrera, universidad, stats (apuntes/aportes/contactos), apuntes públicos. | Editar perfil, enviar feedback, cerrar sesión. |
-| **Editar perfil** | Overlay con foto de perfil (subida directa, sin recorte), nombre, usuario y carrera (texto libre, sin catálogo de carreras); universidad fija, no editable. El usuario solo se puede cambiar una vez cada 7 días, con chequeo de disponibilidad en vivo mientras se escribe. | Actualizar los datos del perfil. |
-| **Login / Registro** | Modal con toggle entre iniciar sesión y crear cuenta. El registro pide nombre, usuario, carrera, universidad (fija en PUCP) y correo institucional; solo se admiten correos `@pucp.edu.pe`. | Entrar o crear cuenta sin abandonar el flujo actual. |
+| **Editar perfil** | Overlay con foto de perfil (subida directa, sin recorte), nombre, usuario y carrera (select con el catálogo oficial de las 55 carreras de pregrado PUCP); universidad fija, no editable. El usuario solo se puede cambiar una vez cada 7 días, con chequeo de disponibilidad en vivo mientras se escribe. | Actualizar los datos del perfil. |
+| **Login / Registro** | Modal con toggle entre iniciar sesión y crear cuenta. El registro pide nombre, usuario, carrera (select con el catálogo oficial), universidad (fija en PUCP) y correo institucional; solo se admiten correos `@pucp.edu.pe`. | Entrar o crear cuenta sin abandonar el flujo actual. |
 | **Recuperar contraseña** | Alcanzable desde el login. Pide correo institucional y muestra confirmación de envío. | Restablecer el acceso sin exponer si la cuenta existe. |
 | **Board de feedback** | Composer + lista de ideas de la comunidad cerrada, con voto y estado (Nueva/En revisión/Hecho). | Proponer ideas, ver qué se está evaluando o ya se hizo. |
 
@@ -45,9 +45,11 @@ Cuatro destinos estables: **Inicio**, **Mis apuntes**, **Comunidad** y **Perfil*
 
 | Entidad | Campos esenciales | Relaciones |
 |---|---|---|
-| **Perfil** | id, nombre, usuario, carrera, avatar, universidad | Publica apuntes y participa en comentarios. |
+| **Perfil** | id, nombre, usuario, carreraId, avatar, universidad | Publica apuntes y participa en comentarios. carreraId referencia el catálogo institucional (**Carrera**). |
+| **Carrera** | id, nombre, facultad | Catálogo institucional de las 55 carreras de pregrado PUCP (no confundir con Carpeta: esa es organización personal del usuario). |
+| **Curso** | id, carreraId, nombre | Catálogo de cursos reales, solo poblado para un subconjunto representativo de carreras. Un apunte puede etiquetarse opcionalmente con un curso. |
 | **Carpeta** | id, nombre, color, icono, descripción, propietario | Agrupa apuntes por materia. |
-| **Apunte** | id, título, contenido, etiquetas, estado, fecha, carpetaId, autorId | Pertenece a una carpeta y puede convertirse en publicación. |
+| **Apunte** | id, título, contenido, etiquetas, estado, fecha, carpetaId, cursoId, autorId | Pertenece a una carpeta, puede etiquetarse con un curso, y puede convertirse en publicación. |
 | **Publicación** | id, apunteId, audiencia, fecha | Representa un apunte visible en la comunidad o grupo. Reacciones, guardados y comentarios no son campos propios, se cuentan en vivo desde sus tablas (`reacciones`, `guardados`, `comentarios`). |
 | **Comentario** | id, publicaciónId, autorId, texto, fecha | Inicia conversación académica. |
 | **Colaboración** | apunteId, perfilId, permiso | Define lectura o edición para apuntes compartidos. |

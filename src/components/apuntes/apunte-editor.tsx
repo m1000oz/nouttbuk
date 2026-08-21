@@ -30,6 +30,7 @@ import {
 } from "@/components/apuntes/editor-toolbar";
 import { resolverColorCarpeta } from "@/lib/carpetas/colores";
 import type { ColaboradorRow } from "@/lib/colaboradores/consultas";
+import type { CursoConCarrera } from "@/lib/cursos/consultas";
 import type { Json } from "@/lib/types/database.types";
 import type { ApunteVisibilidad, PermisoColaborador } from "@/lib/types/enums";
 
@@ -39,11 +40,13 @@ type PermisoApunte = "owner" | PermisoColaborador;
 
 type ApunteEditorProps = {
   carpetas: Carpeta[];
+  cursos: CursoConCarrera[];
   apunte?: {
     id: string;
     titulo: string;
     contenido: Json;
     carpetaId: string | null;
+    cursoId: string | null;
     visibilidad: ApunteVisibilidad;
     etiquetas: string[];
     favorito: boolean;
@@ -67,6 +70,7 @@ const VISIBILIDAD_LABEL: Record<ApunteVisibilidad, string> = {
 // completa con salida explícita, nunca solo tocar afuera").
 export function ApunteEditor({
   carpetas,
+  cursos,
   apunte,
   permisoActual = "owner",
   autorNombre,
@@ -77,9 +81,13 @@ export function ApunteEditor({
   const esOwner = permisoActual === "owner";
   const soloLectura = permisoActual === "read";
   const carpetaActual = carpetas.find((carpeta) => carpeta.id === apunte?.carpetaId);
+  const cursoActual = cursos.find((curso) => curso.id === apunte?.cursoId);
   const [titulo, setTitulo] = useState(apunte?.titulo ?? "");
   const [carpetaId, setCarpetaId] = useState<string | null>(
     apunte?.carpetaId ?? null,
+  );
+  const [cursoId, setCursoId] = useState<string | null>(
+    apunte?.cursoId ?? null,
   );
   const [visibilidad, setVisibilidad] = useState<ApunteVisibilidad>(
     apunte?.visibilidad ?? "private",
@@ -159,6 +167,7 @@ export function ApunteEditor({
       titulo: titulo.trim() || "Sin título",
       contenido: editor.getJSON(),
       carpeta_id: carpetaId,
+      curso_id: cursoId,
       visibilidad,
       etiquetas: etiquetasFinales,
       favorito,
@@ -269,6 +278,40 @@ export function ApunteEditor({
           ) : (
             carpetaActual && (
               <Badge variant="secondary">{carpetaActual.nombre}</Badge>
+            )
+          )}
+
+          {esOwner ? (
+            <Select
+              value={cursoId ?? "__ninguno__"}
+              onValueChange={(valor) =>
+                setCursoId(valor === "__ninguno__" ? null : valor)
+              }
+              items={{
+                __ninguno__: "Sin curso",
+                ...Object.fromEntries(
+                  cursos.map((curso) => [
+                    curso.id,
+                    `${curso.nombre} · ${curso.carreraNombre}`,
+                  ]),
+                ),
+              }}
+            >
+              <SelectTrigger size="sm">
+                <SelectValue placeholder="Curso" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__ninguno__">Sin curso</SelectItem>
+                {cursos.map((curso) => (
+                  <SelectItem key={curso.id} value={curso.id}>
+                    {curso.nombre} · {curso.carreraNombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            cursoActual && (
+              <Badge variant="secondary">{cursoActual.nombre}</Badge>
             )
           )}
 

@@ -18,6 +18,13 @@ import {
   SheetFooter,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { buscarPerfilPorUsuario } from "@/lib/colaboradores/consultas";
 import { cn } from "@/lib/utils";
 
@@ -47,15 +54,17 @@ type EditarPerfilSheetProps = {
   perfil: {
     nombre: string;
     usuario: string;
-    carrera: string | null;
+    carreraId: string | null;
     avatarUrl: string | null;
     usuarioActualizadoEn: string | null;
   };
+  carreras: { id: string; nombre: string }[];
 };
 
 export function EditarPerfilSheet({
   perfilId,
   perfil,
+  carreras,
 }: EditarPerfilSheetProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -64,7 +73,7 @@ export function EditarPerfilSheet({
   const [open, setOpen] = useState(false);
   const [nombre, setNombre] = useState(perfil.nombre);
   const [usuario, setUsuario] = useState(perfil.usuario);
-  const [carrera, setCarrera] = useState(perfil.carrera ?? "");
+  const [carreraId, setCarreraId] = useState<string | null>(perfil.carreraId);
   const [avatarUrl, setAvatarUrl] = useState(perfil.avatarUrl);
   const [subiendoAvatar, setSubiendoAvatar] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -178,7 +187,7 @@ export function EditarPerfilSheet({
     const supabase = createClient();
     const { error: dbError } = await supabase
       .from("profiles")
-      .update({ nombre, usuario, carrera: carrera || null })
+      .update({ nombre, usuario, carrera_id: carreraId })
       .eq("id", perfilId);
 
     setCargando(false);
@@ -305,11 +314,33 @@ export function EditarPerfilSheet({
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="perfil-carrera">Carrera</Label>
-            <Input
-              id="perfil-carrera"
-              value={carrera}
-              onChange={(event) => setCarrera(event.target.value)}
-            />
+            <Select
+              value={carreraId ?? "__ninguna__"}
+              onValueChange={(valor) =>
+                setCarreraId(valor === "__ninguna__" ? null : valor)
+              }
+              items={{
+                __ninguna__: "Sin especificar",
+                ...Object.fromEntries(
+                  carreras.map((carreraOpcion) => [
+                    carreraOpcion.id,
+                    carreraOpcion.nombre,
+                  ]),
+                ),
+              }}
+            >
+              <SelectTrigger id="perfil-carrera" className="w-full">
+                <SelectValue placeholder="Carrera" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__ninguna__">Sin especificar</SelectItem>
+                {carreras.map((carreraOpcion) => (
+                  <SelectItem key={carreraOpcion.id} value={carreraOpcion.id}>
+                    {carreraOpcion.nombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <SheetFooter className="p-0">

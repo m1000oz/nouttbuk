@@ -293,10 +293,13 @@
     margin-block: 0.5em;
   }
 
-  /* Lienzo detrás de la hoja del editor: un tinte muy suave del color
-     primario de la marca sobre el fondo, no un gris neutro genérico. */
+  /* Lienzo detrás de la hoja del editor: un tinte del color primario de la
+     marca sobre el fondo, no un gris neutro genérico. En claro necesita un
+     porcentaje bastante más alto que en oscuro (14% vs 10%): --background ya
+     es casi blanco (#f8fafc), así que un tinte débil quedaba casi idéntico
+     al blanco de la hoja y el contraste dependía casi solo de la sombra. */
   .lienzo-editor {
-    background: color-mix(in oklch, var(--primary) 6%, var(--background));
+    background: color-mix(in oklch, var(--primary) 14%, var(--background));
   }
   .dark .lienzo-editor {
     background: color-mix(in oklch, var(--primary) 10%, var(--background));
@@ -307,9 +310,13 @@
      de tabla de arriba usan tokens de tema (var(--muted)/var(--border)) para
      el caso de solo-lectura fuera de la hoja (detalle de publicación); acá
      adentro se fuerzan a los valores claros para que el encabezado de tabla
-     nunca quede con texto oscuro sobre fondo oscuro en modo oscuro. */
+     nunca quede con texto oscuro sobre fondo oscuro en modo oscuro. El borde
+     fijo es la segunda pata del contraste, junto al tinte de arriba: no deja
+     que la hoja dependa solo de --shadow-pagina, que se percibe débil en
+     pantallas muy brillantes. */
   .hoja-editor {
     background: #ffffff;
+    border: 1px solid rgb(15 23 42 / 0.08);
     box-shadow: var(--shadow-pagina);
   }
   .hoja-editor .tiptap-content {

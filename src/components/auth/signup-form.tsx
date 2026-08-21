@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -11,22 +11,44 @@ import { mapearErrorAuth } from "@/lib/auth/mapear-error-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type SignupFormProps = {
   onSuccess: () => void;
   onIrALogin: () => void;
 };
 
+type Carrera = { id: string; nombre: string };
+
 export function SignupForm({ onSuccess, onIrALogin }: SignupFormProps) {
   const [nombre, setNombre] = useState("");
   const [usuario, setUsuario] = useState("");
-  const [carrera, setCarrera] = useState("");
+  const [carreraId, setCarreraId] = useState<string | null>(null);
+  const [carreras, setCarreras] = useState<Carrera[]>([]);
   const [correo, setCorreo] = useState("");
   const [contrasena, setContrasena] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [correoError, setCorreoError] = useState<string | null>(null);
   const [mostrarLinkLogin, setMostrarLinkLogin] = useState(false);
   const [cargando, setCargando] = useState(false);
+
+  // Catálogo real de carreras PUCP, público (RLS anon), se carga al montar el
+  // formulario en vez de pasarse como prop: el modal de auth no tiene un
+  // punto de entrada Server Component desde donde traerlo.
+  useEffect(() => {
+    const supabase = createClient();
+    supabase
+      .from("carreras")
+      .select("id, nombre")
+      .order("nombre")
+      .then(({ data }) => setCarreras(data ?? []));
+  }, []);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -46,7 +68,7 @@ export function SignupForm({ onSuccess, onIrALogin }: SignupFormProps) {
       email: correo,
       password: contrasena,
       options: {
-        data: { nombre, usuario, carrera: carrera || null },
+        data: { nombre, usuario, carrera_id: carreraId },
       },
     });
 
@@ -98,11 +120,33 @@ export function SignupForm({ onSuccess, onIrALogin }: SignupFormProps) {
       </div>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="signup-carrera">Carrera</Label>
-        <Input
-          id="signup-carrera"
-          value={carrera}
-          onChange={(event) => setCarrera(event.target.value)}
-        />
+        <Select
+          value={carreraId ?? "__ninguna__"}
+          onValueChange={(valor) =>
+            setCarreraId(valor === "__ninguna__" ? null : valor)
+          }
+          items={{
+            __ninguna__: "Sin especificar",
+            ...Object.fromEntries(
+              carreras.map((carreraOpcion) => [
+                carreraOpcion.id,
+                carreraOpcion.nombre,
+              ]),
+            ),
+          }}
+        >
+          <SelectTrigger id="signup-carrera" className="w-full">
+            <SelectValue placeholder="Carrera" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__ninguna__">Sin especificar</SelectItem>
+            {carreras.map((carreraOpcion) => (
+              <SelectItem key={carreraOpcion.id} value={carreraOpcion.id}>
+                {carreraOpcion.nombre}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="signup-universidad">Universidad</Label>

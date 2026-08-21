@@ -10,6 +10,7 @@ import {
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { fechaRelativa } from "@/lib/fecha/relativa";
 import type { PublicacionCardData } from "@/lib/comunidad/consultas";
 
@@ -31,6 +32,7 @@ export function PublicacionCard({
   extracto,
   createdAt,
   autor,
+  curso,
   conteos,
   index,
 }: PublicacionCardProps) {
@@ -63,6 +65,11 @@ export function PublicacionCard({
                   {fechaRelativa(createdAt)}
                 </span>
               </div>
+              {curso && (
+                <Badge variant="secondary" className="ml-auto shrink-0">
+                  {curso}
+                </Badge>
+              )}
             </div>
 
             <div className="flex flex-col gap-1">

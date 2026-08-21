@@ -139,82 +139,97 @@ export function DetallePublicacion({
         </Button>
       </header>
 
-      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 overflow-y-auto px-6 py-8">
-        <div className="flex items-center gap-2.5">
-          <Avatar>
-            {publicacion.autor.avatarUrl && (
-              <AvatarImage src={publicacion.autor.avatarUrl} alt="" />
-            )}
-            <AvatarFallback>{iniciales(publicacion.autor.nombre)}</AvatarFallback>
-          </Avatar>
-          <div className="flex flex-col">
-            <span className="text-sm font-medium text-foreground">
-              {publicacion.autor.nombre}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              {fechaRelativa(publicacion.createdAt)}
-            </span>
+      {/* Un único contenedor con scroll para metadata + hoja + comentarios,
+          igual que ApunteEditor: se desplazan juntos y el lienzo se extiende
+          naturalmente hasta donde termine el contenido. */}
+      <div className="flex flex-1 flex-col overflow-y-auto">
+        <div className="mx-auto flex w-full max-w-[794px] flex-col gap-3 px-6 pt-8">
+          <div className="flex items-center gap-2.5">
+            <Avatar>
+              {publicacion.autor.avatarUrl && (
+                <AvatarImage src={publicacion.autor.avatarUrl} alt="" />
+              )}
+              <AvatarFallback>{iniciales(publicacion.autor.nombre)}</AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col">
+              <span className="text-sm font-medium text-foreground">
+                {publicacion.autor.nombre}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {fechaRelativa(publicacion.createdAt)}
+              </span>
+            </div>
+          </div>
+
+          <h1 className="text-2xl font-bold text-foreground">
+            {publicacion.titulo}
+          </h1>
+        </div>
+
+        {/* Mismo tratamiento visual "hoja" que el editor, para que leer una
+            publicación se sienta consistente con escribirla. La altura
+            mínima es más modesta que en el editor (no hace falta espacio
+            para seguir escribiendo). */}
+        <div className="lienzo-editor mt-4 flex flex-1 justify-center px-4 py-10 sm:px-8">
+          <div className="hoja-editor min-h-[300px] w-full max-w-[794px] rounded-sm px-6 py-10 sm:min-h-[500px] sm:px-14 sm:py-14">
+            <EditorContent editor={editor} />
           </div>
         </div>
 
-        <h1 className="text-2xl font-bold text-foreground">
-          {publicacion.titulo}
-        </h1>
+        <div className="mx-auto flex w-full max-w-[794px] flex-col gap-4 px-6 py-8">
+          <div className="flex items-center gap-2 border-t border-border pt-4">
+            <ReaccionBoton
+              publicacionId={publicacion.id}
+              usuarioId={usuarioId}
+              activo={yaReacciono}
+              count={conteos.reacciones}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled
+              aria-label="Ir a los comentarios"
+            >
+              <ChatCircleIcon aria-hidden />
+              {totalComentarios}
+            </Button>
+            <GuardarBoton
+              publicacionId={publicacion.id}
+              usuarioId={usuarioId}
+              activo={yaGuarde}
+              count={conteos.guardados}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={compartir}
+              aria-label="Compartir publicación"
+              className="ml-auto"
+            >
+              <ShareNetworkIcon aria-hidden />
+              {copiado ? "Enlace copiado" : "Compartir"}
+            </Button>
+          </div>
 
-        <EditorContent editor={editor} />
+          <section className="flex flex-col gap-3">
+            <h2 className="text-sm font-semibold text-muted-foreground">
+              Comentarios
+            </h2>
 
-        <div className="flex items-center gap-2 border-t border-border pt-4">
-          <ReaccionBoton
-            publicacionId={publicacion.id}
-            usuarioId={usuarioId}
-            activo={yaReacciono}
-            count={conteos.reacciones}
-          />
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled
-            aria-label="Ir a los comentarios"
-          >
-            <ChatCircleIcon aria-hidden />
-            {totalComentarios}
-          </Button>
-          <GuardarBoton
-            publicacionId={publicacion.id}
-            usuarioId={usuarioId}
-            activo={yaGuarde}
-            count={conteos.guardados}
-          />
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={compartir}
-            aria-label="Compartir publicación"
-            className="ml-auto"
-          >
-            <ShareNetworkIcon aria-hidden />
-            {copiado ? "Enlace copiado" : "Compartir"}
-          </Button>
+            <ComentarioForm
+              publicacionId={publicacion.id}
+              usuarioId={usuarioId}
+              onComentarioCreado={handleComentarioCreado}
+            />
+
+            <ComentariosLista
+              usuarioId={usuarioId}
+              comentarios={comentariosLocal}
+            />
+          </section>
         </div>
-
-        <section className="flex flex-col gap-3">
-          <h2 className="text-sm font-semibold text-muted-foreground">
-            Comentarios
-          </h2>
-
-          <ComentarioForm
-            publicacionId={publicacion.id}
-            usuarioId={usuarioId}
-            onComentarioCreado={handleComentarioCreado}
-          />
-
-          <ComentariosLista
-            usuarioId={usuarioId}
-            comentarios={comentariosLocal}
-          />
-        </section>
       </div>
     </div>
   );

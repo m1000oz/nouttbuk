@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ApunteEditor } from "@/components/apuntes/apunte-editor";
 import { consultaColaboradores } from "@/lib/colaboradores/consultas";
+import { consultaCursos } from "@/lib/cursos/consultas";
 
 export default async function EditarApuntePage(
   props: PageProps<"/apuntes/[id]/editar">,
@@ -18,11 +19,11 @@ export default async function EditarApuntePage(
 
   const { id } = await props.params;
 
-  const [{ data: apunte }, { data: carpetas }] = await Promise.all([
+  const [{ data: apunte }, { data: carpetas }, cursos] = await Promise.all([
     supabase
       .from("apuntes")
       .select(
-        "id, titulo, contenido, carpeta_id, visibilidad, etiquetas, favorito, autor_id, autor:profiles!apuntes_autor_id_fkey(nombre)",
+        "id, titulo, contenido, carpeta_id, curso_id, visibilidad, etiquetas, favorito, autor_id, autor:profiles!apuntes_autor_id_fkey(nombre)",
       )
       .eq("id", id)
       .single(),
@@ -31,6 +32,7 @@ export default async function EditarApuntePage(
       .select("id, nombre, color")
       .eq("propietario_id", user.id)
       .order("nombre", { ascending: true }),
+    consultaCursos(supabase),
   ]);
 
   if (!apunte) {
@@ -62,11 +64,13 @@ export default async function EditarApuntePage(
   return (
     <ApunteEditor
       carpetas={carpetas ?? []}
+      cursos={cursos}
       apunte={{
         id: apunte.id,
         titulo: apunte.titulo,
         contenido: apunte.contenido,
         carpetaId: apunte.carpeta_id,
+        cursoId: apunte.curso_id,
         visibilidad: apunte.visibilidad,
         etiquetas: apunte.etiquetas,
         favorito: apunte.favorito,

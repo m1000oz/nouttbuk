@@ -37,17 +37,18 @@ export default async function PerfilPage() {
     redirect("/?login=1");
   }
 
-  const [{ data: perfil }, { data: stats }, { data: publicaciones }] =
+  const [{ data: perfil }, { data: stats }, { data: publicaciones }, { data: carreras }] =
     await Promise.all([
       supabase
         .from("profiles")
         .select(
-          "nombre, usuario, carrera, universidad, avatar_url, usuario_actualizado_en",
+          "nombre, usuario, carrera_id, carrera:carreras(nombre), universidad, avatar_url, usuario_actualizado_en",
         )
         .eq("id", user.id)
         .single(),
       supabase.rpc("get_perfil_stats").single(),
       consultaPublicacionesDeUsuario(supabase, user.id),
+      supabase.from("carreras").select("id, nombre").order("nombre"),
     ]);
 
   const filas = publicaciones ?? [];
@@ -86,8 +87,8 @@ export default async function PerfilPage() {
             <p className="text-sm text-muted-foreground">@{perfil.usuario}</p>
           )}
         </div>
-        {perfil?.carrera && (
-          <p className="text-sm text-foreground">{perfil.carrera}</p>
+        {perfil?.carrera?.nombre && (
+          <p className="text-sm text-foreground">{perfil.carrera.nombre}</p>
         )}
         {perfil?.universidad && (
           <p className="text-sm text-muted-foreground">{perfil.universidad}</p>
@@ -98,10 +99,11 @@ export default async function PerfilPage() {
             perfil={{
               nombre: perfil.nombre,
               usuario: perfil.usuario,
-              carrera: perfil.carrera,
+              carreraId: perfil.carrera_id,
               avatarUrl: perfil.avatar_url,
               usuarioActualizadoEn: perfil.usuario_actualizado_en,
             }}
+            carreras={carreras ?? []}
           />
         )}
       </div>
