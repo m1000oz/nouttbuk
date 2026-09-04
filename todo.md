@@ -15,6 +15,13 @@
 - [x] Generar el icono de Nouttbuk y aplicar el branding (favicon, manifest, meta tags).
 - [x] Añadir pruebas, comprobar tipos y validar los flujos clave.
 
+## Post-MVP (agregado tras el cierre de Fase 3)
+
+- [x] Sección CV: guía de prompts para armar el CV con IA (ChatGPT/Gemini/Claude) y plantilla descargable en PDF.
+- [x] Sección Calendario: horarios semanales personalizables, compartir con otros estudiantes y cruce automático de horarios libres.
+- [x] Candado de 30 días para cambiar de carrera en el perfil, con confirmación antes de guardar.
+- [x] Inicio de sesión con Google restringido al dominio institucional (código listo, pendiente de credenciales reales de Google Cloud para activarse).
+
 ## Diferido a v2.0 (no construir en el MVP)
 
 - Admitir dominios de correo institucional de otras universidades además de `@pucp.edu.pe`.

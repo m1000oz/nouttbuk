@@ -147,6 +147,9 @@ export function SignupForm({ onSuccess, onIrALogin }: SignupFormProps) {
             ))}
           </SelectContent>
         </Select>
+        <p className="text-xs text-muted-foreground">
+          Podrás cambiar tu carrera una vez cada 30 días desde tu perfil.
+        </p>
       </div>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="signup-universidad">Universidad</Label>

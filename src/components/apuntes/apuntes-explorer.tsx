@@ -34,6 +34,7 @@ type ApuntesExplorerProps = {
   compartidos: ApunteItem[];
   carpetaPorId: Record<string, { nombre: string; color: string }>;
   carpetas: CarpetaOpcion[];
+  carpetaActivaId?: string | null;
 };
 
 type TabValue = "todos" | "favoritos" | "compartidos";
@@ -52,6 +53,7 @@ function ListaApuntes({
   lista,
   carpetaPorId,
   carpetas,
+  carpetaActivaId,
   emptyIcon,
   emptyTitulo,
   emptyDescripcion,
@@ -59,6 +61,7 @@ function ListaApuntes({
   lista: ApunteItem[];
   carpetaPorId: Record<string, { nombre: string; color: string }>;
   carpetas: CarpetaOpcion[];
+  carpetaActivaId?: string | null;
   emptyIcon: React.ComponentType<{
     className?: string;
     "aria-hidden"?: boolean;
@@ -72,7 +75,9 @@ function ListaApuntes({
         icon={emptyIcon}
         titulo={emptyTitulo}
         descripcion={emptyDescripcion}
-        accion={<NuevoApunteButton variant="sidebar" />}
+        accion={
+          <NuevoApunteButton variant="sidebar" carpetaId={carpetaActivaId} />
+        }
       />
     );
   }
@@ -106,6 +111,7 @@ export function ApuntesExplorer({
   compartidos,
   carpetaPorId,
   carpetas,
+  carpetaActivaId,
 }: ApuntesExplorerProps) {
   const [tab, setTab] = useState<TabValue>("todos");
   const [busqueda, setBusqueda] = useState("");
@@ -161,6 +167,7 @@ export function ApuntesExplorer({
           lista={listaTodos}
           carpetaPorId={carpetaPorId}
           carpetas={carpetas}
+          carpetaActivaId={carpetaActivaId}
           emptyIcon={textoBusquedaVacia?.icon ?? NotePencilIcon}
           emptyTitulo={
             textoBusquedaVacia?.titulo ?? "Todavía no tienes apuntes"
@@ -177,6 +184,7 @@ export function ApuntesExplorer({
           lista={listaFavoritos}
           carpetaPorId={carpetaPorId}
           carpetas={carpetas}
+          carpetaActivaId={carpetaActivaId}
           emptyIcon={textoBusquedaVacia?.icon ?? StarIcon}
           emptyTitulo={
             textoBusquedaVacia?.titulo ?? "Todavía no tienes apuntes favoritos"
@@ -193,6 +201,7 @@ export function ApuntesExplorer({
           lista={listaCompartidos}
           carpetaPorId={carpetaPorId}
           carpetas={carpetas}
+          carpetaActivaId={carpetaActivaId}
           emptyIcon={textoBusquedaVacia?.icon ?? UsersThreeIcon}
           emptyTitulo={
             textoBusquedaVacia?.titulo ??

@@ -57,7 +57,7 @@ export function PublicacionCard({
                 {autor.avatarUrl && <AvatarImage src={autor.avatarUrl} alt="" />}
                 <AvatarFallback>{iniciales(autor.nombre)}</AvatarFallback>
               </Avatar>
-              <div className="flex min-w-0 flex-col">
+              <div className="flex min-w-0 flex-1 flex-col">
                 <span className="truncate text-sm font-medium text-foreground">
                   {autor.nombre}
                 </span>
@@ -65,14 +65,14 @@ export function PublicacionCard({
                   {fechaRelativa(createdAt)}
                 </span>
               </div>
-              {curso && (
-                <Badge variant="secondary" className="ml-auto shrink-0">
-                  {curso}
-                </Badge>
-              )}
             </div>
 
             <div className="flex flex-col gap-1">
+              {curso && (
+                <Badge variant="secondary" className="w-fit max-w-full truncate">
+                  {curso}
+                </Badge>
+              )}
               <h3 className="line-clamp-1 text-base font-bold text-foreground">
                 {titulo}
               </h3>

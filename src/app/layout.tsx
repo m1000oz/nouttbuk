@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { DM_Sans } from "next/font/google";
 import "./globals.css";
 import { RegistrarServiceWorker } from "@/components/pwa/registrar-service-worker";
+import { Toaster } from "@/components/ui/toast";
 
 const dmSans = DM_Sans({
   variable: "--font-sans",
@@ -31,7 +32,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="es" className={`${dmSans.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
-        {children}
+        <Toaster>{children}</Toaster>
         <RegistrarServiceWorker />
       </body>
     </html>

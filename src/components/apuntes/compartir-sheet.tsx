@@ -6,6 +6,7 @@ import { UsersThreeIcon, XIcon } from "@phosphor-icons/react";
 
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -112,6 +113,10 @@ export function CompartirSheet({ apunteId, colaboradores }: CompartirSheetProps)
 
     setUsuario("");
     setPuedeEditar(false);
+    toast.add({
+      title: `Invitaste a ${perfil.nombre}.`,
+      type: "success",
+    });
     router.refresh();
   }
 
@@ -119,7 +124,7 @@ export function CompartirSheet({ apunteId, colaboradores }: CompartirSheetProps)
     setIdsEnCurso((actual) => new Set(actual).add(perfilId));
 
     const supabase = createClient();
-    await supabase
+    const { error } = await supabase
       .from("colaboradores")
       .update({ permiso: editar ? "edit" : "read" })
       .eq("apunte_id", apunteId)
@@ -130,6 +135,11 @@ export function CompartirSheet({ apunteId, colaboradores }: CompartirSheetProps)
       siguiente.delete(perfilId);
       return siguiente;
     });
+    if (error) {
+      toast.add({ title: "No se pudo actualizar el permiso.", type: "error" });
+      return;
+    }
+    toast.add({ title: "Permiso actualizado.", type: "success" });
     router.refresh();
   }
 
@@ -137,7 +147,7 @@ export function CompartirSheet({ apunteId, colaboradores }: CompartirSheetProps)
     setIdsEnCurso((actual) => new Set(actual).add(perfilId));
 
     const supabase = createClient();
-    await supabase
+    const { error } = await supabase
       .from("colaboradores")
       .delete()
       .eq("apunte_id", apunteId)
@@ -148,6 +158,11 @@ export function CompartirSheet({ apunteId, colaboradores }: CompartirSheetProps)
       siguiente.delete(perfilId);
       return siguiente;
     });
+    if (error) {
+      toast.add({ title: "No se pudo quitar al colaborador.", type: "error" });
+      return;
+    }
+    toast.add({ title: "Colaborador eliminado.", type: "success" });
     router.refresh();
   }
 

@@ -52,9 +52,14 @@ export function ApunteRecienteCard({
                 </span>
               )}
             </div>
-            <span className="shrink-0 text-xs text-muted-foreground">
-              {carpeta ? `${carpeta.nombre} · ` : ""}
-              {fechaRelativa(updatedAt)}
+            <span className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
+              {carpeta && (
+                <>
+                  <span className="max-w-24 truncate">{carpeta.nombre}</span>
+                  <span className="h-3 w-px bg-border" aria-hidden />
+                </>
+              )}
+              <span className="shrink-0">{fechaRelativa(updatedAt)}</span>
             </span>
           </CardContent>
         </Card>

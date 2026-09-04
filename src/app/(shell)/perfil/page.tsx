@@ -10,11 +10,20 @@ import { PublicacionCard } from "@/components/comunidad/publicacion-card";
 import { PerfilStats } from "@/components/perfil/perfil-stats";
 import { EditarPerfilSheet } from "@/components/perfil/editar-perfil-sheet";
 import { FeedbackBoton } from "@/components/perfil/feedback-boton";
+import { CvBoton } from "@/components/perfil/cv-boton";
 import {
   consultaPublicacionesDeUsuario,
   mapearPublicacionFeed,
   type ConteosPublicacion,
 } from "@/lib/comunidad/consultas";
+
+// Un signup vía Google no pasa por nuestro formulario (que sí junta
+// nombre/usuario/carrera antes de crear la cuenta), así que handle_new_user()
+// cae en su respaldo automático: usuario = "user_" + los primeros 8
+// caracteres del id. Ese patrón es la única señal disponible para detectar
+// "esta cuenta nunca completó su perfil" sin agregar una columna nueva solo
+// para esto.
+const USUARIO_AUTOGENERADO = /^user_[0-9a-f]{8}$/;
 
 function iniciales(nombre: string | null | undefined): string {
   if (!nombre) return "?";
@@ -42,7 +51,7 @@ export default async function PerfilPage() {
       supabase
         .from("profiles")
         .select(
-          "nombre, usuario, carrera_id, carrera:carreras(nombre), universidad, avatar_url, usuario_actualizado_en",
+          "nombre, usuario, carrera_id, carrera:carreras(nombre), universidad, avatar_url, usuario_actualizado_en, carrera_actualizada_en",
         )
         .eq("id", user.id)
         .single(),
@@ -72,8 +81,18 @@ export default async function PerfilPage() {
 
   const tarjetas = filas.map((fila) => mapearPublicacionFeed(fila, conteosPorId));
 
+  const perfilIncompleto = Boolean(
+    perfil?.usuario && USUARIO_AUTOGENERADO.test(perfil.usuario),
+  );
+
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-6 py-10">
+      {perfilIncompleto && (
+        <p className="rounded-lg border border-dashed border-border bg-muted/50 px-3 py-2 text-center text-sm text-muted-foreground">
+          Te registraste con Google. Completa tu nombre de usuario y tu
+          carrera en &quot;Editar perfil&quot;.
+        </p>
+      )}
       <div className="flex flex-col items-center gap-3 text-center">
         <Avatar size="lg">
           {perfil?.avatar_url && <AvatarImage src={perfil.avatar_url} alt="" />}
@@ -102,6 +121,7 @@ export default async function PerfilPage() {
               carreraId: perfil.carrera_id,
               avatarUrl: perfil.avatar_url,
               usuarioActualizadoEn: perfil.usuario_actualizado_en,
+              carreraActualizadaEn: perfil.carrera_actualizada_en,
             }}
             carreras={carreras ?? []}
           />
@@ -113,6 +133,8 @@ export default async function PerfilPage() {
         aportes={stats?.aportes ?? 0}
         contactos={stats?.contactos ?? 0}
       />
+
+      <CvBoton />
 
       <FeedbackBoton />
 

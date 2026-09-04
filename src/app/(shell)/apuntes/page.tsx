@@ -170,6 +170,7 @@ export default async function MisApuntesPage(props: PageProps<"/apuntes">) {
           }))}
           carpetaPorId={nombreCarpetaPorId}
           carpetas={materias}
+          carpetaActivaId={carpetaActiva?.id}
         />
       </section>
     </div>

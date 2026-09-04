@@ -4,7 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { ApunteEditor } from "@/components/apuntes/apunte-editor";
 import { consultaCursos } from "@/lib/cursos/consultas";
 
-export default async function NuevoApuntePage() {
+export default async function NuevoApuntePage(
+  props: PageProps<"/apuntes/nuevo">,
+) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -14,14 +16,40 @@ export default async function NuevoApuntePage() {
     redirect("/?login=1");
   }
 
+  const searchParams = await props.searchParams;
+  const carpetaIdParam = Array.isArray(searchParams.carpeta)
+    ? searchParams.carpeta[0]
+    : searchParams.carpeta;
+
+  const { data: perfil } = await supabase
+    .from("profiles")
+    .select("carrera_id")
+    .eq("id", user.id)
+    .single();
+
   const [{ data: carpetas }, cursos] = await Promise.all([
     supabase
       .from("carpetas")
       .select("id, nombre, color")
       .eq("propietario_id", user.id)
       .order("nombre", { ascending: true }),
-    consultaCursos(supabase),
+    consultaCursos(supabase, perfil?.carrera_id),
   ]);
 
-  return <ApunteEditor carpetas={carpetas ?? []} cursos={cursos} />;
+  // Solo se respeta ?carpeta= si corresponde a una carpeta real del usuario
+  // (evita que un link manipulado seleccione una carpeta ajena en el
+  // <Select>, que solo lista las propias).
+  const carpetaIdInicial =
+    carpetaIdParam &&
+    (carpetas ?? []).some((carpeta) => carpeta.id === carpetaIdParam)
+      ? carpetaIdParam
+      : null;
+
+  return (
+    <ApunteEditor
+      carpetas={carpetas ?? []}
+      cursos={cursos}
+      carpetaIdInicial={carpetaIdInicial}
+    />
+  );
 }

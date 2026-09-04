@@ -170,7 +170,7 @@ export function DetallePublicacion({
             publicación se sienta consistente con escribirla. La altura
             mínima es más modesta que en el editor (no hace falta espacio
             para seguir escribiendo). */}
-        <div className="lienzo-editor mt-4 flex flex-1 justify-center px-4 py-10 sm:px-8">
+        <div className="lienzo-editor mt-4 flex flex-1 items-start justify-center px-4 py-10 sm:px-8">
           <div className="hoja-editor min-h-[300px] w-full max-w-[794px] rounded-sm px-6 py-10 sm:min-h-[500px] sm:px-14 sm:py-14">
             <EditorContent editor={editor} />
           </div>

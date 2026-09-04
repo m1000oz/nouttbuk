@@ -334,6 +334,31 @@ skip_nonce_check = false
 # If enabled, it will allow the user to successfully authenticate when the provider does not return an email address.
 email_optional = false
 
+# "Continuar con Google" (nouttbuk): PUCP usa Google Workspace para las
+# cuentas institucionales @pucp.edu.pe, así que este login no es solo
+# conveniencia, también sirve como verificación de identidad extra frente al
+# signup con correo/contraseña (Google confirma que la cuenta pertenece de
+# verdad al dominio institucional). client_id/secret salen de un OAuth
+# Client ID en Google Cloud Console (tipo "Web application"), con
+# http://127.0.0.1:54321/auth/v1/callback como Authorized redirect URI para
+# este stack local; el proyecto cloud necesita su propio Client ID (o el
+# mismo, agregando su propia callback URL) configurado desde el dashboard de
+# supabase.com en vez de este archivo. Ver SUPABASE_AUTH_EXTERNAL_GOOGLE_*
+# en .env.local. Queda en `enabled = false` hasta que esas dos variables
+# tengan credenciales reales: con `enabled = true` y un client_id/secret
+# vacíos, `supabase start`/`stop` fallaría al no poder resolver `env(...)`.
+# Cambiar a `true` una vez completado ese paso.
+[auth.external.google]
+enabled = false
+client_id = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
+redirect_uri = ""
+url = ""
+# Requerido para poder iniciar sesión con Google contra el stack local, según
+# el propio comentario de Supabase sobre este flag más arriba.
+skip_nonce_check = true
+email_optional = false
+
 # Allow Solana wallet holders to sign in to your project via the Sign in with Solana (SIWS, EIP-4361) standard.
 # You can configure "web3" rate limit in the [auth.rate_limit] section and set up [auth.captcha] if self-hosting.
 [auth.web3.solana]

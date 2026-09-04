@@ -2,13 +2,14 @@
 
 import { type ReactNode, useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { NAV_ITEMS, type NavItem } from "@/components/nav/nav-items";
 import { NuevoApunteButton } from "@/components/nav/fab-nuevo-apunte";
 import { AuthModal, type AuthModalMode } from "@/components/auth/auth-modal";
 import { AuthGateProvider } from "@/components/nav/auth-gate";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
@@ -69,9 +70,52 @@ function ShellNavLink({
   );
 }
 
+// La barra móvil deja un hueco central para el FAB, así que los ítems se
+// reparten en dos mitades a su alrededor en vez de listarse en una sola fila
+// — repartido con Math.ceil/floor en vez de un slice(0,2)/slice(2,4) fijo,
+// para no romper el layout cada vez que NAV_ITEMS gane o pierda un ítem.
+function MobileNavLink({
+  item,
+  activo,
+  bloqueado,
+  onRequiereLogin,
+}: {
+  item: NavItem;
+  activo: boolean;
+  bloqueado: boolean;
+  onRequiereLogin: () => void;
+}) {
+  const Icono = item.icon;
+  return (
+    <ShellNavLink
+      item={item}
+      activo={activo}
+      bloqueado={bloqueado}
+      onRequiereLogin={onRequiereLogin}
+      className={cn(
+        "flex flex-1 flex-col items-center gap-0.5 py-1 text-[0.65rem] font-medium",
+        activo ? "text-primary" : "text-muted-foreground",
+      )}
+    >
+      <Icono weight={activo ? "fill" : "regular"} className="size-5" aria-hidden />
+      {item.label}
+    </ShellNavLink>
+  );
+}
+
+const MITAD_NAV = Math.ceil(NAV_ITEMS.length / 2);
+const navItemsIzquierda = NAV_ITEMS.slice(0, MITAD_NAV);
+const navItemsDerecha = NAV_ITEMS.slice(MITAD_NAV);
+
 export function AppShell({ session, children }: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // Solo tiene sentido preseleccionar una carpeta cuando el botón "Nuevo
+  // apunte" se dispara desde dentro de Mis apuntes con ?carpeta=X activo
+  // (detalle de carpeta); en cualquier otra pantalla se ignora.
+  const carpetaIdActual =
+    pathname === "/apuntes" ? searchParams.get("carpeta") : null;
 
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<AuthModalMode>("login");
@@ -92,7 +136,17 @@ export function AppShell({ session, children }: AppShellProps) {
       setAuthMode("login");
       setAuthOpen(true);
     }
-  }, [pathname]);
+    // Vuelta de /auth/callback tras un intento de "Continuar con Google" que
+    // no terminó en sesión (dominio no institucional rechazado por el
+    // trigger, código inválido, etc.) — se avisa por toast en vez de un
+    // error inline porque el modal de login, en este punto, ya está
+    // cerrado/no montado con ese estado de error.
+    const authError = params.get("auth_error");
+    if (authError) {
+      toast.add({ title: authError, type: "error" });
+      router.replace(pathname);
+    }
+  }, [pathname, router]);
 
   function abrirAuth(mode: AuthModalMode) {
     setAuthMode(mode);
@@ -149,7 +203,11 @@ export function AppShell({ session, children }: AppShellProps) {
           })}
         </nav>
 
-        <NuevoApunteButton variant="sidebar" className="mt-2" />
+        <NuevoApunteButton
+          variant="sidebar"
+          className="mt-2"
+          carpetaId={carpetaIdActual}
+        />
 
         <div className="mt-auto">
           {autenticado ? (
@@ -191,63 +249,32 @@ export function AppShell({ session, children }: AppShellProps) {
         className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card md:hidden"
       >
         <div className="relative flex h-16 items-center justify-around px-2">
-          {NAV_ITEMS.slice(0, 2).map((item) => {
-            const activo = pathname === item.href;
-            const bloqueado = item.requiresAuth && !autenticado;
-            const Icono = item.icon;
-            return (
-              <ShellNavLink
-                key={item.href}
-                item={item}
-                activo={activo}
-                bloqueado={bloqueado}
-                onRequiereLogin={() => abrirAuth("login")}
-                className={cn(
-                  "flex flex-1 flex-col items-center gap-0.5 py-1 text-[0.65rem] font-medium",
-                  activo ? "text-primary" : "text-muted-foreground",
-                )}
-              >
-                <Icono
-                  weight={activo ? "fill" : "regular"}
-                  className="size-5"
-                  aria-hidden
-                />
-                {item.label}
-              </ShellNavLink>
-            );
-          })}
+          {navItemsIzquierda.map((item) => (
+            <MobileNavLink
+              key={item.href}
+              item={item}
+              activo={pathname === item.href}
+              bloqueado={item.requiresAuth && !autenticado}
+              onRequiereLogin={() => abrirAuth("login")}
+            />
+          ))}
 
           <div className="w-14 shrink-0" aria-hidden />
 
-          {NAV_ITEMS.slice(2, 4).map((item) => {
-            const activo = pathname === item.href;
-            const bloqueado = item.requiresAuth && !autenticado;
-            const Icono = item.icon;
-            return (
-              <ShellNavLink
-                key={item.href}
-                item={item}
-                activo={activo}
-                bloqueado={bloqueado}
-                onRequiereLogin={() => abrirAuth("login")}
-                className={cn(
-                  "flex flex-1 flex-col items-center gap-0.5 py-1 text-[0.65rem] font-medium",
-                  activo ? "text-primary" : "text-muted-foreground",
-                )}
-              >
-                <Icono
-                  weight={activo ? "fill" : "regular"}
-                  className="size-5"
-                  aria-hidden
-                />
-                {item.label}
-              </ShellNavLink>
-            );
-          })}
+          {navItemsDerecha.map((item) => (
+            <MobileNavLink
+              key={item.href}
+              item={item}
+              activo={pathname === item.href}
+              bloqueado={item.requiresAuth && !autenticado}
+              onRequiereLogin={() => abrirAuth("login")}
+            />
+          ))}
 
           <NuevoApunteButton
             variant="fab"
             className="absolute left-1/2 -top-5 -translate-x-1/2"
+            carpetaId={carpetaIdActual}
           />
         </div>
       </nav>

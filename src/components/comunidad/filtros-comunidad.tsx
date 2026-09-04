@@ -87,7 +87,7 @@ export function FiltrosComunidad({ carreras, cursos }: FiltrosComunidadProps) {
           ...Object.fromEntries(
             cursosVisibles.map((curso) => [
               curso.id,
-              `${curso.nombre} · ${curso.carreraNombre}`,
+              `${curso.nombre} (${curso.carreraNombre})`,
             ]),
           ),
         }}
@@ -99,7 +99,12 @@ export function FiltrosComunidad({ carreras, cursos }: FiltrosComunidadProps) {
           <SelectItem value={TODAS}>Todos los cursos</SelectItem>
           {cursosVisibles.map((curso) => (
             <SelectItem key={curso.id} value={curso.id}>
-              {curso.nombre} · {curso.carreraNombre}
+              <span className="flex flex-col py-0.5">
+                <span>{curso.nombre}</span>
+                <span className="text-xs text-muted-foreground">
+                  {curso.carreraNombre}
+                </span>
+              </span>
             </SelectItem>
           ))}
         </SelectContent>

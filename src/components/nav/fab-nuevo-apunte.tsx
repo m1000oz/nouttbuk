@@ -9,19 +9,28 @@ import { cn } from "@/lib/utils";
 type NuevoApunteButtonProps = {
   variant: "sidebar" | "fab";
   className?: string;
+  // Cuando se crea desde dentro de una carpeta (Mis apuntes con ?carpeta=X),
+  // se propaga a /apuntes/nuevo para que el editor arranque con esa carpeta
+  // ya seleccionada, en vez de "Sin carpeta" por defecto.
+  carpetaId?: string | null;
 };
 
 export function NuevoApunteButton({
   variant,
   className,
+  carpetaId,
 }: NuevoApunteButtonProps) {
+  const href = carpetaId
+    ? `/apuntes/nuevo?carpeta=${carpetaId}`
+    : "/apuntes/nuevo";
+
   if (variant === "fab") {
     return (
       <Button
         aria-label="Crear nuevo apunte"
         size="icon-lg"
         nativeButton={false}
-        render={<Link href="/apuntes/nuevo" />}
+        render={<Link href={href} />}
         className={cn(
           "rounded-full ring-4 ring-background shadow-lg",
           className,
@@ -33,11 +42,7 @@ export function NuevoApunteButton({
   }
 
   return (
-    <Button
-      nativeButton={false}
-      render={<Link href="/apuntes/nuevo" />}
-      className={className}
-    >
+    <Button nativeButton={false} render={<Link href={href} />} className={className}>
       <PlusIcon aria-hidden />
       Nuevo apunte
     </Button>

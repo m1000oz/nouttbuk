@@ -20,10 +20,12 @@ La aplicación es responsiva de verdad, no una adaptación de la app móvil: nav
 | **Detalle de publicación** | Apunte completo, autor, reacciones/guardados/comentarios, conversación. | Reaccionar, guardar, comentar, compartir. |
 | **Compartir** | Hoja inferior con opciones de visibilidad (privado/grupo/comunidad) e invitación de colaboradores con permiso de lectura o edición. | Definir audiencia e invitar estudiantes. |
 | **Perfil** | Avatar, carrera, universidad, stats (apuntes/aportes/contactos), apuntes públicos. | Editar perfil, enviar feedback, cerrar sesión. |
-| **Editar perfil** | Overlay con foto de perfil (subida directa, sin recorte), nombre, usuario y carrera (select con el catálogo oficial de las 55 carreras de pregrado PUCP); universidad fija, no editable. El usuario solo se puede cambiar una vez cada 7 días, con chequeo de disponibilidad en vivo mientras se escribe. | Actualizar los datos del perfil. |
-| **Login / Registro** | Modal con toggle entre iniciar sesión y crear cuenta. El registro pide nombre, usuario, carrera (select con el catálogo oficial), universidad (fija en PUCP) y correo institucional; solo se admiten correos `@pucp.edu.pe`. | Entrar o crear cuenta sin abandonar el flujo actual. |
+| **Editar perfil** | Overlay con foto de perfil (subida directa, sin recorte), nombre, usuario y carrera (select con el catálogo oficial de las 55 carreras de pregrado PUCP); universidad fija, no editable. El usuario solo se puede cambiar una vez cada 7 días (con chequeo de disponibilidad en vivo mientras se escribe) y la carrera una vez cada 30 días; ambos avisan con un diálogo de confirmación antes de guardar, no solo con el texto informativo bajo el campo. | Actualizar los datos del perfil. |
+| **Login / Registro** | Modal con toggle entre iniciar sesión y crear cuenta, más "Continuar con Google" (cuenta institucional de Google Workspace, `@pucp.edu.pe`) arriba del formulario de correo/contraseña. El registro por correo pide nombre, usuario, carrera (select con el catálogo oficial, con aviso de que solo se puede cambiar cada 30 días), universidad (fija en PUCP) y correo institucional; solo se admiten correos `@pucp.edu.pe`, verificación que también aplica al login con Google. | Entrar o crear cuenta sin abandonar el flujo actual. |
 | **Recuperar contraseña** | Alcanzable desde el login. Pide correo institucional y muestra confirmación de envío. | Restablecer el acceso sin exponer si la cuenta existe. |
 | **Board de feedback** | Composer + lista de ideas de la comunidad cerrada, con voto y estado (Nueva/En revisión/Hecho). | Proponer ideas, ver qué se está evaluando o ya se hizo. |
+| **Calendario** | Tabs "Mi calendario" / "Cruce de horarios". Grilla semanal (lunes-domingo, 7:00-22:00) de bloques recurrentes creados en una hoja (título, día, hora de inicio/fin, color); cada bloque se toca para editarlo o eliminarlo. "Cruce de horarios" deja elegir con quién combinar (uno mismo + quienes compartieron su calendario), colorea en verde las franjas libres para todos los seleccionados y lista esos rangos como texto por día. | Organizar el horario propio, compartirlo con otros estudiantes por usuario, encontrar en qué momentos un grupo puede reunirse. |
+| **CV** | Guía de 6 pasos (armar el primer borrador, convertir tareas en logros medibles, adaptar a una oferta específica, elegir qué habilidades destacar, revisar forma, adaptar al inglés), cada uno con un prompt copiable para pegar en ChatGPT, Gemini o Claude, más un botón para descargar una plantilla de CV en PDF generada en el momento. Alcanzable desde Perfil, no desde la navegación principal. | Armar o actualizar el CV con ayuda de un asistente de IA, partiendo de una plantilla ya estructurada. |
 
 ## Flujos principales
 
@@ -39,7 +41,7 @@ La aplicación es responsiva de verdad, no una adaptación de la app móvil: nav
 
 ## Navegación
 
-Cuatro destinos estables: **Inicio**, **Mis apuntes**, **Comunidad** y **Perfil**. En desktop, nav lateral con los cuatro destinos y el CTA "Nuevo apunte" siempre visible. En mobile/PWA, tab bar inferior con los mismos cuatro destinos y un botón flotante (+) centrado, superpuesto a la barra a la mitad (no flotando entero por arriba) para sentirse parte de la barra. Las pantallas de detalle (Editor, Detalle de publicación) se presentan como overlays de pantalla completa con salida explícita (botón de cerrar o volver, nunca solo "tocar afuera"); las elecciones breves (Compartir) como hojas inferiores.
+Cinco destinos estables: **Inicio**, **Mis apuntes**, **Calendario**, **Comunidad** y **Perfil**. En desktop, nav lateral con los cinco destinos y el CTA "Nuevo apunte" siempre visible. En mobile/PWA, tab bar inferior con los mismos cinco destinos repartidos en dos mitades alrededor de un botón flotante (+) centrado, superpuesto a la barra a la mitad (no flotando entero por arriba) para sentirse parte de la barra. Las pantallas de detalle (Editor, Detalle de publicación) se presentan como overlays de pantalla completa con salida explícita (botón de cerrar o volver, nunca solo "tocar afuera"); las elecciones breves (Compartir) como hojas inferiores. CV es una sección adicional, alcanzable desde Perfil en vez de la navegación principal (es un recurso de consulta puntual, no un destino de uso frecuente como los cinco anteriores).
 
 ## Modelo de información
 
@@ -53,6 +55,8 @@ Cuatro destinos estables: **Inicio**, **Mis apuntes**, **Comunidad** y **Perfil*
 | **Publicación** | id, apunteId, audiencia, fecha | Representa un apunte visible en la comunidad o grupo. Reacciones, guardados y comentarios no son campos propios, se cuentan en vivo desde sus tablas (`reacciones`, `guardados`, `comentarios`). |
 | **Comentario** | id, publicaciónId, autorId, texto, fecha | Inicia conversación académica. |
 | **Colaboración** | apunteId, perfilId, permiso | Define lectura o edición para apuntes compartidos. |
+| **Bloque de horario** | id, perfilId, título, diaSemana, horaInicio, horaFin, color | Horario semanal recurrente (no fechas puntuales) del calendario personal de un estudiante. |
+| **Colaboración de calendario** | propietarioId, colaboradorId | Comparte de solo lectura los bloques de un calendario con otro estudiante, para calcular cruces de horario. Unidireccional: no otorga permiso de edición ni acceso recíproco. |
 
 ## Identidad visual
 

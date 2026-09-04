@@ -25,11 +25,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { toast } from "@/components/ui/toast";
 import { buscarPerfilPorUsuario } from "@/lib/colaboradores/consultas";
 import { cn } from "@/lib/utils";
 
 const TAMANO_MAXIMO_AVATAR = 5 * 1024 * 1024;
 const DIAS_ESPERA_CAMBIO_USUARIO = 7;
+// La carrera no es un identificador único que otros referencian (a
+// diferencia de usuario), así que su candado es más laxo: alcanza con evitar
+// que alguien la esté cambiando cada rato y desordene los conteos de
+// "aportes por carrera" del feed de Comunidad.
+const DIAS_ESPERA_CAMBIO_CARRERA = 30;
 
 function iniciales(nombre: string): string {
   return nombre
@@ -41,11 +56,10 @@ function iniciales(nombre: string): string {
     .toUpperCase();
 }
 
-function diasRestantes(usuarioActualizadoEn: string | null): number {
-  if (!usuarioActualizadoEn) return 0;
-  const transcurridoMs = Date.now() - new Date(usuarioActualizadoEn).getTime();
-  const restanteMs =
-    DIAS_ESPERA_CAMBIO_USUARIO * 24 * 60 * 60 * 1000 - transcurridoMs;
+function diasRestantes(actualizadoEn: string | null, diasEspera: number): number {
+  if (!actualizadoEn) return 0;
+  const transcurridoMs = Date.now() - new Date(actualizadoEn).getTime();
+  const restanteMs = diasEspera * 24 * 60 * 60 * 1000 - transcurridoMs;
   return Math.max(0, Math.ceil(restanteMs / (24 * 60 * 60 * 1000)));
 }
 
@@ -57,6 +71,7 @@ type EditarPerfilSheetProps = {
     carreraId: string | null;
     avatarUrl: string | null;
     usuarioActualizadoEn: string | null;
+    carreraActualizadaEn: string | null;
   };
   carreras: { id: string; nombre: string }[];
 };
@@ -78,6 +93,7 @@ export function EditarPerfilSheet({
   const [subiendoAvatar, setSubiendoAvatar] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
+  const [confirmarCambioOpen, setConfirmarCambioOpen] = useState(false);
   // Guarda el resultado del último chequeo async junto con el valor que se
   // consultó, en vez de un estado "verificando/disponible/en_uso" propio:
   // así el efecto nunca llama a setState de forma síncrona en su cuerpo (eso
@@ -89,8 +105,16 @@ export function EditarPerfilSheet({
     disponible: boolean;
   } | null>(null);
 
-  const restantes = diasRestantes(perfil.usuarioActualizadoEn);
+  const restantes = diasRestantes(
+    perfil.usuarioActualizadoEn,
+    DIAS_ESPERA_CAMBIO_USUARIO,
+  );
   const usuarioBloqueado = restantes > 0;
+  const restantesCarrera = diasRestantes(
+    perfil.carreraActualizadaEn,
+    DIAS_ESPERA_CAMBIO_CARRERA,
+  );
+  const carreraBloqueada = restantesCarrera > 0;
   const valorUsuario = usuario.trim();
   const mostrarChequeo =
     !usuarioBloqueado && valorUsuario !== "" && valorUsuario !== perfil.usuario;
@@ -176,11 +200,29 @@ export function EditarPerfilSheet({
     }
 
     setAvatarUrl(urlConVersion);
+    toast.add({ title: "Foto de perfil actualizada.", type: "success" });
     router.refresh();
   }
 
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault();
+  const usuarioCambia = usuario.trim() !== perfil.usuario;
+  const carreraCambia = carreraId !== perfil.carreraId;
+  // Solo se avisa de un campo si el cambio realmente va a activar su
+  // candado (si ya está bloqueado, el campo ni siquiera se puede tocar, y no
+  // tiene sentido advertir sobre algo que la UI ya impide).
+  const avisarUsuario = usuarioCambia && !usuarioBloqueado;
+  const avisarCarrera = carreraCambia && !carreraBloqueada;
+
+  const mensajeConfirmacion = (() => {
+    if (avisarUsuario && avisarCarrera) {
+      return `Después de guardar, no podrás volver a cambiar tu usuario hasta dentro de ${DIAS_ESPERA_CAMBIO_USUARIO} días, ni tu carrera hasta dentro de ${DIAS_ESPERA_CAMBIO_CARRERA} días. ¿Quieres continuar?`;
+    }
+    if (avisarUsuario) {
+      return `Después de guardar, no podrás volver a cambiar tu usuario hasta dentro de ${DIAS_ESPERA_CAMBIO_USUARIO} días. ¿Quieres continuar?`;
+    }
+    return `Después de guardar, no podrás volver a cambiar tu carrera hasta dentro de ${DIAS_ESPERA_CAMBIO_CARRERA} días. ¿Quieres continuar?`;
+  })();
+
+  async function guardarCambios() {
     setError(null);
     setCargando(true);
 
@@ -196,7 +238,11 @@ export function EditarPerfilSheet({
       if (dbError.code === "23505") {
         setError("Ese nombre de usuario ya está en uso.");
       } else if (dbError.code === "23514") {
-        setError("Solo puedes cambiar tu usuario una vez cada 7 días.");
+        setError(
+          dbError.message.includes("carrera")
+            ? "Solo puedes cambiar tu carrera una vez cada 30 días."
+            : "Solo puedes cambiar tu usuario una vez cada 7 días.",
+        );
       } else {
         setError("No se pudo guardar los cambios. Intenta de nuevo.");
       }
@@ -204,156 +250,214 @@ export function EditarPerfilSheet({
     }
 
     setOpen(false);
+    toast.add({ title: "Perfil actualizado.", type: "success" });
     router.refresh();
   }
 
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    // Cambiar el usuario o la carrera activa un candado (7 y 30 días
+    // respectivamente): se avisa antes de guardar, no solo con el texto
+    // informativo bajo cada campo, para que la persona no se entere de la
+    // restricción recién cuando ya quiere volver a cambiarlo.
+    if (avisarUsuario || avisarCarrera) {
+      setConfirmarCambioOpen(true);
+      return;
+    }
+    await guardarCambios();
+  }
+
+  async function handleConfirmarCambio() {
+    setConfirmarCambioOpen(false);
+    await guardarCambios();
+  }
+
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger
-        render={
-          <Button variant="outline">
-            <PencilSimpleIcon aria-hidden />
-            Editar perfil
-          </Button>
-        }
-      />
-      <SheetContent
-        side="bottom"
-        className="mx-auto w-full rounded-t-xl border-t border-border sm:max-w-sm"
-      >
-        <div
-          className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-border"
-          aria-hidden
-        />
-        <SheetHeader>
-          <SheetTitle>Edita tu perfil</SheetTitle>
-          <SheetDescription>
-            La universidad queda fija, no se puede cambiar.
-          </SheetDescription>
-        </SheetHeader>
-
-        <form
-          onSubmit={handleSubmit}
-          className="flex flex-col gap-4 px-4 pb-4"
-        >
-          {error && (
-            <p
-              role="alert"
-              className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"
-            >
-              {error}
-            </p>
-          )}
-
-          <div className="flex justify-center">
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={subiendoAvatar}
-              aria-label="Cambiar foto de perfil"
-              className="group relative rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-            >
-              <Avatar size="lg">
-                {avatarUrl && <AvatarImage src={avatarUrl} alt="" />}
-                <AvatarFallback>{iniciales(nombre)}</AvatarFallback>
-              </Avatar>
-              <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
-                <CameraIcon className="size-4 text-white" aria-hidden />
-              </span>
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleAvatarChange}
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="perfil-nombre">Nombre</Label>
-            <Input
-              id="perfil-nombre"
-              required
-              value={nombre}
-              onChange={(event) => setNombre(event.target.value)}
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="perfil-usuario">Usuario</Label>
-            <Input
-              id="perfil-usuario"
-              required
-              disabled={usuarioBloqueado}
-              value={usuario}
-              onChange={(event) => setUsuario(event.target.value)}
-            />
-            {usuarioBloqueado ? (
-              <p className="text-xs text-muted-foreground">
-                Podrás cambiar tu usuario en{" "}
-                {restantes === 1 ? "1 día" : `${restantes} días`}.
-              </p>
-            ) : (
-              disponibilidad && (
-                <p
-                  className={cn(
-                    "text-xs",
-                    disponibilidad === "en_uso"
-                      ? "text-destructive"
-                      : "text-muted-foreground",
-                  )}
-                >
-                  {disponibilidad === "verificando" && "Verificando disponibilidad…"}
-                  {disponibilidad === "disponible" && "Usuario disponible."}
-                  {disponibilidad === "en_uso" && "Ese usuario ya está en uso."}
-                </p>
-              )
-            )}
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="perfil-carrera">Carrera</Label>
-            <Select
-              value={carreraId ?? "__ninguna__"}
-              onValueChange={(valor) =>
-                setCarreraId(valor === "__ninguna__" ? null : valor)
-              }
-              items={{
-                __ninguna__: "Sin especificar",
-                ...Object.fromEntries(
-                  carreras.map((carreraOpcion) => [
-                    carreraOpcion.id,
-                    carreraOpcion.nombre,
-                  ]),
-                ),
-              }}
-            >
-              <SelectTrigger id="perfil-carrera" className="w-full">
-                <SelectValue placeholder="Carrera" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__ninguna__">Sin especificar</SelectItem>
-                {carreras.map((carreraOpcion) => (
-                  <SelectItem key={carreraOpcion.id} value={carreraOpcion.id}>
-                    {carreraOpcion.nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <SheetFooter className="p-0">
-            <Button
-              type="submit"
-              loading={cargando}
-              disabled={disponibilidad === "en_uso"}
-            >
-              Guardar cambios
+    <>
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetTrigger
+          render={
+            <Button variant="outline">
+              <PencilSimpleIcon aria-hidden />
+              Editar perfil
             </Button>
-          </SheetFooter>
-        </form>
-      </SheetContent>
-    </Sheet>
+          }
+        />
+        <SheetContent
+          side="bottom"
+          className="mx-auto w-full rounded-t-xl border-t border-border sm:max-w-sm"
+        >
+          <div
+            className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-border"
+            aria-hidden
+          />
+          <SheetHeader>
+            <SheetTitle>Edita tu perfil</SheetTitle>
+            <SheetDescription>
+              La universidad queda fija, no se puede cambiar.
+            </SheetDescription>
+          </SheetHeader>
+
+          <form
+            onSubmit={handleSubmit}
+            className="flex flex-col gap-4 px-4 pb-4"
+          >
+            {error && (
+              <p
+                role="alert"
+                className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"
+              >
+                {error}
+              </p>
+            )}
+
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={subiendoAvatar}
+                aria-label="Cambiar foto de perfil"
+                className="group relative rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                <Avatar size="lg">
+                  {avatarUrl && <AvatarImage src={avatarUrl} alt="" />}
+                  <AvatarFallback>{iniciales(nombre)}</AvatarFallback>
+                </Avatar>
+                <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                  <CameraIcon className="size-4 text-white" aria-hidden />
+                </span>
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarChange}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="perfil-nombre">Nombre</Label>
+              <Input
+                id="perfil-nombre"
+                required
+                value={nombre}
+                onChange={(event) => setNombre(event.target.value)}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="perfil-usuario">Usuario</Label>
+              <Input
+                id="perfil-usuario"
+                required
+                disabled={usuarioBloqueado}
+                value={usuario}
+                onChange={(event) => setUsuario(event.target.value)}
+              />
+              {usuarioBloqueado ? (
+                <p className="text-xs text-muted-foreground">
+                  Podrás cambiar tu usuario en{" "}
+                  {restantes === 1 ? "1 día" : `${restantes} días`}.
+                </p>
+              ) : (
+                disponibilidad && (
+                  <p
+                    className={cn(
+                      "text-xs",
+                      disponibilidad === "en_uso"
+                        ? "text-destructive"
+                        : "text-muted-foreground",
+                    )}
+                  >
+                    {disponibilidad === "verificando" && "Verificando disponibilidad…"}
+                    {disponibilidad === "disponible" && "Usuario disponible."}
+                    {disponibilidad === "en_uso" && "Ese usuario ya está en uso."}
+                  </p>
+                )
+              )}
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="perfil-carrera">Carrera</Label>
+              <Select
+                value={carreraId ?? "__ninguna__"}
+                onValueChange={(valor) =>
+                  setCarreraId(valor === "__ninguna__" ? null : valor)
+                }
+                disabled={carreraBloqueada}
+                items={{
+                  __ninguna__: "Sin especificar",
+                  ...Object.fromEntries(
+                    carreras.map((carreraOpcion) => [
+                      carreraOpcion.id,
+                      carreraOpcion.nombre,
+                    ]),
+                  ),
+                }}
+              >
+                <SelectTrigger id="perfil-carrera" className="w-full">
+                  <SelectValue placeholder="Carrera" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__ninguna__">Sin especificar</SelectItem>
+                  {carreras.map((carreraOpcion) => (
+                    <SelectItem key={carreraOpcion.id} value={carreraOpcion.id}>
+                      {carreraOpcion.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {carreraBloqueada && (
+                <p className="text-xs text-muted-foreground">
+                  Podrás cambiar tu carrera en{" "}
+                  {restantesCarrera === 1
+                    ? "1 día"
+                    : `${restantesCarrera} días`}
+                  .
+                </p>
+              )}
+            </div>
+
+            <SheetFooter className="p-0">
+              <Button
+                type="submit"
+                loading={cargando}
+                disabled={disponibilidad === "en_uso"}
+              >
+                Guardar cambios
+              </Button>
+            </SheetFooter>
+          </form>
+        </SheetContent>
+      </Sheet>
+
+      <Dialog open={confirmarCambioOpen} onOpenChange={setConfirmarCambioOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {avisarUsuario && avisarCarrera
+                ? "Cambiar usuario y carrera"
+                : avisarUsuario
+                  ? "Cambiar nombre de usuario"
+                  : "Cambiar carrera"}
+            </DialogTitle>
+            <DialogDescription>{mensajeConfirmacion}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose render={<Button type="button" variant="outline" />}>
+              Cancelar
+            </DialogClose>
+            <Button
+              type="button"
+              loading={cargando}
+              onClick={handleConfirmarCambio}
+            >
+              Sí, continuar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

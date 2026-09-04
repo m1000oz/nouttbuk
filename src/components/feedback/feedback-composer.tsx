@@ -5,6 +5,7 @@ import { type FormEvent, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
 import type { FeedbackIdea } from "@/components/feedback/feedback-lista";
 
 type FeedbackComposerProps = {
@@ -61,6 +62,7 @@ export function FeedbackComposer({
       yaVote: false,
     });
     setTexto("");
+    toast.add({ title: "Idea enviada. ¡Gracias!", type: "success" });
   }
 
   return (

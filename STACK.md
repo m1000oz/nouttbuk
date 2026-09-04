@@ -14,13 +14,14 @@ Este documento justifica la elección de stack para la versión web + PWA de Nou
 | Motion, sutil (cotidiano) | Motion (motion.dev, ex-Framer Motion) |
 | Motion, rico (momentos firma) | anime.js v4 |
 | PWA | manifest.json + service worker (next-pwa o configuración manual) |
+| Generación de PDF | jsPDF (cliente, sin backend ni binario del sistema) |
 | Hosting | Vercel (app) + Supabase Cloud (backend) |
 
 ## Por qué cada pieza
 
 **Next.js (App Router, TS)**, SSR para el feed público de comunidad, clave para el gancho de SEO/growth sin login que pide el modelo de producto. Un solo codebase sirve la web y la PWA.
 
-**Supabase (Postgres + Auth + Storage + Realtime)**, el modelo de visibilidad por apunte (`private`/`group`/`community`) mapea directo a **Row Level Security** de Postgres: es el caso de uso ideal para RLS, y evita reimplementar reglas de autorización a mano en cada endpoint. Auth con email/password lista de fábrica, Storage para avatares, Realtime útil para reacciones/comentarios/board de feedback sin infra propia. Managed = velocidad para desarrollo en solitario.
+**Supabase (Postgres + Auth + Storage + Realtime)**, el modelo de visibilidad por apunte (`private`/`group`/`community`) mapea directo a **Row Level Security** de Postgres: es el caso de uso ideal para RLS, y evita reimplementar reglas de autorización a mano en cada endpoint. Auth con email/password lista de fábrica, más OAuth con Google restringido al Workspace institucional (`hd=pucp.edu.pe`) ya que PUCP corre sus correos `@pucp.edu.pe` sobre Google Workspace, Storage para avatares, Realtime útil para reacciones/comentarios/board de feedback sin infra propia. Managed = velocidad para desarrollo en solitario.
 
 **Tailwind CSS + shadcn/ui**, encaja con los tokens de marca ya definidos (índigo `#4F46E5`, base `#F8FAFC`, acento turquesa `#14B8A6`, radios 20-28px) y acelera la Fase 2 de diseño al tener primitivos accesibles listos.
 

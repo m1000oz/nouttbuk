@@ -622,9 +622,15 @@ export function EditorContadorPalabras({ editor }: EditorToolbarProps) {
   if (!estado) return null;
 
   return (
-    <div className="pointer-events-none fixed right-4 bottom-4 z-10 rounded-full bg-popover px-3 py-1 text-xs text-muted-foreground shadow-md ring-1 ring-foreground/10">
-      {estado.palabras} {estado.palabras === 1 ? "palabra" : "palabras"} ·{" "}
-      {estado.caracteres} {estado.caracteres === 1 ? "carácter" : "caracteres"}
+    <div className="pointer-events-none fixed right-4 bottom-4 z-10 flex items-center gap-2 rounded-full bg-popover px-3 py-1 text-xs text-muted-foreground shadow-md ring-1 ring-foreground/10">
+      <span>
+        {estado.palabras} {estado.palabras === 1 ? "palabra" : "palabras"}
+      </span>
+      <span className="h-3 w-px bg-border" aria-hidden />
+      <span>
+        {estado.caracteres}{" "}
+        {estado.caracteres === 1 ? "carácter" : "caracteres"}
+      </span>
     </div>
   );
 }

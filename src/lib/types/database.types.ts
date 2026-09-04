@@ -98,6 +98,80 @@ export type Database = {
           },
         ]
       }
+      bloques_horario: {
+        Row: {
+          color: string
+          created_at: string
+          dia_semana: number
+          hora_fin: string
+          hora_inicio: string
+          id: string
+          perfil_id: string
+          titulo: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          dia_semana: number
+          hora_fin: string
+          hora_inicio: string
+          id?: string
+          perfil_id: string
+          titulo: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          dia_semana?: number
+          hora_fin?: string
+          hora_inicio?: string
+          id?: string
+          perfil_id?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bloques_horario_perfil_id_fkey"
+            columns: ["perfil_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calendario_colaboradores: {
+        Row: {
+          colaborador_id: string
+          created_at: string
+          propietario_id: string
+        }
+        Insert: {
+          colaborador_id: string
+          created_at?: string
+          propietario_id: string
+        }
+        Update: {
+          colaborador_id?: string
+          created_at?: string
+          propietario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendario_colaboradores_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendario_colaboradores_propietario_id_fkey"
+            columns: ["propietario_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       carpetas: {
         Row: {
           color: string
@@ -365,6 +439,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          carrera_actualizada_en: string | null
           carrera_id: string | null
           created_at: string
           id: string
@@ -376,6 +451,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          carrera_actualizada_en?: string | null
           carrera_id?: string | null
           created_at?: string
           id: string
@@ -387,6 +463,7 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          carrera_actualizada_en?: string | null
           carrera_id?: string | null
           created_at?: string
           id?: string

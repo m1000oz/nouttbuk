@@ -11,6 +11,7 @@ import {
 
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -98,6 +99,10 @@ export function CarpetaSheet({ carpeta, trigger }: CarpetaSheetProps) {
     }
 
     setOpen(false);
+    toast.add({
+      title: esEdicion ? "Carpeta actualizada." : "Carpeta creada.",
+      type: "success",
+    });
     router.refresh();
   }
 

@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/components/ui/toast";
 import { CompartirSheet } from "@/components/apuntes/compartir-sheet";
 import { EditorEstatico } from "@/components/apuntes/editor-estatico";
 import { EditorColaborativo } from "@/components/apuntes/editor-colaborativo";
@@ -54,6 +55,7 @@ type ApunteEditorProps = {
   permisoActual?: PermisoApunte;
   autorNombre?: string;
   colaboradoresIniciales?: ColaboradorRow[];
+  carpetaIdInicial?: string | null;
 };
 
 const ETIQUETAS_ROTAS = /[,\n]/;
@@ -75,6 +77,7 @@ export function ApunteEditor({
   permisoActual = "owner",
   autorNombre,
   colaboradoresIniciales = [],
+  carpetaIdInicial = null,
 }: ApunteEditorProps) {
   const router = useRouter();
   const esEdicion = Boolean(apunte);
@@ -84,7 +87,7 @@ export function ApunteEditor({
   const cursoActual = cursos.find((curso) => curso.id === apunte?.cursoId);
   const [titulo, setTitulo] = useState(apunte?.titulo ?? "");
   const [carpetaId, setCarpetaId] = useState<string | null>(
-    apunte?.carpetaId ?? null,
+    apunte?.carpetaId ?? carpetaIdInicial,
   );
   const [cursoId, setCursoId] = useState<string | null>(
     apunte?.cursoId ?? null,
@@ -182,6 +185,7 @@ export function ApunteEditor({
       setGuardando(false);
       if (dbError) {
         setError("No se pudo guardar los cambios. Intenta de nuevo.");
+        toast.add({ title: "No se pudo guardar el apunte.", type: "error" });
         return;
       }
     } else {
@@ -202,10 +206,15 @@ export function ApunteEditor({
       setGuardando(false);
       if (dbError) {
         setError("No se pudo guardar el apunte. Intenta de nuevo.");
+        toast.add({ title: "No se pudo guardar el apunte.", type: "error" });
         return;
       }
     }
 
+    toast.add({
+      title: esEdicion ? "Apunte guardado." : "Apunte creado.",
+      type: "success",
+    });
     router.push("/apuntes");
     router.refresh();
   }
@@ -292,7 +301,7 @@ export function ApunteEditor({
                 ...Object.fromEntries(
                   cursos.map((curso) => [
                     curso.id,
-                    `${curso.nombre} · ${curso.carreraNombre}`,
+                    `${curso.nombre} (${curso.carreraNombre})`,
                   ]),
                 ),
               }}
@@ -304,7 +313,12 @@ export function ApunteEditor({
                 <SelectItem value="__ninguno__">Sin curso</SelectItem>
                 {cursos.map((curso) => (
                   <SelectItem key={curso.id} value={curso.id}>
-                    {curso.nombre} · {curso.carreraNombre}
+                    <span className="flex flex-col py-0.5">
+                      <span>{curso.nombre}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {curso.carreraNombre}
+                      </span>
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -365,10 +379,14 @@ export function ApunteEditor({
           )}
 
           {!esOwner && (
-            <div className="flex items-center gap-2 rounded-lg border border-dashed border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
-              <UsersThreeIcon className="size-4" aria-hidden />
-              Compartido por {autorNombre ?? "otra persona"} ·{" "}
-              {soloLectura ? "Solo lectura" : "Puedes editar"}
+            <div className="flex items-center justify-between gap-2 rounded-lg border border-dashed border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+              <span className="flex items-center gap-2">
+                <UsersThreeIcon className="size-4 shrink-0" aria-hidden />
+                Compartido por {autorNombre ?? "otra persona"}
+              </span>
+              <Badge variant="secondary">
+                {soloLectura ? "Solo lectura" : "Puedes editar"}
+              </Badge>
             </div>
           )}
 
@@ -433,7 +451,7 @@ export function ApunteEditor({
         {/* El lienzo (fondo con tinte índigo) y la hoja (siempre blanca,
             forma A4) le dan al editor la sensación de "hoja de papel" en vez
             de una cartulina infinita del mismo color que el resto de la app. */}
-        <div className="lienzo-editor mt-6 flex flex-1 justify-center px-4 py-10 sm:px-8">
+        <div className="lienzo-editor mt-6 flex flex-1 items-start justify-center px-4 py-10 sm:px-8">
           <div className="hoja-editor min-h-[600px] w-full max-w-[794px] rounded-sm px-6 py-10 sm:min-h-[900px] sm:px-14 sm:py-14 lg:min-h-[1123px] lg:px-20 lg:py-16">
             {modoColaborativo && apunte ? (
               <EditorColaborativo

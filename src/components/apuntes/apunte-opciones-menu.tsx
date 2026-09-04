@@ -11,6 +11,7 @@ import {
 
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -75,33 +76,51 @@ export function ApunteOpcionesMenu({
   async function moverACarpeta(carpetaId: string | null) {
     setCargando(true);
     const supabase = createClient();
-    await supabase
+    const { error } = await supabase
       .from("apuntes")
       .update({ carpeta_id: carpetaId })
       .eq("id", apunteId);
     setCargando(false);
     setMoverOpen(false);
+    if (error) {
+      toast.add({ title: "No se pudo mover el apunte.", type: "error" });
+      return;
+    }
+    toast.add({ title: "Apunte movido.", type: "success" });
     router.refresh();
   }
 
   async function cambiarVisibilidad(visibilidad: ApunteVisibilidad) {
     setCargando(true);
     const supabase = createClient();
-    await supabase
+    const { error } = await supabase
       .from("apuntes")
       .update({ visibilidad })
       .eq("id", apunteId);
     setCargando(false);
     setCompartirOpen(false);
+    if (error) {
+      toast.add({
+        title: "No se pudo actualizar la visibilidad.",
+        type: "error",
+      });
+      return;
+    }
+    toast.add({ title: "Visibilidad actualizada.", type: "success" });
     router.refresh();
   }
 
   async function eliminar() {
     setCargando(true);
     const supabase = createClient();
-    await supabase.from("apuntes").delete().eq("id", apunteId);
+    const { error } = await supabase.from("apuntes").delete().eq("id", apunteId);
     setCargando(false);
     setEliminarOpen(false);
+    if (error) {
+      toast.add({ title: "No se pudo eliminar el apunte.", type: "error" });
+      return;
+    }
+    toast.add({ title: "Apunte eliminado.", type: "success" });
     router.refresh();
   }
 
