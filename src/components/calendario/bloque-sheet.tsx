@@ -65,10 +65,10 @@ type BloqueSheetProps = {
   };
   diaInicial?: number;
   // Opcional: page.tsx (Server Component) no puede construir JSX con
-  // <Button> directamente — ver la nota de CLAUDE.md sobre Button e íconos
+  // <Button> directamente, ver la nota de CLAUDE.md sobre Button e íconos
   // no-SSR creando contexto de React al importarse fuera de un límite "use
-  // client" — así que el trigger "Nuevo bloque" por defecto vive acá adentro
-  // en vez de pasarse desde afuera, mismo patrón que CarpetaSheet.
+  // client". El trigger "Nuevo bloque" por defecto vive acá adentro en vez
+  // de pasarse desde afuera, mismo patrón que CarpetaSheet.
   trigger?: ReactElement;
 };
 

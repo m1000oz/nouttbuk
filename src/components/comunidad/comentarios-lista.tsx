@@ -1,5 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { fechaRelativa } from "@/lib/fecha/relativa";
+import { ReportarSheet } from "@/components/comunidad/reportar-sheet";
 
 function iniciales(nombre: string): string {
   return nombre
@@ -46,26 +47,32 @@ export function ComentariosLista({
   return (
     <ul className="flex flex-col gap-3">
       {comentarios.map((comentario) => (
-        <li key={comentario.id} className="flex items-start gap-2.5">
-          <Avatar size="sm">
-            {comentario.autor.avatarUrl && (
-              <AvatarImage src={comentario.autor.avatarUrl} alt="" />
-            )}
-            <AvatarFallback>
-              {iniciales(comentario.autor.nombre)}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex flex-col gap-0.5">
-            <div className="flex items-baseline gap-2">
-              <span className="text-sm font-medium text-foreground">
-                {comentario.autor.nombre}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {fechaRelativa(comentario.createdAt)}
-              </span>
+        <li key={comentario.id} className="flex items-start justify-between gap-2.5">
+          <div className="flex items-start gap-2.5">
+            <Avatar size="sm">
+              {comentario.autor.avatarUrl && (
+                <AvatarImage src={comentario.autor.avatarUrl} alt="" />
+              )}
+              <AvatarFallback>
+                {iniciales(comentario.autor.nombre)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col gap-0.5">
+              <div className="flex items-baseline gap-2">
+                <span className="text-sm font-medium text-foreground">
+                  {comentario.autor.nombre}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {fechaRelativa(comentario.createdAt)}
+                </span>
+              </div>
+              <p className="text-sm text-foreground">{comentario.texto}</p>
             </div>
-            <p className="text-sm text-foreground">{comentario.texto}</p>
           </div>
+          <ReportarSheet
+            objetivo={{ tipo: "comentario", id: comentario.id }}
+            usuarioId={usuarioId}
+          />
         </li>
       ))}
     </ul>

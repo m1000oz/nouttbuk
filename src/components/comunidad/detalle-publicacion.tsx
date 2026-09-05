@@ -24,6 +24,7 @@ import { FontSize } from "@/lib/tiptap/font-size-extension";
 import { ReaccionBoton } from "@/components/comunidad/reaccion-boton";
 import { GuardarBoton } from "@/components/comunidad/guardar-boton";
 import { ComentarioForm } from "@/components/comunidad/comentario-form";
+import { ReportarSheet } from "@/components/comunidad/reportar-sheet";
 import {
   ComentariosLista,
   type ComentarioData,
@@ -211,6 +212,10 @@ export function DetallePublicacion({
               <ShareNetworkIcon aria-hidden />
               {copiado ? "Enlace copiado" : "Compartir"}
             </Button>
+            <ReportarSheet
+              objetivo={{ tipo: "publicacion", id: publicacion.id }}
+              usuarioId={usuarioId}
+            />
           </div>
 
           <section className="flex flex-col gap-3">

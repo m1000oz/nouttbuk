@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -18,6 +18,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  TurnstileWidget,
+  type TurnstileWidgetHandle,
+} from "@/components/auth/turnstile-widget";
 
 type SignupFormProps = {
   onSuccess: () => void;
@@ -33,10 +37,13 @@ export function SignupForm({ onSuccess, onIrALogin }: SignupFormProps) {
   const [carreras, setCarreras] = useState<Carrera[]>([]);
   const [correo, setCorreo] = useState("");
   const [contrasena, setContrasena] = useState("");
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [correoError, setCorreoError] = useState<string | null>(null);
   const [mostrarLinkLogin, setMostrarLinkLogin] = useState(false);
   const [cargando, setCargando] = useState(false);
+  const turnstileRef = useRef<TurnstileWidgetHandle>(null);
+  const captchaRequerido = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
 
   // Catálogo real de carreras PUCP, público (RLS anon), se carga al montar el
   // formulario en vez de pasarse como prop: el modal de auth no tiene un
@@ -69,6 +76,7 @@ export function SignupForm({ onSuccess, onIrALogin }: SignupFormProps) {
       password: contrasena,
       options: {
         data: { nombre, usuario, carrera_id: carreraId },
+        captchaToken: captchaToken ?? undefined,
       },
     });
 
@@ -84,6 +92,7 @@ export function SignupForm({ onSuccess, onIrALogin }: SignupFormProps) {
       } else {
         setError(resultado.mensaje);
       }
+      turnstileRef.current?.reset();
       return;
     }
 
@@ -204,7 +213,13 @@ export function SignupForm({ onSuccess, onIrALogin }: SignupFormProps) {
           onChange={(event) => setContrasena(event.target.value)}
         />
       </div>
-      <Button type="submit" loading={cargando} className="mt-2">
+      <TurnstileWidget ref={turnstileRef} onTokenChange={setCaptchaToken} />
+      <Button
+        type="submit"
+        loading={cargando}
+        disabled={captchaRequerido && !captchaToken}
+        className="mt-2"
+      >
         Crear cuenta
       </Button>
     </form>

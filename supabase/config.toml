@@ -210,11 +210,21 @@ token_verifications = 30
 # Number of Web3 logins that can be made in a 5 minute interval per IP address.
 web3 = 30
 
-# Configure one of the supported captcha providers: `hcaptcha`, `turnstile`.
-# [auth.captcha]
-# enabled = true
-# provider = "hcaptcha"
-# secret = ""
+# Cloudflare Turnstile en signup/login/recuperar contraseña: la restricción de
+# dominio @pucp.edu.pe (validar_dominio_institucional_trigger, migración
+# 20260817204401) ya bloquea correos no institucionales, así que el riesgo
+# real acá es alguien scripteando registros con un dominio falso, no spam
+# genérico — Turnstile en modo "managed" es casi invisible para tráfico real
+# y evita esa fricción. Ver SUPABASE_AUTH_CAPTCHA_SECRET/NEXT_PUBLIC_TURNSTILE_SITE_KEY
+# en .env.local. Igual que [auth.external.google] más abajo: queda en
+# `enabled = false` hasta tener un secret real — con `enabled = true` y un
+# secret vacío, GoTrue rechazaría TODO signup/login/recuperar contraseña (el
+# captcha se exige en los tres flujos), no solo dejaría el widget sin
+# funcionar. Cambiar a `true` recién cuando el secret real esté en .env.local.
+[auth.captcha]
+enabled = false
+provider = "turnstile"
+secret = "env(SUPABASE_AUTH_CAPTCHA_SECRET)"
 
 [auth.email]
 # Allow/disallow new user signups via email to your project.

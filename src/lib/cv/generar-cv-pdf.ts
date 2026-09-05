@@ -2,8 +2,8 @@ import { jsPDF } from "jspdf";
 
 // Genera el PDF-esqueleto de CV enteramente en el navegador (jsPDF dibuja
 // texto vectorial real, no una captura de pantalla, así el resultado se
-// puede seleccionar/copiar) — evita depender de un servicio externo o de un
-// binario del sistema (wkhtmltopdf/LibreOffice/Chrome headless, ninguno
+// puede seleccionar/copiar), evitando depender de un servicio externo o de
+// un binario del sistema (wkhtmltopdf/LibreOffice/Chrome headless, ninguno
 // disponible en este entorno) solo para convertir una plantilla a PDF.
 // Colores tomados de --primary/--color-folder-cyan de globals.css, no
 // inventados para esta pieza.
@@ -67,7 +67,7 @@ export function generarPlantillaCvPdf(): void {
   doc.setFontSize(10);
   doc.setTextColor(...SLATE_400);
   doc.text(
-    "[correo@pucp.edu.pe]  ·  [+51 999 999 999]  ·  [linkedin.com/in/tu-usuario]  ·  [Lima, Perú]",
+    "[correo@pucp.edu.pe]  |  [+51 999 999 999]  |  [linkedin.com/in/tu-usuario]  |  [Lima, Perú]",
     MARGEN_X,
     y,
   );
@@ -78,7 +78,7 @@ export function generarPlantillaCvPdf(): void {
   encabezadoSeccion("Perfil profesional");
   parrafoGuia(
     "2-3 líneas: quién eres, tu carrera/año, y qué buscas (práctica, primer empleo). " +
-      "Adapta esto a cada postulación con el prompt 1 de la guía — no uses el mismo texto para todo.",
+      "Adapta esto a cada postulación con el prompt 1 de la guía, no uses el mismo texto para todo.",
   );
   campoAcompletar("[Escribe aquí tu resumen profesional...]", 10);
 
@@ -92,7 +92,7 @@ export function generarPlantillaCvPdf(): void {
   doc.setTextColor(...SLATE_400);
   doc.text("[2023 - presente]", ANCHO_PAGINA - MARGEN_X, y, { align: "right" });
   y += 5;
-  campoAcompletar("Pontificia Universidad Católica del Perú · [Promedio ponderado, si suma]");
+  campoAcompletar("Pontificia Universidad Católica del Perú, [Promedio ponderado, si suma]");
   y += 2;
 
   // --- Experiencia ---
@@ -129,14 +129,14 @@ export function generarPlantillaCvPdf(): void {
   campoAcompletar("[Habilidad], [Habilidad], [Habilidad], [Habilidad], [Habilidad]", 10);
 
   encabezadoSeccion("Idiomas");
-  campoAcompletar("[Idioma] — [Nivel, ej. Avanzado B2]", 10);
+  campoAcompletar("[Idioma], [Nivel, ej. Avanzado B2]", 10);
 
   // --- Pie ---
   doc.setFont("helvetica", "italic");
   doc.setFontSize(8);
   doc.setTextColor(...SLATE_400);
   doc.text(
-    "Plantilla generada por Nouttbuk — ver la guía completa en la sección CV para los prompts mencionados arriba.",
+    "Plantilla generada por Nouttbuk, ver la guía completa en la sección CV para los prompts mencionados arriba.",
     MARGEN_X,
     287,
   );

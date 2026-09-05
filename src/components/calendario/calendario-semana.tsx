@@ -116,7 +116,7 @@ export function CalendarioSemana({
                 gridRow: `${filaInicio(bloque.hora_inicio) + 1} / span ${filasSpan(bloque.hora_inicio, bloque.hora_fin)}`,
                 backgroundColor: resolverColorCarpeta(bloque.color),
               }}
-              title={`${bloque.titulo} · ${bloque.hora_inicio.slice(0, 5)}–${bloque.hora_fin.slice(0, 5)}`}
+              title={`${bloque.titulo} (${bloque.hora_inicio.slice(0, 5)}–${bloque.hora_fin.slice(0, 5)})`}
             >
               <span className="line-clamp-2">{etiqueta}</span>
             </div>
@@ -147,7 +147,7 @@ export function CalendarioSemana({
                     gridRow: `${filaInicio(bloque.hora_inicio) + 1} / span ${filasSpan(bloque.hora_inicio, bloque.hora_fin)}`,
                     backgroundColor: resolverColorCarpeta(bloque.color),
                   }}
-                  title={`${bloque.titulo} · ${bloque.hora_inicio.slice(0, 5)}–${bloque.hora_fin.slice(0, 5)}`}
+                  title={`${bloque.titulo} (${bloque.hora_inicio.slice(0, 5)}–${bloque.hora_fin.slice(0, 5)})`}
                 >
                   <span className="line-clamp-2">{etiqueta}</span>
                 </button>

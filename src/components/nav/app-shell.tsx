@@ -71,9 +71,10 @@ function ShellNavLink({
 }
 
 // La barra móvil deja un hueco central para el FAB, así que los ítems se
-// reparten en dos mitades a su alrededor en vez de listarse en una sola fila
-// — repartido con Math.ceil/floor en vez de un slice(0,2)/slice(2,4) fijo,
-// para no romper el layout cada vez que NAV_ITEMS gane o pierda un ítem.
+// reparten en dos mitades a su alrededor en vez de listarse en una sola
+// fila, repartido con Math.ceil/floor en vez de un slice(0,2)/slice(2,4)
+// fijo, para no romper el layout cada vez que NAV_ITEMS gane o pierda un
+// ítem.
 function MobileNavLink({
   item,
   activo,
@@ -138,7 +139,7 @@ export function AppShell({ session, children }: AppShellProps) {
     }
     // Vuelta de /auth/callback tras un intento de "Continuar con Google" que
     // no terminó en sesión (dominio no institucional rechazado por el
-    // trigger, código inválido, etc.) — se avisa por toast en vez de un
+    // trigger, código inválido, etc.), se avisa por toast en vez de un
     // error inline porque el modal de login, en este punto, ya está
     // cerrado/no montado con ese estado de error.
     const authError = params.get("auth_error");
@@ -237,7 +238,11 @@ export function AppShell({ session, children }: AppShellProps) {
       </aside>
 
       <div className="flex flex-1 flex-col">
-        <main className="flex flex-1 flex-col pb-20 md:pb-0">
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="flex flex-1 flex-col pb-20 md:pb-0 focus:outline-none"
+        >
           <AuthGateProvider abrirLogin={() => abrirAuth("login")}>
             {children}
           </AuthGateProvider>

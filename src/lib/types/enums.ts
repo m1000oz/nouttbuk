@@ -6,3 +6,4 @@ import type { Database } from "@/lib/types/database.types";
 export type ApunteVisibilidad = Database["public"]["Enums"]["apunte_visibilidad"];
 export type PermisoColaborador = Database["public"]["Enums"]["permiso_colaborador"];
 export type FeedbackEstado = Database["public"]["Enums"]["feedback_estado"];
+export type MotivoReporte = Database["public"]["Enums"]["motivo_reporte"];

@@ -22,6 +22,16 @@
 - [x] Candado de 30 días para cambiar de carrera en el perfil, con confirmación antes de guardar.
 - [x] Inicio de sesión con Google restringido al dominio institucional (código listo, pendiente de credenciales reales de Google Cloud para activarse).
 
+## Confianza y preparación de despliegue
+
+- [x] Moderación mínima: reportar publicaciones y comentarios (sin panel de admin, revisión manual en Supabase Studio).
+- [x] CAPTCHA (Cloudflare Turnstile) en registro, login y recuperar contraseña (código listo, pendiente de credenciales reales de Cloudflare para activarse).
+- [x] Páginas de Política de privacidad y Términos de uso.
+- [x] Enlace "Saltar al contenido" para navegación por teclado.
+- [x] Cobertura de tests para la lógica de cruce de horarios del calendario.
+- [ ] Vincular y actualizar el proyecto Supabase en la nube (bloqueado: el proyecto está pausado/inactivo, hay que reactivarlo desde el dashboard antes de poder hacer `supabase db push`).
+- [ ] Desplegar a Vercel (pendiente de decisión del usuario, ver checklist en CLAUDE.md).
+
 ## Diferido a v2.0 (no construir en el MVP)
 
 - Admitir dominios de correo institucional de otras universidades además de `@pucp.edu.pe`.

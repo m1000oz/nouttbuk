@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { NotePencilIcon } from "@phosphor-icons/react/dist/ssr";
 
@@ -159,6 +160,16 @@ export default async function PerfilPage() {
       </section>
 
       <SignOutButton className="self-center" />
+
+      <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+        <Link href="/terminos" className="underline hover:text-foreground">
+          Términos de uso
+        </Link>
+        <span className="h-3 w-px bg-border" aria-hidden />
+        <Link href="/privacidad" className="underline hover:text-foreground">
+          Política de privacidad
+        </Link>
+      </div>
     </div>
   );
 }

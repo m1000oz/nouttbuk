@@ -35,7 +35,7 @@ export async function GET(request: Request) {
   // A diferencia del login con correo/contraseña (que ya trae usuario/
   // carrera desde el formulario de registro), una cuenta creada vía Google
   // cae en los valores de respaldo de handle_new_user() (usuario
-  // autogenerado, sin carrera) — /perfil muestra el aviso de "completa tu
+  // autogenerado, sin carrera). /perfil muestra el aviso de "completa tu
   // perfil" cuando detecta ese patrón, ver perfilIncompleto en esa página.
   return NextResponse.redirect(`${origin}/perfil`);
 }

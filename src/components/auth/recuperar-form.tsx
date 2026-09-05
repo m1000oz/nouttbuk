@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useRef, useState } from "react";
 
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -10,6 +10,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  TurnstileWidget,
+  type TurnstileWidgetHandle,
+} from "@/components/auth/turnstile-widget";
 
 type RecuperarFormProps = {
   onVolver: () => void;
@@ -20,6 +24,9 @@ export function RecuperarForm({ onVolver }: RecuperarFormProps) {
   const [correoError, setCorreoError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
   const [enviado, setEnviado] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileWidgetHandle>(null);
+  const captchaRequerido = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -36,6 +43,7 @@ export function RecuperarForm({ onVolver }: RecuperarFormProps) {
     // confirmación es siempre la misma, exista o no la cuenta.
     await supabase.auth.resetPasswordForEmail(correo, {
       redirectTo: `${window.location.origin}/actualizar-contrasena`,
+      captchaToken: captchaToken ?? undefined,
     });
 
     setCargando(false);
@@ -76,7 +84,13 @@ export function RecuperarForm({ onVolver }: RecuperarFormProps) {
           <p className="text-sm text-destructive">{correoError}</p>
         )}
       </div>
-      <Button type="submit" loading={cargando} className="mt-2">
+      <TurnstileWidget ref={turnstileRef} onTokenChange={setCaptchaToken} />
+      <Button
+        type="submit"
+        loading={cargando}
+        disabled={captchaRequerido && !captchaToken}
+        className="mt-2"
+      >
         Enviar enlace
       </Button>
       <button

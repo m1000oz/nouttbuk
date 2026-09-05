@@ -545,6 +545,90 @@ export type Database = {
           },
         ]
       }
+      reportes_comentario: {
+        Row: {
+          comentario_id: string
+          created_at: string
+          detalle: string | null
+          id: string
+          motivo: Database["public"]["Enums"]["motivo_reporte"]
+          perfil_id: string
+        }
+        Insert: {
+          comentario_id: string
+          created_at?: string
+          detalle?: string | null
+          id?: string
+          motivo: Database["public"]["Enums"]["motivo_reporte"]
+          perfil_id: string
+        }
+        Update: {
+          comentario_id?: string
+          created_at?: string
+          detalle?: string | null
+          id?: string
+          motivo?: Database["public"]["Enums"]["motivo_reporte"]
+          perfil_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reportes_comentario_comentario_id_fkey"
+            columns: ["comentario_id"]
+            isOneToOne: false
+            referencedRelation: "comentarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reportes_comentario_perfil_id_fkey"
+            columns: ["perfil_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reportes_publicacion: {
+        Row: {
+          created_at: string
+          detalle: string | null
+          id: string
+          motivo: Database["public"]["Enums"]["motivo_reporte"]
+          perfil_id: string
+          publicacion_id: string
+        }
+        Insert: {
+          created_at?: string
+          detalle?: string | null
+          id?: string
+          motivo: Database["public"]["Enums"]["motivo_reporte"]
+          perfil_id: string
+          publicacion_id: string
+        }
+        Update: {
+          created_at?: string
+          detalle?: string | null
+          id?: string
+          motivo?: Database["public"]["Enums"]["motivo_reporte"]
+          perfil_id?: string
+          publicacion_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reportes_publicacion_perfil_id_fkey"
+            columns: ["perfil_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reportes_publicacion_publicacion_id_fkey"
+            columns: ["publicacion_id"]
+            isOneToOne: false
+            referencedRelation: "publicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -571,6 +655,7 @@ export type Database = {
     Enums: {
       apunte_visibilidad: "private" | "group" | "community"
       feedback_estado: "nueva" | "en_revision" | "hecho"
+      motivo_reporte: "spam" | "contenido_inapropiado" | "plagio" | "otro"
       permiso_colaborador: "read" | "edit"
     }
     CompositeTypes: {
@@ -704,6 +789,7 @@ export const Constants = {
     Enums: {
       apunte_visibilidad: ["private", "group", "community"],
       feedback_estado: ["nueva", "en_revision", "hecho"],
+      motivo_reporte: ["spam", "contenido_inapropiado", "plagio", "otro"],
       permiso_colaborador: ["read", "edit"],
     },
   },

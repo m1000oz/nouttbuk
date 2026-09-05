@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/types/database.types";
 
 // Días de la semana académica: 0 = lunes ... 6 = domingo (no ISO, no
-// Date.getDay() de JS — ver la migración 20260904140544_calendario.sql).
+// Date.getDay() de JS, ver la migración 20260904140544_calendario.sql).
 export const DIAS_SEMANA = [
   "Lunes",
   "Martes",
