@@ -3,24 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import Underline from "@tiptap/extension-underline";
-import Highlight from "@tiptap/extension-highlight";
-import Color from "@tiptap/extension-color";
-import FontFamily from "@tiptap/extension-font-family";
-import TiptapLink from "@tiptap/extension-link";
-import TextAlign from "@tiptap/extension-text-align";
-import Image from "@tiptap/extension-image";
-import Table from "@tiptap/extension-table";
-import TableRow from "@tiptap/extension-table-row";
-import TableCell from "@tiptap/extension-table-cell";
-import TableHeader from "@tiptap/extension-table-header";
 import { ChatCircleIcon, ShareNetworkIcon, XIcon } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { fechaRelativa } from "@/lib/fecha/relativa";
-import { FontSize } from "@/lib/tiptap/font-size-extension";
+import { crearExtensionesEsquema } from "@/lib/tiptap/extensiones-documento";
+import { Paginacion } from "@/lib/tiptap/pagination-extension";
+import { HojasEditor } from "@/components/apuntes/hojas-editor";
 import { ReaccionBoton } from "@/components/comunidad/reaccion-boton";
 import { GuardarBoton } from "@/components/comunidad/guardar-boton";
 import { ComentarioForm } from "@/components/comunidad/comentario-form";
@@ -31,6 +21,11 @@ import {
 } from "@/components/comunidad/comentarios-lista";
 import type { Json } from "@/lib/types/database.types";
 import type { ConteosPublicacion } from "@/lib/comunidad/consultas";
+
+// A nivel de módulo, no dentro del componente: ver el comentario equivalente
+// en editor-estatico.tsx (StarterKit.configure() + Gapcursor + registro
+// global de ProseMirror revientan si se recalcula en cada render).
+const EXTENSIONES = [...crearExtensionesEsquema({ enlaceClicable: true }), Paginacion];
 
 function iniciales(nombre: string): string {
   return nombre
@@ -85,21 +80,7 @@ export function DetallePublicacion({
   }
 
   const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Underline,
-      FontSize,
-      Color,
-      FontFamily,
-      Highlight.configure({ multicolor: true }),
-      TiptapLink.configure({ openOnClick: true, autolink: true }),
-      TextAlign.configure({ types: ["heading", "paragraph"] }),
-      Image,
-      Table.configure({ resizable: false }),
-      TableRow,
-      TableHeader,
-      TableCell,
-    ],
+    extensions: EXTENSIONES,
     content: publicacion.contenido as object,
     editable: false,
     immediatelyRender: false,
@@ -168,13 +149,12 @@ export function DetallePublicacion({
         </div>
 
         {/* Mismo tratamiento visual "hoja" que el editor, para que leer una
-            publicación se sienta consistente con escribirla. La altura
-            mínima es más modesta que en el editor (no hace falta espacio
-            para seguir escribiendo). */}
+            publicación se sienta consistente con escribirla, incluida la
+            paginación real en varias hojas si el contenido es largo. */}
         <div className="lienzo-editor mt-4 flex flex-1 items-start justify-center px-4 py-10 sm:px-8">
-          <div className="hoja-editor min-h-[300px] w-full max-w-[794px] rounded-sm px-6 py-10 sm:min-h-[500px] sm:px-14 sm:py-14">
+          <HojasEditor editor={editor}>
             <EditorContent editor={editor} />
-          </div>
+          </HojasEditor>
         </div>
 
         <div className="mx-auto flex w-full max-w-[794px] flex-col gap-4 px-6 py-8">

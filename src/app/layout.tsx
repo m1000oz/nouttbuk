@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { DM_Sans } from "next/font/google";
+import { DM_Sans, Newsreader } from "next/font/google";
 import "./globals.css";
 import { RegistrarServiceWorker } from "@/components/pwa/registrar-service-worker";
 import { Toaster } from "@/components/ui/toast";
@@ -8,6 +8,16 @@ const dmSans = DM_Sans({
   variable: "--font-sans",
   subsets: ["latin"],
   weight: ["400", "500", "700"],
+});
+
+// Solo para el editor de apuntes (título y encabezados del manuscrito): una
+// serif editorial pensada para lectura larga, no una segunda voz genérica.
+// El resto de la app se queda en DM Sans, ver DESIGN-SYSTEM.md.
+const newsreader = Newsreader({
+  variable: "--font-manuscrito",
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+  weight: ["400", "500", "600"],
 });
 
 export const metadata: Metadata = {
@@ -30,7 +40,10 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="es" className={`${dmSans.variable} h-full antialiased`}>
+    <html
+      lang="es"
+      className={`${dmSans.variable} ${newsreader.variable} h-full antialiased`}
+    >
       <body className="min-h-full flex flex-col">
         <a
           href="#main-content"

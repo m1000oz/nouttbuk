@@ -165,6 +165,76 @@
     0 2px 8px rgb(0 0 0 / 0.4), 0 24px 55px rgb(0 0 0 / 0.5);
 }
 
+/* El editor de apuntes es un mundo visual aparte, deliberado: un atelier de
+   escritura cálido y oscuro, no una hoja de cálculo clara ni un clon de
+   Docs. Redefine acá los mismos tokens que el resto de la app (--background,
+   --foreground, --primary, etc.) escopados a .apunte-editor-overlay: como
+   son custom properties heredadas, cualquier componente ya temeado con esos
+   tokens (Button, Badge, el aside del esquema) se re-viste solo, sin tocar
+   su propio código, siempre que no haga portal fuera de este árbol (los
+   popover de Select/Sheet si escapan, y se aceptan en el tema ambiente de
+   la app: son acciones secundarias, no la superficie principal). Café
+   grafito cálido, nunca negro frío ni azulado (ese es el look "modo oscuro
+   genérico" que se quiso evitar), con un solo acento de latón/oro cálido. */
+.apunte-editor-overlay {
+  /* No basta con redefinir las custom properties: `color` en <body> ya
+     quedó resuelto contra el --foreground del tema ambiente (heredar una
+     propiedad hereda su VALOR YA COMPUTADO, no la expresión var() en sí),
+     así que ningún descendiente sin su propio `color` explícito se
+     "revestía solo" como decía el comentario de abajo — de hecho no lo
+     hacía: el botón "Cerrar editor" (ghost, sin variante activa) y varios
+     íconos más del header quedaban con el texto oscuro del tema claro
+     sobre este fondo oscuro, prácticamente invisibles. Esta declaración
+     fuerza una reevaluación de var(--foreground) en el scope correcto,
+     así que todo lo de abajo sí hereda el valor cálido sin tocar su propio
+     código, esta vez de verdad.
+  */
+  color: var(--foreground);
+  --background: #1c1712;
+  --foreground: #f2ece0;
+  --card: #251f18;
+  --card-foreground: #f2ece0;
+  --popover: #251f18;
+  --popover-foreground: #f2ece0;
+  --primary: #caa15a;
+  --primary-foreground: #1c1712;
+  --secondary: #2f281f;
+  --secondary-foreground: #f2ece0;
+  --muted: #2a241d;
+  --muted-foreground: #ab9c86;
+  --accent: #332b21;
+  --accent-foreground: #f2ece0;
+  --border: #3c3327;
+  --input: #3c3327;
+  --ring: #caa15a;
+}
+
+/* Modo claro del atelier (editor-menu-bar.tsx, Ver > Tema): el mismo mundo
+   visual (mismo acento de latón, misma tipografía), pero de día, pedido
+   explícito para que se sienta "igual que Docs" en blanco. No es el tema
+   claro AMBIENTE de la app (ese vive en :root sin este selector) ni un
+   .dark invertido: es una tercera paleta propia, seleccionable por persona
+   independientemente del modo claro/oscuro del resto de Nouttbuk. */
+.apunte-editor-overlay[data-tema="claro"] {
+  --background: #ffffff;
+  --foreground: #241c11;
+  --card: #ffffff;
+  --card-foreground: #241c11;
+  --popover: #ffffff;
+  --popover-foreground: #241c11;
+  --primary: #caa15a;
+  --primary-foreground: #241c11;
+  --secondary: #f1efe8;
+  --secondary-foreground: #241c11;
+  --muted: #f3f1ec;
+  --muted-foreground: #756b5a;
+  --accent: #ece7db;
+  --accent-foreground: #241c11;
+  --border: #e3ddd0;
+  --input: #e3ddd0;
+  --ring: #caa15a;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -292,41 +362,464 @@
     border-radius: var(--radius-md);
     margin-block: 0.5em;
   }
+  .tiptap-content ul[data-type="taskList"] {
+    list-style: none;
+    padding-inline-start: 0.25em;
+  }
+  .tiptap-content ul[data-type="taskList"] li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5em;
+  }
+  .tiptap-content ul[data-type="taskList"] li > label {
+    margin-top: 0.3em;
+    user-select: none;
+  }
+  .tiptap-content ul[data-type="taskList"] li > div {
+    flex: 1 1 auto;
+  }
+  .tiptap-content ul[data-type="taskList"] li[data-checked="true"] > div {
+    color: var(--muted-foreground);
+    text-decoration: line-through;
+  }
+  .tiptap-content sub,
+  .tiptap-content sup {
+    font-size: 0.75em;
+  }
+  /* Resaltado de Buscar y reemplazar (buscar-reemplazar-extension.ts): un
+     tinte de latón traslúcido para todas las coincidencias, uno más
+     saturado y sólido para la que está seleccionada, distinto del color
+     amarillo de .mark (resaltado manual del usuario) para que no se
+     confundan. */
+  .buscar-resultado {
+    border-radius: 0.15em;
+    background: rgb(202 161 90 / 0.28);
+  }
+  .buscar-resultado-activo {
+    border-radius: 0.15em;
+    background: rgb(202 161 90 / 0.65);
+  }
 
-  /* Lienzo detrás de la hoja del editor: un tinte del color primario de la
-     marca sobre el fondo, no un gris neutro genérico. En claro necesita un
-     porcentaje bastante más alto que en oscuro (14% vs 10%): --background ya
-     es casi blanco (#f8fafc), así que un tinte débil quedaba casi idéntico
-     al blanco de la hoja y el contraste dependía casi solo de la sombra. */
+  /* Lienzo detrás de la hoja del editor: el escritorio de grafito cálido
+     del atelier, no un tinte índigo. NO lleva overflow:hidden (lo tenía
+     antes, pensado solo para contener las motas de polvo): este div es
+     flex-1 dentro del contenedor con scroll de ApunteEditor, así que su
+     alto queda fijado al espacio visible disponible, no al de su
+     contenido. Con overflow:hidden, cualquier apunte que creciera más allá
+     de una hoja quedaba recortado ahí mismo —invisible, no editable, sin
+     forma de hacerle scroll— porque el contenedor ancestro con
+     overflow-y-auto nunca llegaba a ver ese contenido "de más" para saber
+     que tenía que scrollear. .polvo-contenedor ya tiene su propio
+     overflow:hidden (ver más abajo), así que contener el polvo nunca
+     necesitó que este div también lo tuviera. */
   .lienzo-editor {
-    background: color-mix(in oklch, var(--primary) 14%, var(--background));
+    position: relative;
+    background: var(--background);
   }
-  .dark .lienzo-editor {
-    background: color-mix(in oklch, var(--primary) 10%, var(--background));
+  /* Lámpara: el resplandor cálido que "ilumina" la hoja desde arriba, con un
+     parpadeo lento e irregular (no un pulso sinusoidal parejo, que se lee
+     como una animación de sistema en vez de una llama real) — el momento de
+     marca de esta pantalla, no un efecto suelto más. */
+  .lienzo-editor::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(
+      ellipse 750px 460px at 50% 0%,
+      rgb(226 179 106 / 0.11),
+      transparent 58%
+    );
+    animation: atelier-lampara 7s ease-in-out infinite;
+  }
+  @keyframes atelier-lampara {
+    0%,
+    100% {
+      opacity: 0.65;
+      transform: scale(1);
+    }
+    22% {
+      opacity: 1;
+      transform: scale(1.035);
+    }
+    48% {
+      opacity: 0.55;
+      transform: scale(0.98);
+    }
+    71% {
+      opacity: 0.85;
+      transform: scale(1.015);
+    }
+  }
+  .polvo-contenedor {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .mota-polvo {
+    position: absolute;
+    border-radius: 9999px;
+    background: rgb(232 197 138 / 0.5);
+    animation-name: atelier-polvo;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+  }
+  @keyframes atelier-polvo {
+    0% {
+      transform: translate(0, 0);
+      opacity: 0;
+    }
+    10% {
+      opacity: 0.6;
+    }
+    50% {
+      transform: translate(14px, -60px);
+      opacity: 0.3;
+    }
+    90% {
+      opacity: 0.5;
+    }
+    100% {
+      transform: translate(-10px, -120px);
+      opacity: 0;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .lienzo-editor::before,
+    .mota-polvo,
+    .hoja-editor {
+      animation: none !important;
+    }
+  }
+  /* Modo claro: sin lámpara ni polvo. Son un gesto de "atelier a media luz",
+     no encajan con un blanco liso tipo Docs; en vez de recolorearlos, se
+     apagan directamente. */
+  .apunte-editor-overlay[data-tema="claro"] .lienzo-editor::before,
+  .apunte-editor-overlay[data-tema="claro"] .mota-polvo {
+    display: none;
   }
 
-  /* La hoja en sí: siempre blanca con tinta oscura fija, como una hoja
-     impresa, sin seguir el tema oscuro de la interfaz alrededor. Las reglas
-     de tabla de arriba usan tokens de tema (var(--muted)/var(--border)) para
-     el caso de solo-lectura fuera de la hoja (detalle de publicación); acá
-     adentro se fuerzan a los valores claros para que el encabezado de tabla
-     nunca quede con texto oscuro sobre fondo oscuro en modo oscuro. El borde
-     fijo es la segunda pata del contraste, junto al tinte de arriba: no deja
-     que la hoja dependa solo de --shadow-pagina, que se percibe débil en
-     pantallas muy brillantes. */
+  /* La hoja en sí: papel cálido con luz propia, no blanco frío de fotocopia.
+     Se fuerza a los mismos valores cálidos sin importar el tema de la app
+     alrededor (igual decisión que la hoja anterior, ahora con otra
+     paleta): es un objeto de papel, no una superficie de interfaz. La
+     sombra es direccional (como si la luz cayera desde arriba), no un
+     halo parejo. La entrada (atelier-hoja-entra) es la única animación de
+     aparición del sistema: cada hoja nueva que la paginación agrega llega
+     con el mismo gesto, no aparece de golpe. */
   .hoja-editor {
+    background: #f6f0e2;
+    border: 1px solid rgb(0 0 0 / 0.06);
+    border-radius: 3px;
+    animation: atelier-hoja-entra 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.5) inset,
+      0 1px 1px rgb(80 60 30 / 0.08),
+      0 30px 50px -22px rgb(20 14 4 / 0.6),
+      0 10px 22px -10px rgb(20 14 4 / 0.45);
+  }
+  /* Modo claro: hoja blanca de verdad (no marfil), sobre un lienzo también
+     blanco, pedido explícito para que se sienta "igual que Docs". La sombra
+     se aclara mucho: la receta de arriba asume un lienzo oscuro detrás, acá
+     leería como una mancha sucia en vez de una hoja flotando. */
+  .apunte-editor-overlay[data-tema="claro"] .hoja-editor {
     background: #ffffff;
-    border: 1px solid rgb(15 23 42 / 0.08);
-    box-shadow: var(--shadow-pagina);
+    border: 1px solid rgb(0 0 0 / 0.08);
+    box-shadow:
+      0 1px 2px rgb(0 0 0 / 0.04),
+      0 10px 28px -12px rgb(0 0 0 / 0.16),
+      0 3px 10px -4px rgb(0 0 0 / 0.08);
   }
-  .hoja-editor .tiptap-content {
-    color: #1e293b;
+  @keyframes atelier-hoja-entra {
+    from {
+      opacity: 0;
+      transform: translateY(16px) scale(0.985);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
   }
-  .hoja-editor .tiptap-content th {
-    background: #f1f5f9;
+  /* Las hojas de fondo (una por página) y el contenido real son hermanos
+     dentro de .pila-hojas, no ancestro/descendiente (HojasEditor las apila
+     por separado para que el texto pueda atravesarlas visualmente), así que
+     estas reglas de texto/tabla cuelgan de .pila-hojas en vez de .hoja-editor. */
+  .pila-hojas .tiptap-content {
+    color: #2a2015;
   }
-  .hoja-editor .tiptap-content th,
-  .hoja-editor .tiptap-content td {
-    border-color: #e2e8f0;
+  .pila-hojas .tiptap-content h1,
+  .pila-hojas .tiptap-content h2,
+  .pila-hojas .tiptap-content h3 {
+    font-family: var(--font-manuscrito);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .pila-hojas .tiptap-content th {
+    background: #ece2cc;
+  }
+  .pila-hojas .tiptap-content th,
+  .pila-hojas .tiptap-content td {
+    border-color: #ddcfb0;
+  }
+  .pila-hojas .tiptap-content blockquote {
+    border-inline-start-color: #caa15a;
+    color: #5c5140;
+  }
+  .pila-hojas .tiptap-content a {
+    color: #96631f;
+  }
+  /* Espaciador invisible que la extensión Paginacion inserta justo antes del
+     nodo que se empuja a la siguiente hoja: solo ocupa espacio, sin fondo ni
+     borde propio (esos los da .hoja-editor, que vive detrás). */
+  .pagina-fantasma {
+    display: block;
+    pointer-events: none;
+  }
+  /* Encabezado/pie de página (dialogo-configurar-pagina.tsx): texto
+     puramente decorativo dentro de la banda de margen de cada hoja, nunca
+     parte del documento ProseMirror (nunca aparece en editor.getJSON()).
+     También cubre el folio (número de página) simple cuando no hay texto
+     de pie propio, ver hojas-editor.tsx. Sans, no manuscrito: es metadata
+     de la página, no contenido del ensayo. */
+  .hoja-encabezado-pie {
+    position: absolute;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    padding-inline: 24px;
+    font-family: var(--font-manuscrito);
+    font-style: italic;
+    font-size: 0.8rem;
+    color: #8a7a5f;
+    text-align: center;
+  }
+
+
+  /* Barra de formato persistente (editor-barra-persistente.tsx): mismo
+     cristal oscuro y los mismos botones que la barra flotante original,
+     pero como contenedor de ancho completo, siempre visible debajo del
+     menú superior, en vez de una píldora que aparece solo al seleccionar
+     texto. Comparte clases (.barra-flotante-boton, -separador) a propósito:
+     es el mismo lenguaje visual, solo cambia el contenedor. */
+  .barra-persistente {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.125rem;
+    border-bottom: 1px solid var(--border);
+    background: rgb(28 23 18 / 0.92);
+    backdrop-filter: blur(14px);
+    padding: 0.35rem 0.75rem;
+  }
+  .barra-flotante-boton {
+    display: inline-flex;
+    height: 1.75rem;
+    min-width: 1.75rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: calc(var(--radius-lg) - 4px);
+    color: #e9e1d2;
+    outline: none;
+    transition: background-color 0.12s ease;
+  }
+  .barra-flotante-boton:hover {
+    background: rgb(255 255 255 / 0.08);
+  }
+  .barra-flotante-boton.is-activo {
+    background: color-mix(in oklch, #caa15a 30%, transparent);
+    color: #f4dfae;
+  }
+  .barra-flotante-boton:disabled {
+    opacity: 0.35;
+    pointer-events: none;
+  }
+  .barra-flotante-boton-ancho {
+    width: auto;
+    padding-inline: 0.5rem;
+    /* Sin esto, una etiqueta larga ("Encabezado 1") envuelve a dos líneas
+       dentro del botón: como .barra-flotante no recorta overflow, el botón
+       sobresale por encima del borde redondeado de la píldora (una "caja"
+       visualmente fuera de la burbuja), y el salto de altura dispara un
+       reposicionamiento agresivo de popper en cada cambio de estilo. */
+    white-space: nowrap;
+  }
+  .barra-flotante-separador {
+    width: 1px;
+    align-self: stretch;
+    margin-block: 0.2rem;
+    background: rgb(255 255 255 / 0.1);
+  }
+
+  /* Popovers propios de la barra de formato (color, enlace, estilo de
+     bloque, fuente, tamaño, interlineado): ya no necesitan un override de
+     color a mano. Antes escapaban de .apunte-editor-overlay por portal y
+     quedaban con el tema claro ambiente (el bug real de "el menú no tiene
+     texto", forzado con !important en su momento); ahora los seis usan el
+     prop `container` de Base UI (ver editor-controles-formato.tsx) para
+     anclar su portal dentro del overlay, así que las clases de Tailwind que
+     ya trae DropdownMenuContent (bg-popover, text-popover-foreground)
+     resuelven solas contra el tema (oscuro o claro) correcto, sin
+     necesidad de repetir esa paleta acá ni de pelear con el orden de capas.
+     Solo lo que sigue siendo un <input>/<button> a mano (el campo de URL de
+     Enlace) necesita su propio color, condicionado al tema más abajo. */
+  .menu-flotante-input {
+    border: 1px solid rgb(255 255 255 / 0.12);
+    background: rgb(255 255 255 / 0.05);
+    color: #f2ece0;
+  }
+  .menu-flotante-input::placeholder {
+    color: #8a7d68;
+  }
+  .menu-flotante-boton-primario {
+    background: #caa15a;
+    color: #1c1712;
+    font-weight: 500;
+  }
+
+  /* Menú de comandos "/": mismo cristal oscuro que la barra flotante, la
+     fila activa se resalta con el acento de latón. */
+  .menu-comandos {
+    border-radius: var(--radius-lg);
+    border: 1px solid rgb(255 255 255 / 0.1);
+    background: #1f1a14;
+    color: #e9e1d2;
+    box-shadow: 0 20px 45px rgb(0 0 0 / 0.5);
+  }
+  .menu-comandos-item.is-activo {
+    background: rgb(255 255 255 / 0.08);
+  }
+  .menu-comandos-icono {
+    background: rgb(255 255 255 / 0.06);
+    color: #caa15a;
+  }
+
+  /* Guía flotante: enseña los comandos todo el tiempo, no una sola vez en
+     un tutorial que se olvida. Vive a baja opacidad para no competir con la
+     hoja, y se aclara al pasar el mouse cuando alguien realmente quiere
+     leerla. */
+  .guia-flotante {
+    border-radius: var(--radius-lg);
+    border: 1px solid rgb(255 255 255 / 0.08);
+    background: rgb(28 23 18 / 0.55);
+    backdrop-filter: blur(10px);
+    color: #e9e1d2;
+    opacity: 0.55;
+    transition: opacity 0.2s ease;
+  }
+  .guia-flotante:hover,
+  .guia-flotante:focus-within {
+    opacity: 1;
+  }
+  .guia-flotante-cerrar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    padding: 0.2rem;
+    opacity: 0.6;
+  }
+  .guia-flotante-cerrar:hover {
+    opacity: 1;
+    background: rgb(255 255 255 / 0.1);
+  }
+  .guia-flotante-chip {
+    border-radius: 9999px;
+    border: 1px solid rgb(255 255 255 / 0.12);
+    padding: 0.1rem 0.5rem;
+    font-size: 0.6875rem;
+    opacity: 0.75;
+  }
+  .guia-flotante-tecla {
+    border-radius: 0.25rem;
+    background: rgb(255 255 255 / 0.08);
+    padding: 0.05rem 0.35rem;
+    font-family: ui-monospace, monospace;
+    font-size: 0.625rem;
+    white-space: nowrap;
+  }
+
+  /* Modo claro: todo lo de arriba en este bloque asume "vidrio oscuro sobre
+     fondo oscuro" a propósito (rgb(255 255 255 / N%) para aclarar, texto
+     color claro fijo). En modo claro el mismo lenguaje (vidrio + blur) se
+     invierte a "vidrio claro sobre fondo claro": overlays en negro en vez
+     de blanco, texto oscuro fijo en vez de claro. El acento de latón
+     (.is-activo, .menu-comandos-icono) se queda igual en los dos modos,
+     es la marca, no el tema. */
+  .apunte-editor-overlay[data-tema="claro"] .barra-persistente {
+    background: rgb(255 255 255 / 0.92);
+  }
+  .apunte-editor-overlay[data-tema="claro"] .barra-flotante-boton {
+    color: #2a2015;
+  }
+  .apunte-editor-overlay[data-tema="claro"] .barra-flotante-boton:hover {
+    background: rgb(0 0 0 / 0.06);
+  }
+  .apunte-editor-overlay[data-tema="claro"] .barra-flotante-boton.is-activo {
+    background: color-mix(in oklch, #caa15a 22%, transparent);
+    color: #6b4a12;
+  }
+  .apunte-editor-overlay[data-tema="claro"] .barra-flotante-separador {
+    background: rgb(0 0 0 / 0.1);
+  }
+  .apunte-editor-overlay[data-tema="claro"] .menu-flotante-input {
+    border-color: rgb(0 0 0 / 0.12);
+    background: rgb(0 0 0 / 0.03);
+    color: #241c11;
+  }
+  .apunte-editor-overlay[data-tema="claro"] .menu-flotante-input::placeholder {
+    color: #9a8f7d;
+  }
+  /* .menu-comandos vive fuera de .apunte-editor-overlay (se agrega a mano a
+     document.body, ver menu-comandos.tsx), así que su propio contenedor
+     lleva el atributo data-tema directamente (tema-editor.ts), sin la
+     clase apunte-editor-overlay como ancestro — el selector de acá NO
+     puede depender de ella como el resto de este bloque. */
+  [data-tema="claro"] .menu-comandos {
+    border-color: rgb(0 0 0 / 0.08);
+    background: #ffffff;
+    color: #241c11;
+    box-shadow: 0 20px 45px rgb(0 0 0 / 0.14);
+  }
+  [data-tema="claro"] .menu-comandos-item.is-activo {
+    background: rgb(0 0 0 / 0.05);
+  }
+  [data-tema="claro"] .menu-comandos-icono {
+    background: rgb(0 0 0 / 0.04);
+  }
+  .apunte-editor-overlay[data-tema="claro"] .guia-flotante {
+    background: rgb(255 255 255 / 0.75);
+    border-color: rgb(0 0 0 / 0.08);
+    color: #2a2015;
+  }
+  .apunte-editor-overlay[data-tema="claro"] .guia-flotante-cerrar:hover {
+    background: rgb(0 0 0 / 0.08);
+  }
+  .apunte-editor-overlay[data-tema="claro"] .guia-flotante-chip {
+    border-color: rgb(0 0 0 / 0.12);
+  }
+  .apunte-editor-overlay[data-tema="claro"] .guia-flotante-tecla {
+    background: rgb(0 0 0 / 0.06);
   }
 }
+
+/* Al imprimir el editor de apuntes, la paginación de pantalla (hojas
+   apiladas con position:absolute, fondo de lienzo) estorba: se deja que el
+   navegador pagine de verdad, que es un problema distinto y ya resuelto por
+   el motor de impresión. Ocultar header/aside/barras es responsabilidad de
+   cada componente vía la utilidad print:hidden de Tailwind, acá solo lo que
+   necesita cambiar de estilo (no solo ocultarse) para imprimir bien. */
+@media print {
+  .apunte-editor-overlay .pila-hojas {
+    position: static !important;
+  }
+  .apunte-editor-overlay .pila-hojas .hoja-editor {
+    display: none !important;
+  }
+  .apunte-editor-overlay .lienzo-editor {
+    background: none !important;
+    padding: 0 !important;
+  }
+}
+

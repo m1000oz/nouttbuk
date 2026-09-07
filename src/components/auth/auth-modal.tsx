@@ -154,11 +154,19 @@ export function AuthModal({
 
         <p className="text-center text-xs text-muted-foreground">
           Al continuar aceptas nuestros{" "}
-          <Link href="/terminos" className="underline hover:text-foreground">
+          <Link
+            href="/terminos"
+            onClick={() => onOpenChange(false)}
+            className="underline hover:text-foreground"
+          >
             Términos de uso
           </Link>{" "}
           y nuestra{" "}
-          <Link href="/privacidad" className="underline hover:text-foreground">
+          <Link
+            href="/privacidad"
+            onClick={() => onOpenChange(false)}
+            className="underline hover:text-foreground"
+          >
             Política de privacidad
           </Link>
           .

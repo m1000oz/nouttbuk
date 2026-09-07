@@ -67,6 +67,83 @@ export function franjasOcupadas(bloques: BloqueHorario[]): Set<string> {
   return ocupadas;
 }
 
+export type BloquePosicionado = BloqueHorario & {
+  // Índice de columna (0-indexado) dentro de su grupo de cruces, y el total
+  // de columnas de ese grupo: dos bloques que se cruzan en el tiempo el
+  // mismo día reciben columnas distintas pero el mismo total, así se
+  // reparten el ancho disponible lado a lado en vez de taparse (mismo
+  // patrón de reparto que usa Google Calendar).
+  columna: number;
+  columnas: number;
+};
+
+// Agrupa bloques que se cruzan mutuamente en el tiempo (mismo día) y les
+// asigna columna/columnas para renderizarlos lado a lado. Coloreado de
+// grafo de intervalos: se ordena por hora_inicio, se cierra un "clúster"
+// cuando un bloque empieza en o después del fin máximo visto hasta ahora,
+// y dentro de cada clúster se asigna cada bloque a la primera columna que
+// ya quedó libre para esa hora (o una columna nueva si ninguna lo está).
+export function posicionarBloques(bloques: BloqueHorario[]): BloquePosicionado[] {
+  const resultado: BloquePosicionado[] = [];
+
+  const bloquesPorDia = new Map<number, BloqueHorario[]>();
+  for (const bloque of bloques) {
+    const lista = bloquesPorDia.get(bloque.dia_semana) ?? [];
+    lista.push(bloque);
+    bloquesPorDia.set(bloque.dia_semana, lista);
+  }
+
+  for (const bloquesDia of bloquesPorDia.values()) {
+    const ordenados = [...bloquesDia].sort(
+      (a, b) =>
+        minutosDesdeMedianoche(a.hora_inicio) - minutosDesdeMedianoche(b.hora_inicio),
+    );
+
+    let clusterActual: BloqueHorario[] = [];
+    let finMaximoCluster = -Infinity;
+
+    function cerrarCluster() {
+      if (clusterActual.length === 0) return;
+      // finDeColumna[i] = minuto de fin del último bloque asignado a la
+      // columna i, para saber si ya quedó libre para el siguiente bloque.
+      const finDeColumna: number[] = [];
+      const columnaPorBloque: number[] = [];
+
+      for (const bloque of clusterActual) {
+        const inicio = minutosDesdeMedianoche(bloque.hora_inicio);
+        const fin = minutosDesdeMedianoche(bloque.hora_fin);
+        let columna = finDeColumna.findIndex((finCol) => finCol <= inicio);
+        if (columna === -1) {
+          columna = finDeColumna.length;
+          finDeColumna.push(fin);
+        } else {
+          finDeColumna[columna] = fin;
+        }
+        columnaPorBloque.push(columna);
+      }
+
+      const columnas = finDeColumna.length;
+      clusterActual.forEach((bloque, indice) => {
+        resultado.push({ ...bloque, columna: columnaPorBloque[indice], columnas });
+      });
+    }
+
+    for (const bloque of ordenados) {
+      const inicio = minutosDesdeMedianoche(bloque.hora_inicio);
+      if (inicio >= finMaximoCluster) {
+        cerrarCluster();
+        clusterActual = [];
+        finMaximoCluster = -Infinity;
+      }
+      clusterActual.push(bloque);
+      finMaximoCluster = Math.max(finMaximoCluster, minutosDesdeMedianoche(bloque.hora_fin));
+    }
+    cerrarCluster();
+  }
+
+  return resultado;
+}
+
 export type RangoLibre = { inicio: string; fin: string };
 
 // Convierte el set de franjas ocupadas en rangos de texto legibles por día

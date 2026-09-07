@@ -1,3 +1,5 @@
+import { PandatomicLogo } from "@/components/shared/pandatomic-logo";
+
 export const metadata = {
   title: "Política de privacidad, Nouttbuk",
 };
@@ -21,10 +23,10 @@ export default function PrivacidadPage() {
 
       <p className="text-sm text-foreground">
         Nouttbuk es un proyecto independiente creado por{" "}
-        <strong>PandAtomic</strong>, sin fines comerciales ni una empresa
-        constituida detrás. No cobramos por el servicio ni vendemos datos a
-        terceros. Este documento explica, en lenguaje simple, qué datos
-        guardamos y por qué.
+        <PandatomicLogo />, sin fines comerciales ni una empresa constituida
+        detrás. No cobramos por el servicio ni vendemos datos a terceros.
+        Este documento explica, en lenguaje simple, qué datos guardamos y por
+        qué.
       </p>
 
       <section className="flex flex-col gap-2">
@@ -138,9 +140,15 @@ export default function PrivacidadPage() {
       <section className="flex flex-col gap-2">
         <h2 className="text-lg font-semibold text-foreground">Contacto</h2>
         <p className="text-sm text-muted-foreground">
-          Nouttbuk es mantenido por PandAtomic. Para consultas sobre esta
-          política o solicitudes relacionadas con tus datos, escribe a{" "}
-          <span className="text-foreground">[correo de contacto pendiente]</span>.
+          Nouttbuk es mantenido por <PandatomicLogo />. Para consultas sobre
+          esta política o solicitudes relacionadas con tus datos, escribe a{" "}
+          <a
+            href="mailto:exsparknco@gmail.com"
+            className="text-primary underline"
+          >
+            exsparknco@gmail.com
+          </a>
+          .
         </p>
       </section>
 

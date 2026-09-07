@@ -64,24 +64,42 @@ type BloqueSheetProps = {
     color: string;
   };
   diaInicial?: number;
+  // Prellenan el horario cuando no hay bloque en edición (por ejemplo, el
+  // horario calculado al soltar un arrastre de creación en el grid). Si no
+  // se pasan, se mantiene el default de siempre ("08:00"-"09:00").
+  horaInicioInicial?: string;
+  horaFinInicial?: string;
   // Opcional: page.tsx (Server Component) no puede construir JSX con
   // <Button> directamente, ver la nota de CLAUDE.md sobre Button e íconos
   // no-SSR creando contexto de React al importarse fuera de un límite "use
   // client". El trigger "Nuevo bloque" por defecto vive acá adentro en vez
   // de pasarse desde afuera, mismo patrón que CarpetaSheet.
   trigger?: ReactElement;
+  // Apertura controlada desde afuera: la usa el grid del calendario para
+  // abrir este mismo sheet al soltar un gesto de arrastre, sin que exista
+  // ningún trigger que el usuario haya clicleado. Si se pasan, se omite el
+  // <SheetTrigger> interno y el estado abierto/cerrado lo maneja el padre.
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 };
 
 export function BloqueSheet({
   perfilId,
   bloque,
   diaInicial,
+  horaInicioInicial,
+  horaFinInicial,
   trigger,
+  open: openControlado,
+  onOpenChange: onOpenChangeControlado,
 }: BloqueSheetProps) {
   const router = useRouter();
   const esEdicion = Boolean(bloque);
+  const esControlado = openControlado !== undefined;
 
-  const [open, setOpen] = useState(false);
+  const [openInterno, setOpenInterno] = useState(false);
+  const open = esControlado ? openControlado : openInterno;
+  const setOpen = esControlado ? onOpenChangeControlado! : setOpenInterno;
   const [eliminarOpen, setEliminarOpen] = useState(false);
   const [titulo, setTitulo] = useState(bloque?.titulo ?? "");
   const [diaSemana, setDiaSemana] = useState(
@@ -90,9 +108,11 @@ export function BloqueSheet({
   // Los inputs type="time" nativos trabajan en "HH:MM"; hora_inicio/hora_fin
   // llegan de Postgres como "HH:MM:SS", de ahí el slice.
   const [horaInicio, setHoraInicio] = useState(
-    bloque?.horaInicio.slice(0, 5) ?? "08:00",
+    bloque?.horaInicio.slice(0, 5) ?? horaInicioInicial ?? "08:00",
   );
-  const [horaFin, setHoraFin] = useState(bloque?.horaFin.slice(0, 5) ?? "09:00");
+  const [horaFin, setHoraFin] = useState(
+    bloque?.horaFin.slice(0, 5) ?? horaFinInicial ?? "09:00",
+  );
   const [color, setColor] = useState<ColorCarpeta>(
     (bloque?.color as ColorCarpeta) ?? COLOR_CARPETA_POR_DEFECTO,
   );
@@ -164,16 +184,18 @@ export function BloqueSheet({
   return (
     <>
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetTrigger
-          render={
-            trigger ?? (
-              <Button type="button" size="sm">
-                <PlusIcon aria-hidden />
-                Nuevo bloque
-              </Button>
-            )
-          }
-        />
+        {!esControlado && (
+          <SheetTrigger
+            render={
+              trigger ?? (
+                <Button type="button" size="sm">
+                  <PlusIcon aria-hidden />
+                  Nuevo bloque
+                </Button>
+              )
+            }
+          />
+        )}
         <SheetContent
           side="bottom"
           className="mx-auto w-full rounded-t-xl border-t border-border sm:max-w-sm"

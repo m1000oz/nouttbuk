@@ -12,19 +12,6 @@ import {
 import { getYjsProviderForRoom } from "@liveblocks/yjs";
 import { prosemirrorJSONToYXmlFragment } from "y-prosemirror";
 import { useEditor, EditorContent, getSchema, type Editor } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import Underline from "@tiptap/extension-underline";
-import Highlight from "@tiptap/extension-highlight";
-import Color from "@tiptap/extension-color";
-import FontFamily from "@tiptap/extension-font-family";
-import Link from "@tiptap/extension-link";
-import TextAlign from "@tiptap/extension-text-align";
-import Image from "@tiptap/extension-image";
-import Table from "@tiptap/extension-table";
-import TableRow from "@tiptap/extension-table-row";
-import TableCell from "@tiptap/extension-table-cell";
-import TableHeader from "@tiptap/extension-table-header";
-import CharacterCount from "@tiptap/extension-character-count";
 import Collaboration from "@tiptap/extension-collaboration";
 import CollaborationCursor from "@tiptap/extension-collaboration-cursor";
 import { UsersThreeIcon } from "@phosphor-icons/react";
@@ -36,30 +23,22 @@ import {
   AvatarGroup,
 } from "@/components/ui/avatar";
 import { colorParaUsuario } from "@/lib/liveblocks/color-usuario";
-import { FontSize } from "@/lib/tiptap/font-size-extension";
+import { crearExtensionesEsquema } from "@/lib/tiptap/extensiones-documento";
+import { Paginacion } from "@/lib/tiptap/pagination-extension";
+import { obtenerGeometriaConfiguracionPagina } from "@/lib/tiptap/configuracion-pagina";
+import { BuscarReemplazar } from "@/lib/tiptap/buscar-reemplazar-extension";
+import { ComandoBarra } from "@/lib/tiptap/comando-barra";
+import { crearItemsComando, crearRenderizadorComandos } from "@/components/apuntes/menu-comandos";
+import { crearTransformPasted } from "@/lib/tiptap/pegar-lineas-como-parrafos";
 import type { Json } from "@/lib/types/database.types";
 
-// Tiene que coincidir con editor-estatico.tsx y detalle-publicacion.tsx: si
-// un apunte con negrita/resaltado/enlaces se coedita acá, se lee en modo
-// solo lectura, o se publica a Comunidad, tiene que verse igual en los tres
-// lugares. `history` queda apagado (lo maneja Yjs vía Collaboration), y este
-// mismo array alimenta tanto el editor en vivo como getSchema() más abajo.
-const EXTENSIONES_ESQUEMA = [
-  StarterKit.configure({ history: false }),
-  Underline,
-  FontSize,
-  Color,
-  FontFamily,
-  Highlight.configure({ multicolor: true }),
-  Link.configure({ openOnClick: false, autolink: true }),
-  TextAlign.configure({ types: ["heading", "paragraph"] }),
-  Image,
-  Table.configure({ resizable: false }),
-  TableRow,
-  TableHeader,
-  TableCell,
-  CharacterCount,
-];
+// Viene de crearExtensionesEsquema() (src/lib/tiptap/extensiones-documento.ts),
+// compartido con editor-estatico.tsx y detalle-publicacion.tsx: si un apunte
+// con negrita/resaltado/enlaces se coedita acá, se lee en modo solo lectura,
+// o se publica a Comunidad, se ve igual en los tres porque importan la misma
+// función. `historial: false` porque acá lo maneja Yjs vía Collaboration, y
+// este mismo array alimenta tanto el editor en vivo como getSchema() más abajo.
+const EXTENSIONES_ESQUEMA = crearExtensionesEsquema({ historial: false });
 
 function iniciales(nombre: string): string {
   return nombre
@@ -137,12 +116,29 @@ function EditorColaborativoInterno({
           provider,
           user: { name: nombreLocal, color: colorLocal },
         }),
+        // Fuera de EXTENSIONES_ESQUEMA a propósito: esa lista alimenta
+        // getSchema() más abajo para sembrar Yjs, y ni Paginacion ni
+        // ComandoBarra definen nodos/marcas (solo decoraciones de vista y
+        // comandos de UI), así que no necesitan estar ahí ni afectan la
+        // invariante de esquema compartido con detalle-publicacion.tsx.
+        Paginacion.configure({ obtenerGeometria: obtenerGeometriaConfiguracionPagina }),
+        BuscarReemplazar,
+        ComandoBarra.configure({
+          suggestion: {
+            items: ({ query }: { query: string }) =>
+              crearItemsComando().filter((item) =>
+                item.titulo.toLowerCase().includes(query.toLowerCase()),
+              ),
+            render: crearRenderizadorComandos(),
+          },
+        }),
       ],
       immediatelyRender: false,
       editorProps: {
         attributes: {
           class: "tiptap-content focus:outline-none",
         },
+        transformPasted: crearTransformPasted(),
       },
     },
     [yDoc, provider, nombreLocal, colorLocal],

@@ -145,22 +145,37 @@ max_catalogs = 2
 
 # Store vector embeddings in S3 for large and durable datasets
 [storage.vector]
-enabled = true
+enabled = false
 max_buckets = 10
 max_indexes = 5
 
-# Vector Buckets is available to Supabase Pro plan.
+# Vector Buckets is available to Supabase Pro plan. This project doesn't use
+# vector embeddings anywhere and the cloud project is on the free tier, so
+# this stays `false` to match, otherwise every `supabase config push` fails
+# on this unrelated diff with a 402 (hit live on 2026-09-05).
 # [storage.vector.buckets.documents-openai]
 
 [auth]
 enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
-# in emails.
-site_url = "http://127.0.0.1:3000"
+# in emails. Matches how this app is actually accessed in dev (`npm run dev`
+# serves on localhost, not 127.0.0.1); the previous value here plus the
+# `https://127.0.0.1:3000` entry below neither matched the real host nor the
+# real scheme, so GoTrue silently fell back to `site_url` instead of erroring
+# on the OAuth redirect, and the auth code landed on `/` (Comunidad) instead
+# of `/auth/callback`, never getting exchanged for a session (hit live with
+# a real Google/PUCP SSO login on 2026-09-05).
+site_url = "http://localhost:3000"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["https://127.0.0.1:3000"]
+# Both host variants are listed since either could end up in
+# `window.location.origin` depending on how the dev server is opened.
+additional_redirect_urls = [
+  "http://localhost:3000/auth/callback",
+  "http://127.0.0.1:3000/auth/callback",
+  "http://127.0.0.1:3000",
+]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to auth.external_url.
@@ -222,7 +237,7 @@ web3 = 30
 # captcha se exige en los tres flujos), no solo dejaría el widget sin
 # funcionar. Cambiar a `true` recién cuando el secret real esté en .env.local.
 [auth.captcha]
-enabled = false
+enabled = true
 provider = "turnstile"
 secret = "env(SUPABASE_AUTH_CAPTCHA_SECRET)"
 
@@ -359,7 +374,7 @@ email_optional = false
 # vacíos, `supabase start`/`stop` fallaría al no poder resolver `env(...)`.
 # Cambiar a `true` una vez completado ese paso.
 [auth.external.google]
-enabled = false
+enabled = true
 client_id = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)"
 secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
 redirect_uri = ""

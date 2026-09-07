@@ -1,3 +1,5 @@
+import { PandatomicLogo } from "@/components/shared/pandatomic-logo";
+
 export const metadata = {
   title: "Términos de uso, Nouttbuk",
 };
@@ -14,9 +16,9 @@ export default function TerminosPage() {
 
       <p className="text-sm text-foreground">
         Nouttbuk es un proyecto independiente, creado y mantenido por{" "}
-        <strong>PandAtomic</strong> sin fines comerciales. No somos una
-        empresa constituida ni ofrecemos garantías propias de un servicio
-        comercial. Al usar Nouttbuk aceptas estos términos.
+        <PandatomicLogo /> sin fines comerciales. No somos una empresa
+        constituida ni ofrecemos garantías propias de un servicio comercial.
+        Al usar Nouttbuk aceptas estos términos.
       </p>
 
       <section className="flex flex-col gap-2">
@@ -91,8 +93,13 @@ export default function TerminosPage() {
         <h2 className="text-lg font-semibold text-foreground">Contacto</h2>
         <p className="text-sm text-muted-foreground">
           Para consultas sobre estos términos, escribe a{" "}
-          <span className="text-foreground">[correo de contacto pendiente]</span>.
-          Puedes leer también nuestra{" "}
+          <a
+            href="mailto:exsparknco@gmail.com"
+            className="text-primary underline"
+          >
+            exsparknco@gmail.com
+          </a>
+          . Puedes leer también nuestra{" "}
           <a href="/privacidad" className="text-primary underline">
             Política de privacidad
           </a>
