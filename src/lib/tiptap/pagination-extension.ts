@@ -1,6 +1,7 @@
 import { Extension } from "@tiptap/core";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
+import type { EditorView } from "@tiptap/pm/view";
 
 import {
   ALTURA_PAGINA_PX,
@@ -35,16 +36,81 @@ export type OpcionesPaginacion = {
 
 const paginacionPluginKey = new PluginKey<DecorationSet>("paginacion");
 
-// Extensión que solo agrega decoraciones de vista (nunca toca `doc`): mide el
-// alto real ya renderizado de cada nodo de nivel superior y, cuando uno haría
-// que el acumulado cruce el límite de una hoja A4, inserta un espaciador
-// invisible justo antes de ese nodo para empujarlo al inicio de la próxima
-// hoja. El salto siempre cae en un límite de nodo completo (párrafo, tabla,
-// imagen), así que nunca corta uno a la mitad. Al no modificar el documento,
-// es segura tanto para el editor estático como para el colaborativo (Yjs
-// solo sincroniza transacciones que cambian `doc`, y esta nunca lo hace) y
-// para el guardado (`editor.getJSON()` sigue devolviendo el documento real,
-// sin rastro de las decoraciones).
+// Cuántas veces seguidas esta pasada dividió un nodo demasiado alto (ver más
+// abajo) sin que una pasada intermedia haya terminado limpia. Cota generosa
+// (un párrafo de ~20 hojas sin cortar ya es un caso patológico) para que un
+// párrafo larguísimo termine de dividirse en varias pasadas sucesivas sin
+// arriesgar un bucle infinito si `posAtCoords` alguna vez devolviera una
+// posición que no reduce la altura del nodo. No comparte contador con
+// `pasadasEncadenadas` (más abajo, dentro de `view()`): ese es solo para la
+// convergencia de decoraciones, esta cuenta pasadas de un tipo de operación
+// distinta (una edición real del documento, no una decoración).
+const MAX_DIVISIONES_ENCADENADAS = 200;
+
+// Encuentra, dentro de `elementoNodo`, la posición del documento que cae
+// justo en el borde inferior de una hoja completa (`alturaObjetivo` px desde
+// el propio tope del nodo) — el punto donde ese nodo debería partirse en dos
+// para que la primera mitad termine de llenar la hoja actual. Reutiliza
+// `editorView.posAtCoords`, el mismo método que `hojas-editor.tsx`
+// (`manejarClicPila`) ya usa para resolver un clic a una posición del
+// documento, en vez de reimplementar la búsqueda a mano con
+// `caretRangeFromPoint`/`caretPositionFromPoint`.
+function encontrarPosicionDeCorte(
+  editorView: EditorView,
+  elementoNodo: HTMLElement,
+  alturaObjetivo: number,
+  posInicioNodo: number,
+  tamanoNodo: number
+): number | null {
+  const rect = elementoNodo.getBoundingClientRect();
+  const yObjetivo = rect.top + alturaObjetivo;
+  
+  // posAtCoords solo funciona si la coordenada está dentro del viewport visible.
+  // Si el usuario pegó 15 páginas de texto de golpe, el punto de corte casi
+  // siempre estará fuera de la pantalla y esto devolverá null.
+  const resultado = editorView.posAtCoords({
+    left: rect.left + 4,
+    top: yObjetivo,
+  });
+  
+  if (resultado) {
+    return resultado.pos;
+  }
+  
+  // Fallback heurístico poderoso: si el navegador no puede medirlo porque está
+  // fuera de pantalla, calculamos la proporción (ej. si el objetivo es 1000px
+  // y el bloque mide 5000px, cortamos al 20% del contenido de texto).
+  // La siguiente pasada del ResizeObserver refinará el corte si fue inexacto.
+  const alturaTotal = elementoNodo.offsetHeight;
+  if (alturaTotal > 0 && tamanoNodo > 2) {
+    const proporcion = Math.max(0.1, Math.min(0.95, alturaObjetivo / alturaTotal));
+    // Calculamos el offset interno y lo sumamos a la posición de inicio
+    const corteEstimado = posInicioNodo + Math.floor((tamanoNodo - 2) * proporcion) + 1;
+    return corteEstimado;
+  }
+  
+  return null;
+}
+
+// Extensión que casi siempre solo agrega decoraciones de vista (nunca toca
+// `doc`): mide el alto real ya renderizado de cada nodo de nivel superior y,
+// cuando uno haría que el acumulado cruce el límite de una hoja A4, inserta
+// un espaciador invisible justo antes de ese nodo para empujarlo al inicio
+// de la próxima hoja. El salto siempre cae en un límite de nodo completo
+// (párrafo, tabla, imagen). La única excepción, agregada en Pass 14: cuando
+// un párrafo o encabezado por sí solo ya es más alto que una hoja completa
+// (se escribió sin presionar Enter, o se pegó un bloque largo), empujarlo
+// entero no sirve de nada, sigue sin caber en la hoja siguiente tampoco, así
+// que en ese caso puntual esta extensión SÍ despacha una edición real del
+// documento (`tr.split`, exactamente lo que hace Enter) para partirlo en dos
+// párrafos de verdad — ver el bloque `if (alturaHijo > alturaUtil)` dentro
+// de `medirYDecorar`. Se decidió así, en vez de partir y volver a unir solo
+// en la vista, porque `y-prosemirror` sincroniza cualquier transacción que
+// cambie `doc` sin ninguna forma de excluirla: un corte reversible se
+// transmitiría a los demás colaboradores y quedaría en el historial de Yjs
+// antes de poder revertirlo. Fuera de ese único caso, esta extensión sigue
+// sin tocar el documento, así que el guardado (`editor.getJSON()`) sigue
+// devolviendo exactamente lo que hay, sin rastro de las decoraciones.
 export const Paginacion = Extension.create<OpcionesPaginacion>({
   name: "paginacion",
 
@@ -96,6 +162,11 @@ export const Paginacion = Extension.create<OpcionesPaginacion>({
           // recalculando para siempre.
           let pasadasEncadenadas = 0;
           const MAX_PASADAS_ENCADENADAS = 8;
+          // Ver el comentario de `MAX_DIVISIONES_ENCADENADAS` más arriba:
+          // cuenta divisiones reales de párrafo (Pass 14), no pasadas de
+          // decoración, se resetea junto con `pasadasEncadenadas` cuando una
+          // pasada termina limpia.
+          let divisionesEncadenadas = 0;
           const observador = new ResizeObserver(() => programarRecalculo());
 
           function medirYDecorar() {
@@ -111,6 +182,24 @@ export const Paginacion = Extension.create<OpcionesPaginacion>({
             const hijos = Array.from(dom.children) as HTMLElement[];
 
             const puntosDeCorte: { pos: number; hueco: number }[] = [];
+            // Alto de contenido real acumulado SOLO desde el último salto de
+            // página (se reinicia a 0 cada vez que se inserta uno, más
+            // abajo), nunca un total global desde el principio del
+            // documento. Una versión anterior de este cálculo comparaba un
+            // total global contra `paginaActual * alturaUtil`: cualquier
+            // hoja que no se llenara al pixel exacto (el caso normal, un
+            // párrafo casi nunca termina justo en el borde) dejaba un
+            // sobrante que la fórmula del hueco volvía a sumar en el salto
+            // siguiente, y en el siguiente, acumulando ese error hoja tras
+            // hoja (confirmado con números concretos: exacto en el primer
+            // salto, pero cada salto posterior heredaba el sobrante de
+            // TODOS los anteriores). Con documentos cortos (2-3 hojas) el
+            // error era demasiado chico para notarse; recién a partir de la
+            // hoja 4-5 se veía como la última línea antes del salto pegada
+            // al borde inferior sin margen y un hueco de sobra al empezar la
+            // siguiente. Comparar siempre contra una sola `alturaUtil` (una
+            // página, no un múltiplo acumulado) elimina el error de raíz en
+            // vez de sólo reducirlo.
             let acumulado = 0;
             let paginaActual = 1;
             // Alto acumulado de los `.pagina-fantasma` ya atravesados: los
@@ -188,6 +277,78 @@ export const Paginacion = Extension.create<OpcionesPaginacion>({
                   : Math.max(0, inicioAplanado - finRealAnterior);
               justoTrasHueco = false;
               const alturaConMargen = alturaHijo + margenReal;
+
+              // Pass 14: un nodo que por sí solo ya es más alto que una hoja
+              // completa nunca puede resolverse empujándolo (la lógica de
+              // más abajo), sigue sin caber en la hoja siguiente tampoco.
+              // Ver el comentario grande sobre esto en la extensión, arriba
+              // del todo del archivo.
+              if (alturaHijo > alturaUtil) {
+                try {
+                  const posInicioNodo = editorView.posAtDOM(dom, indice);
+                  const nodoPM = editorView.state.doc.nodeAt(posInicioNodo);
+                  const esDivisible =
+                    nodoPM &&
+                    [
+                      "paragraph",
+                      "heading",
+                      "bulletList",
+                      "orderedList",
+                      "blockquote",
+                      "taskList"
+                    ].includes(nodoPM.type.name);
+
+                  if (
+                    esDivisible &&
+                    editorView.editable &&
+                    divisionesEncadenadas < MAX_DIVISIONES_ENCADENADAS
+                  ) {
+                    const posFinNodo = editorView.posAtDOM(dom, indice + 1);
+                    const posCorte = encontrarPosicionDeCorte(
+                      editorView,
+                      hijo,
+                      alturaUtil,
+                      posInicioNodo,
+                      nodoPM.nodeSize
+                    );
+                    if (
+                      posCorte !== null &&
+                      posCorte > posInicioNodo + 1 &&
+                      posCorte < posFinNodo - 1
+                    ) {
+                      divisionesEncadenadas += 1;
+                      const $pos = editorView.state.doc.resolve(posCorte);
+                      
+                      // Intento de división profunda (rompe hasta la raíz).
+                      // Si falla por restricciones del esquema de ProseMirror,
+                      // baja un nivel a la vez hasta encontrar una división válida.
+                      let exito = false;
+                      for (let d = $pos.depth; d >= 1; d--) {
+                        try {
+                          const tr = editorView.state.tr.split(posCorte, d);
+                          editorView.dispatch(tr);
+                          exito = true;
+                          break;
+                        } catch (e) {
+                          // Ignorar y probar con un nivel menos profundo
+                        }
+                      }
+                      
+                      if (exito) return;
+                    }
+                  }
+                } catch {
+                  // posAtDOM puede fallar en algún caso puntual (igual que
+                  // más abajo, en el empuje entre nodos): se pierde solo
+                  // esta oportunidad de dividir, no el recálculo completo.
+                }
+                // No se pudo dividir (nodo no divisible, sin permiso de
+                // edición, límite de divisiones encadenadas alcanzado, no se
+                // encontró un punto de corte válido, o posAtDOM falló): cae
+                // al comportamiento de antes de Pass 14, empujarlo entero
+                // como mejor esfuerzo más abajo.
+              }
+
               // `continue` acá adentro (cuando posAtDOM falla) saltaba
               // también el `acumulado += alturaConMargen` de más abajo, del
               // hijo entero: el acumulado quedaba permanentemente atrasado
@@ -198,7 +359,7 @@ export const Paginacion = Extension.create<OpcionesPaginacion>({
               // escribir ni scrollear". Ahora la altura del nodo siempre
               // se contabiliza; si posAtDOM falla, solo se pierde ESE
               // punto de corte puntual, no el conteo de páginas completo.
-              if (acumulado > 0 && acumulado + alturaConMargen > paginaActual * alturaUtil) {
+              if (acumulado > 0 && acumulado + alturaConMargen > alturaUtil) {
                 let pos: number | null = null;
                 try {
                   // `posAtDOM(hijo, 0)` (la versión anterior) devuelve la
@@ -222,31 +383,37 @@ export const Paginacion = Extension.create<OpcionesPaginacion>({
                   pos = null;
                 }
                 if (pos !== null) {
-                  const hueco =
-                    paginaActual * alturaUtil -
-                    acumulado +
-                    margenPagina * 2 +
-                    separacionPaginas;
+                  // Espacio que sobra en la página ACTUAL (una sola
+                  // `alturaUtil`, no un múltiplo) más el margen inferior de
+                  // esta página, el pasillo entre hojas, y el margen
+                  // superior de la próxima.
+                  const hueco = alturaUtil - acumulado + margenPagina * 2 + separacionPaginas;
                   puntosDeCorte.push({ pos, hueco });
-                  // `acumulado` tiene que seguir siendo una cuenta PURA de
-                  // contenido real aplanado (comparable contra
-                  // `paginaActual * alturaUtil`, la capacidad de N páginas
-                  // de contenido, ambas en el mismo espacio "sin huecos").
-                  // Sumarle el propio `hueco` acá (como hacía la versión
-                  // anterior) mezclaba las dos escalas: cada salto inflaba
-                  // `acumulado` con puro relleno de margen/separación que
-                  // nunca fue contenido, así que para el segundo salto en
-                  // adelante el umbral se cruzaba antes de tiempo (con
-                  // documentos de 3+ hojas, la hoja 3 conservaba texto
-                  // todavía dentro del rectángulo de la hoja 2). Solo
-                  // `paginaActual` avanza acá; `acumulado` sigue
-                  // acumulando nada más que altura de nodos reales, más
-                  // abajo, igual que en cualquier otra vuelta del bucle.
                   paginaActual += 1;
+                  // Reinicio, no seguir sumando: el nodo que se está por
+                  // empujar es el primer contenido de la página nueva, así
+                  // que su presupuesto de altura vuelve a arrancar en 0 (ver
+                  // el comentario de más arriba sobre por qué un total
+                  // global en vez de esto causaba el error acumulado hoja
+                  // tras hoja). La propia altura de este nodo se suma normal
+                  // más abajo (`acumulado += alturaConMargen`), como
+                  // cualquier otra vuelta del bucle, así que ya queda
+                  // contando para el presupuesto de la página nueva.
+                  acumulado = 0;
                 }
               }
               acumulado += alturaConMargen;
               finRealAnterior = inicioAplanado + alturaHijo;
+
+              // Corrección maestra para nodos gigantes que no pudieron ser cortados:
+              // si el texto fluyó de forma continua cruzando físicamente una o más
+              // páginas enteras, sincronizamos el contador y el acumulado.
+              // Cruzar una página y su hueco consume exactamente alturaPagina + separacionPaginas.
+              const saltoCompleto = alturaPagina + separacionPaginas;
+              while (acumulado > saltoCompleto) {
+                acumulado -= saltoCompleto;
+                paginaActual += 1;
+              }
             }
 
             // Única fuente de verdad para "cuántas páginas hacen falta":
@@ -268,6 +435,7 @@ export const Paginacion = Extension.create<OpcionesPaginacion>({
               // hubiera una en curso) terminó acá, así que es seguro volver
               // a permitir que se programe una nueva desde cero.
               pasadasEncadenadas = 0;
+              divisionesEncadenadas = 0;
               recalculoProgramado = false;
               return;
             }
@@ -278,6 +446,7 @@ export const Paginacion = Extension.create<OpcionesPaginacion>({
                 "[Paginacion] el recálculo de paginación no convergió tras varias pasadas seguidas; se deja de recalcular para no colgar la pestaña. Esto no debería pasar en un documento normal — revisar el contenido de este apunte.",
               );
               pasadasEncadenadas = 0;
+              divisionesEncadenadas = 0;
               recalculoProgramado = false;
               return;
             }
@@ -289,7 +458,10 @@ export const Paginacion = Extension.create<OpcionesPaginacion>({
                 () => {
                   const espaciador = document.createElement("div");
                   espaciador.className = "pagina-fantasma";
+                  espaciador.contentEditable = "false";
                   espaciador.style.height = `${hueco}px`;
+                  espaciador.style.userSelect = "none";
+                  espaciador.style.pointerEvents = "none";
                   return espaciador;
                 },
                 { side: -1, key: `salto-${pos}` },

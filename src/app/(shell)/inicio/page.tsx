@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import {
   FolderSimpleIcon,
   NotePencilIcon,
@@ -7,12 +8,25 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { SeccionVacia } from "@/components/shared/seccion-vacia";
 import { MateriaRecienteCard } from "@/components/inicio/materia-reciente-card";
-import { ApunteRecienteCard } from "@/components/inicio/apunte-reciente-card";
+import { HorarioHoy } from "@/components/inicio/horario-hoy";
 import {
   AccesosRapidos,
   AccionVerApuntes,
   AccionNuevoApunte,
 } from "@/components/inicio/inicio-acciones";
+import { ApunteTarjeta } from "@/components/apuntes/apunte-tarjeta";
+import { PublicacionCard } from "@/components/comunidad/publicacion-card";
+import {
+  consultaFeedComunidad,
+  mapearPublicacionFeed,
+  type ConteosPublicacion,
+} from "@/lib/comunidad/consultas";
+import { consultaBloquesDe } from "@/lib/calendario/consultas";
+import { obtenerDiaSemanaActual } from "@/lib/calendario/dia-semana-actual";
+import { saludoPorHora } from "@/lib/fecha/saludo";
+
+const SELECT_APUNTE =
+  "id, titulo, contenido, carpeta_id, favorito, visibilidad, updated_at";
 
 export default async function InicioPage() {
   const supabase = await createClient();
@@ -24,99 +38,243 @@ export default async function InicioPage() {
     redirect("/?login=1");
   }
 
-  const [{ data: perfil }, { data: carpetas }, { data: apuntes }] =
-    await Promise.all([
-      supabase.from("profiles").select("nombre").eq("id", user.id).single(),
-      supabase
-        .from("carpetas")
-        .select("id, nombre, color, icono")
-        .eq("propietario_id", user.id)
-        .order("updated_at", { ascending: false })
-        .limit(4),
-      supabase
-        .from("apuntes")
-        .select("id, titulo, carpeta_id, favorito, visibilidad, updated_at")
-        .eq("autor_id", user.id)
-        .order("updated_at", { ascending: false })
-        .limit(5),
-    ]);
+  const [
+    { data: perfil },
+    { data: carpetas },
+    { data: apuntes },
+    { data: favoritosData },
+    { data: bloquesData },
+    { data: publicacionesData },
+  ] = await Promise.all([
+    supabase.from("profiles").select("nombre").eq("id", user.id).single(),
+    // Sin .limit: a diferencia de la versión anterior, el mapa carpeta→color
+    // necesita cubrir el 100% de las carpetas del usuario (lo usan
+    // ApunteTarjeta/ApunteOpcionesMenu), no solo las 4 más recientes que se
+    // muestran en "Materias recientes".
+    supabase
+      .from("carpetas")
+      .select("id, nombre, color, icono")
+      .eq("propietario_id", user.id)
+      .order("updated_at", { ascending: false }),
+    supabase
+      .from("apuntes")
+      .select(SELECT_APUNTE)
+      .eq("autor_id", user.id)
+      .order("updated_at", { ascending: false })
+      .limit(9),
+    supabase
+      .from("apuntes")
+      .select(SELECT_APUNTE)
+      .eq("autor_id", user.id)
+      .eq("favorito", true)
+      .order("updated_at", { ascending: false })
+      .limit(6),
+    consultaBloquesDe(supabase, [user.id]),
+    consultaFeedComunidad(supabase, 0, 2),
+  ]);
 
   const primerNombre = perfil?.nombre?.split(" ")[0] ?? "";
   const materias = carpetas ?? [];
+  const materiasRecientes = materias.slice(0, 4);
   const notas = apuntes ?? [];
+  const [destacada, ...restoNotas] = notas;
+  const favoritos = favoritosData ?? [];
 
-  // Solo cubre carpetas que también sean "recientes"; es una limitación
-  // honesta, no vale la pena una segunda query sin límite solo para esto.
-  const nombreCarpetaPorId = new Map(
-    materias.map((materia) => [materia.id, { nombre: materia.nombre }]),
+  const diaHoy = obtenerDiaSemanaActual();
+  const bloquesHoy = (bloquesData ?? []).filter(
+    (bloque) => bloque.dia_semana === diaHoy,
   );
+
+  const publicaciones = publicacionesData ?? [];
+  let conteosPorId = new Map<string, ConteosPublicacion>();
+  if (publicaciones.length > 0) {
+    const { data: conteos } = await supabase.rpc("get_publicacion_counts", {
+      publicacion_ids: publicaciones.map((fila) => fila.id),
+    });
+    conteosPorId = new Map(
+      (conteos ?? []).map((fila) => [
+        fila.publicacion_id,
+        {
+          reacciones: fila.reacciones,
+          guardados: fila.guardados,
+          comentarios: fila.comentarios,
+        },
+      ]),
+    );
+  }
+  const publicacionesFeed = publicaciones.map((fila) =>
+    mapearPublicacionFeed(fila, conteosPorId),
+  );
+
+  const carpetaPorId: Record<string, { nombre: string; color: string }> =
+    Object.fromEntries(
+      materias.map((materia) => [
+        materia.id,
+        { nombre: materia.nombre, color: materia.color },
+      ]),
+    );
+
+  const sinNada = materias.length === 0 && notas.length === 0;
 
   return (
     <div className="flex flex-1 flex-col gap-8 px-6 py-8">
       <div className="flex flex-col gap-4">
         <h1 className="text-2xl font-bold text-foreground">
-          Hola, {primerNombre}
+          {saludoPorHora()}, {primerNombre}
         </h1>
         <AccesosRapidos />
       </div>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold text-muted-foreground">
-          Materias recientes
-        </h2>
-        {materias.length === 0 ? (
-          <SeccionVacia
-            icon={FolderSimpleIcon}
-            titulo="Todavía no tienes materias"
-            descripcion="Cuando crees una carpeta para organizar tus apuntes, aparece aquí."
-            accion={<AccionVerApuntes />}
-          />
-        ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {materias.map((materia, index) => (
-              <MateriaRecienteCard
-                key={materia.id}
-                id={materia.id}
-                nombre={materia.nombre}
-                color={materia.color}
-                icono={materia.icono}
-                index={index}
+      {sinNada ? (
+        <SeccionVacia
+          icon={NotePencilIcon}
+          titulo="Todavía no tienes nada por aquí"
+          descripcion="Crea tu primera materia y tu primer apunte para empezar a organizar tus notas."
+          accion={<AccionVerApuntes />}
+        />
+      ) : (
+        <>
+          <section className="flex flex-col gap-3">
+            <h2 className="text-sm font-semibold text-muted-foreground">
+              Materias recientes
+            </h2>
+            {materiasRecientes.length === 0 ? (
+              <SeccionVacia
+                icon={FolderSimpleIcon}
+                titulo="Todavía no tienes materias"
+                descripcion="Cuando crees una carpeta para organizar tus apuntes, aparece aquí."
+                accion={<AccionVerApuntes />}
               />
-            ))}
-          </div>
-        )}
-      </section>
+            ) : (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                {materiasRecientes.map((materia, index) => (
+                  <MateriaRecienteCard
+                    key={materia.id}
+                    id={materia.id}
+                    nombre={materia.nombre}
+                    color={materia.color}
+                    icono={materia.icono}
+                    index={index}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="flex flex-col gap-3">
+            <h2 className="text-sm font-semibold text-muted-foreground">
+              Últimos apuntes
+            </h2>
+            {notas.length === 0 ? (
+              <SeccionVacia
+                icon={NotePencilIcon}
+                titulo="Todavía no tienes apuntes"
+                descripcion="Cuando crees tu primer apunte, aparece aquí."
+              />
+            ) : (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                {destacada && (
+                  <div className="col-span-2">
+                    <ApunteTarjeta
+                      id={destacada.id}
+                      titulo={destacada.titulo}
+                      contenido={destacada.contenido}
+                      updatedAt={destacada.updated_at}
+                      carpetaId={destacada.carpeta_id}
+                      carpeta={
+                        destacada.carpeta_id
+                          ? (carpetaPorId[destacada.carpeta_id] ?? null)
+                          : null
+                      }
+                      favorito={destacada.favorito}
+                      visibilidad={destacada.visibilidad}
+                      carpetas={materias}
+                      index={0}
+                      destacado
+                    />
+                  </div>
+                )}
+                {restoNotas.map((apunte, index) => (
+                  <ApunteTarjeta
+                    key={apunte.id}
+                    id={apunte.id}
+                    titulo={apunte.titulo}
+                    contenido={apunte.contenido}
+                    updatedAt={apunte.updated_at}
+                    carpetaId={apunte.carpeta_id}
+                    carpeta={
+                      apunte.carpeta_id
+                        ? (carpetaPorId[apunte.carpeta_id] ?? null)
+                        : null
+                    }
+                    favorito={apunte.favorito}
+                    visibilidad={apunte.visibilidad}
+                    carpetas={materias}
+                    index={index + 1}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+
+          {favoritos.length > 0 && (
+            <section className="flex flex-col gap-3">
+              <h2 className="text-sm font-semibold text-muted-foreground">
+                Favoritos
+              </h2>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                {favoritos.map((apunte, index) => (
+                  <ApunteTarjeta
+                    key={apunte.id}
+                    id={apunte.id}
+                    titulo={apunte.titulo}
+                    contenido={apunte.contenido}
+                    updatedAt={apunte.updated_at}
+                    carpetaId={apunte.carpeta_id}
+                    carpeta={
+                      apunte.carpeta_id
+                        ? (carpetaPorId[apunte.carpeta_id] ?? null)
+                        : null
+                    }
+                    favorito={apunte.favorito}
+                    visibilidad={apunte.visibilidad}
+                    carpetas={materias}
+                    index={index}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+        </>
+      )}
 
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-semibold text-muted-foreground">
-          Últimos apuntes
+          Hoy en tu horario
         </h2>
-        {notas.length === 0 ? (
-          <SeccionVacia
-            icon={NotePencilIcon}
-            titulo="Todavía no tienes apuntes"
-            descripcion="Cuando crees tu primer apunte, aparece aquí."
-            accion={<AccionNuevoApunte />}
-          />
-        ) : (
-          <div className="flex flex-col gap-2">
-            {notas.map((apunte, index) => (
-              <ApunteRecienteCard
-                key={apunte.id}
-                id={apunte.id}
-                titulo={apunte.titulo}
-                updatedAt={apunte.updated_at}
-                carpeta={
-                  apunte.carpeta_id
-                    ? (nombreCarpetaPorId.get(apunte.carpeta_id) ?? null)
-                    : null
-                }
-                index={index}
-              />
+        <HorarioHoy bloques={bloquesHoy} />
+      </section>
+
+      {publicacionesFeed.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold text-muted-foreground">
+              Comunidad
+            </h2>
+            <Link
+              href="/"
+              className="text-sm font-medium text-primary hover:underline"
+            >
+              Ver toda la comunidad
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {publicacionesFeed.map((publicacion, index) => (
+              <PublicacionCard key={publicacion.id} {...publicacion} index={index} />
             ))}
           </div>
-        )}
-      </section>
+        </section>
+      )}
     </div>
   );
 }

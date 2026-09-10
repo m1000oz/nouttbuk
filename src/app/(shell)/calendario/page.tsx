@@ -43,7 +43,7 @@ export default async function CalendarioPage() {
   );
 
   return (
-    <div className="flex flex-1 flex-col gap-6 px-6 py-8">
+    <div className="flex flex-1 flex-col gap-4 px-4 py-6 md:gap-6 md:px-6 md:py-8 min-w-0">
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-foreground">Calendario</h1>
         <CompartirCalendarioSheet
@@ -52,13 +52,13 @@ export default async function CalendarioPage() {
         />
       </div>
 
-      <Tabs defaultValue="propio" className="flex flex-col gap-4">
-        <TabsList>
+      <Tabs defaultValue="propio" className="flex flex-col gap-4 min-w-0">
+        <TabsList className="w-full sm:w-auto grid grid-cols-2">
           <TabsTrigger value="propio">Mi calendario</TabsTrigger>
           <TabsTrigger value="cruce">Cruce de horarios</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="propio" className="flex flex-col gap-3">
+        <TabsContent value="propio" className="flex flex-col gap-3 min-w-0">
           <div className="flex justify-end">
             <BloqueSheet perfilId={user.id} />
           </div>
@@ -69,7 +69,7 @@ export default async function CalendarioPage() {
           </p>
         </TabsContent>
 
-        <TabsContent value="cruce" className="flex flex-col gap-3">
+        <TabsContent value="cruce" className="flex flex-col gap-3 min-w-0">
           {personasCompartidas.length === 0 ? (
             <p className="rounded-lg border border-dashed border-border bg-muted/50 px-3 py-6 text-center text-sm text-muted-foreground">
               Todavía nadie compartió su calendario contigo. Pídeles a tus

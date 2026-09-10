@@ -18,6 +18,7 @@ import { UsersThreeIcon } from "@phosphor-icons/react";
 
 import {
   Avatar,
+  AvatarImage,
   AvatarBadge,
   AvatarFallback,
   AvatarGroup,
@@ -30,6 +31,7 @@ import { BuscarReemplazar } from "@/lib/tiptap/buscar-reemplazar-extension";
 import { ComandoBarra } from "@/lib/tiptap/comando-barra";
 import { crearItemsComando, crearRenderizadorComandos } from "@/components/apuntes/menu-comandos";
 import { crearTransformPasted } from "@/lib/tiptap/pegar-lineas-como-parrafos";
+import { manejarClicParaAbrirEnlace } from "@/lib/tiptap/abrir-enlace-con-clic";
 import type { Json } from "@/lib/types/database.types";
 
 // Viene de crearExtensionesEsquema() (src/lib/tiptap/extensiones-documento.ts),
@@ -66,12 +68,14 @@ function PresenciaColaboradores() {
         <AvatarGroup>
           {self && (
             <Avatar size="sm">
+              <AvatarImage src={self.info.avatar} alt={self.info.name} />
               <AvatarFallback>{iniciales(self.info.name)}</AvatarFallback>
               <AvatarBadge style={{ backgroundColor: self.info.color }} />
             </Avatar>
           )}
           {otros.map((otro) => (
             <Avatar key={otro.connectionId} size="sm">
+              <AvatarImage src={otro.info.avatar} alt={otro.info.name} />
               <AvatarFallback>{iniciales(otro.info.name)}</AvatarFallback>
               <AvatarBadge style={{ backgroundColor: otro.info.color }} />
             </Avatar>
@@ -139,6 +143,7 @@ function EditorColaborativoInterno({
           class: "tiptap-content focus:outline-none",
         },
         transformPasted: crearTransformPasted(),
+        handleClick: manejarClicParaAbrirEnlace,
       },
     },
     [yDoc, provider, nombreLocal, colorLocal],

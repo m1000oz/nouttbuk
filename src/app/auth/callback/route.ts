@@ -14,6 +14,12 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const errorDescription = searchParams.get("error_description");
+  const next = searchParams.get("next");
+  // Solo se acepta una ruta relativa propia (ej. "/actualizar-contrasena"
+  // para el flujo de recuperar contraseña): nunca una URL absoluta ni
+  // "//host" (protocol-relative), que redirigiría fuera del sitio.
+  const destinoSeguro =
+    next && next.startsWith("/") && !next.startsWith("//") ? next : "/perfil";
 
   if (errorDescription) {
     return NextResponse.redirect(
@@ -37,5 +43,7 @@ export async function GET(request: Request) {
   // cae en los valores de respaldo de handle_new_user() (usuario
   // autogenerado, sin carrera). /perfil muestra el aviso de "completa tu
   // perfil" cuando detecta ese patrón, ver perfilIncompleto en esa página.
-  return NextResponse.redirect(`${origin}/perfil`);
+  // destinoSeguro es /perfil salvo que el llamador haya pedido otro destino
+  // relativo propio (recuperar-form.tsx pide /actualizar-contrasena).
+  return NextResponse.redirect(`${origin}${destinoSeguro}`);
 }

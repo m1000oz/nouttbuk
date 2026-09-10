@@ -143,10 +143,10 @@ export default function PrivacidadPage() {
           Nouttbuk es mantenido por <PandatomicLogo />. Para consultas sobre
           esta política o solicitudes relacionadas con tus datos, escribe a{" "}
           <a
-            href="mailto:exsparknco@gmail.com"
+            href="mailto:contacto@pandatomic.com"
             className="text-primary underline"
           >
-            exsparknco@gmail.com
+            contacto@pandatomic.com
           </a>
           .
         </p>

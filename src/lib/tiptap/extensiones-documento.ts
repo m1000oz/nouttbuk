@@ -6,7 +6,6 @@ import Color from "@tiptap/extension-color";
 import FontFamily from "@tiptap/extension-font-family";
 import Link from "@tiptap/extension-link";
 import TextAlign from "@tiptap/extension-text-align";
-import Image from "@tiptap/extension-image";
 import Table from "@tiptap/extension-table";
 import TableRow from "@tiptap/extension-table-row";
 import TableCell from "@tiptap/extension-table-cell";
@@ -16,10 +15,12 @@ import Subscript from "@tiptap/extension-subscript";
 import Superscript from "@tiptap/extension-superscript";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
+import { MathExtension } from "@aarkue/tiptap-math-extension";
 
 import { FontSize } from "@/lib/tiptap/font-size-extension";
 import { LineHeight } from "@/lib/tiptap/line-height-extension";
 import { TabSeguro } from "@/lib/tiptap/tab-seguro";
+import { ImagenRedimensionable } from "@/lib/tiptap/imagen-extension";
 
 type OpcionesEsquema = {
   // false en editor-colaborativo.tsx: ahí el historial de deshacer/rehacer
@@ -68,7 +69,7 @@ export function crearExtensionesEsquema(opciones?: OpcionesEsquema): Extensions 
       autolink: true,
     }),
     TextAlign.configure({ types: ["heading", "paragraph"] }),
-    Image,
+    ImagenRedimensionable,
     Table.configure({ resizable: false }),
     TableRow,
     TableHeader,
@@ -80,5 +81,6 @@ export function crearExtensionesEsquema(opciones?: OpcionesEsquema): Extensions 
     TaskItem.configure({ nested: true }),
     LineHeight,
     TabSeguro,
+    MathExtension.configure({ evaluation: true }),
   ];
 }

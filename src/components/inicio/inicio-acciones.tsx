@@ -16,7 +16,6 @@ import { NuevoApunteButton } from "@/components/nav/fab-nuevo-apunte";
 export function AccesosRapidos() {
   return (
     <div className="flex flex-wrap gap-2">
-      <NuevoApunteButton variant="sidebar" />
       <Button variant="outline" nativeButton={false} render={<Link href="/" />}>
         <UsersThreeIcon aria-hidden />
         Ver comunidad

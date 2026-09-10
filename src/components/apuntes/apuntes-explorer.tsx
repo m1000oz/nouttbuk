@@ -75,9 +75,6 @@ function ListaApuntes({
         icon={emptyIcon}
         titulo={emptyTitulo}
         descripcion={emptyDescripcion}
-        accion={
-          <NuevoApunteButton variant="sidebar" carpetaId={carpetaActivaId} />
-        }
       />
     );
   }
@@ -140,7 +137,7 @@ export function ApuntesExplorer({
       className="flex flex-col gap-4"
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <TabsList>
+        <TabsList className="w-full sm:w-auto grid grid-cols-3">
           <TabsTrigger value="todos">Todos</TabsTrigger>
           <TabsTrigger value="favoritos">Favoritos</TabsTrigger>
           <TabsTrigger value="compartidos">Compartidos</TabsTrigger>

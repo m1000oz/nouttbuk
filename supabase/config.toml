@@ -211,7 +211,10 @@ password_requirements = ""
 
 [auth.rate_limit]
 # Number of emails that can be sent per hour. Requires auth.email.smtp to be enabled.
-email_sent = 2
+# 2 era el valor por defecto del template de la CLI, pensado para el servicio
+# de email de prueba de Supabase. Con SMTP real (SendGrid) subido a 30, el
+# techo que Supabase mismo documenta para SMTP personalizado.
+email_sent = 30
 # Number of SMS messages that can be sent per hour. Requires auth.sms to be enabled.
 sms_sent = 30
 # Number of anonymous sign-ins that can be made per hour per IP address. Requires enable_anonymous_sign_ins = true.
@@ -258,26 +261,48 @@ otp_length = 6
 # Number of seconds before the email OTP expires (defaults to 1 hour).
 otp_expiry = 3600
 
-# Use a production-ready SMTP server
-# [auth.email.smtp]
-# enabled = true
-# host = "smtp.sendgrid.net"
-# port = 587
-# user = "apikey"
-# pass = "env(SENDGRID_API_KEY)"
-# admin_email = "admin@email.com"
-# sender_name = "Admin"
+# SMTP de producción vía Resend (dominio pandatomic.com verificado en
+# Resend → Domains). RESEND_API_KEY se define en .env.local. Sin este
+# bloque, Auth usa el servicio de email transaccional por defecto de
+# Supabase (límite muy bajo, solo pensado para pruebas).
+[auth.email.smtp]
+enabled = true
+host = "smtp.resend.com"
+port = 587
+user = "resend"
+pass = "env(RESEND_API_KEY)"
+admin_email = "contacto@pandatomic.com"
+sender_name = "Nouttbuk"
 
-# Uncomment to customize email template
-# [auth.email.template.invite]
-# subject = "You have been invited"
-# content_path = "./supabase/templates/invite.html"
+# Plantillas HTML propias (tarjeta central con botón, marca Nouttbuk), en vez
+# de las plantillas de texto plano por defecto de GoTrue. Sin imágenes
+# externas a propósito: el sitio (nouttbuk.vercel.app) todavía no está
+# desplegado, así que no hay una URL estable para hotlink-ear un logo.
+[auth.email.template.confirmation]
+subject = "Confirma tu cuenta en Nouttbuk"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.recovery]
+subject = "Restablece tu contraseña en Nouttbuk"
+content_path = "./supabase/templates/recovery.html"
+
+[auth.email.template.magic_link]
+subject = "Tu enlace de acceso a Nouttbuk"
+content_path = "./supabase/templates/magic_link.html"
+
+[auth.email.template.invite]
+subject = "Te invitaron a Nouttbuk"
+content_path = "./supabase/templates/invite.html"
+
+[auth.email.template.email_change]
+subject = "Confirma tu nuevo correo en Nouttbuk"
+content_path = "./supabase/templates/email_change.html"
 
 # Uncomment to customize notification email template
 # [auth.email.notification.password_changed]
 # enabled = true
 # subject = "Your password has been changed"
-# content_path = "./templates/password_changed_notification.html"
+# content_path = "./supabase/templates/password_changed_notification.html"
 
 [auth.sms]
 # Allow/disallow new user signups via SMS to your project.

@@ -140,37 +140,41 @@ export function AuthModal({
           <RecuperarForm onVolver={() => onModeChange("login")} />
         )}
 
-        {mode !== "recuperar" && (
-          <button
-            type="button"
-            onClick={() => onModeChange(mode === "login" ? "signup" : "login")}
-            className="text-sm text-muted-foreground hover:text-foreground"
-          >
-            {mode === "login"
-              ? "¿No tienes cuenta? Crea una"
-              : "¿Ya tienes cuenta? Inicia sesión"}
-          </button>
-        )}
+        <div className="mt-1 flex flex-col items-center gap-3 border-t border-border pt-4">
+          {mode !== "recuperar" && (
+            <button
+              type="button"
+              onClick={() =>
+                onModeChange(mode === "login" ? "signup" : "login")
+              }
+              className="cursor-pointer text-sm text-muted-foreground hover:text-foreground"
+            >
+              {mode === "login"
+                ? "¿No tienes cuenta? Crea una"
+                : "¿Ya tienes cuenta? Inicia sesión"}
+            </button>
+          )}
 
-        <p className="text-center text-xs text-muted-foreground">
-          Al continuar aceptas nuestros{" "}
-          <Link
-            href="/terminos"
-            onClick={() => onOpenChange(false)}
-            className="underline hover:text-foreground"
-          >
-            Términos de uso
-          </Link>{" "}
-          y nuestra{" "}
-          <Link
-            href="/privacidad"
-            onClick={() => onOpenChange(false)}
-            className="underline hover:text-foreground"
-          >
-            Política de privacidad
-          </Link>
-          .
-        </p>
+          <p className="text-center text-xs text-muted-foreground">
+            Al continuar aceptas nuestros{" "}
+            <Link
+              href="/terminos"
+              onClick={() => onOpenChange(false)}
+              className="underline hover:text-foreground"
+            >
+              Términos de uso
+            </Link>{" "}
+            y nuestra{" "}
+            <Link
+              href="/privacidad"
+              onClick={() => onOpenChange(false)}
+              className="underline hover:text-foreground"
+            >
+              Política de privacidad
+            </Link>
+            .
+          </p>
+        </div>
       </DialogContent>
     </Dialog>
   );

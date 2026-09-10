@@ -3,6 +3,8 @@
 import { type RefObject, useState } from "react";
 import type { Editor } from "@tiptap/react";
 import {
+  ArrowUUpLeftIcon,
+  ArrowUUpRightIcon,
   CheckSquareIcon,
   EraserIcon,
   ListBulletsIcon,
@@ -124,6 +126,21 @@ export function EditorBarraPersistente({ editor, overlayRef }: EditorBarraPersis
 
   return (
     <div className="barra-persistente print:hidden">
+      <BotonBarra
+        label="Deshacer"
+        disabled={!estado.puedeDeshacer}
+        onClick={() => editor.chain().focus().undo().run()}
+      >
+        <ArrowUUpLeftIcon aria-hidden />
+      </BotonBarra>
+      <BotonBarra
+        label="Rehacer"
+        disabled={!estado.puedeRehacer}
+        onClick={() => editor.chain().focus().redo().run()}
+      >
+        <ArrowUUpRightIcon aria-hidden />
+      </BotonBarra>
+      <Separador />
       <SelectorEstiloBloque editor={editor} estado={estado} overlayRef={overlayRef} />
       <SelectorFuente editor={editor} fuenteActual={estado.fuenteActual} overlayRef={overlayRef} />
       <SelectorTamano editor={editor} tamanoActual={estado.tamanoActual} overlayRef={overlayRef} />

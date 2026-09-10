@@ -10,6 +10,7 @@ import { BuscarReemplazar } from "@/lib/tiptap/buscar-reemplazar-extension";
 import { ComandoBarra } from "@/lib/tiptap/comando-barra";
 import { crearItemsComando, crearRenderizadorComandos } from "@/components/apuntes/menu-comandos";
 import { crearTransformPasted } from "@/lib/tiptap/pegar-lineas-como-parrafos";
+import { manejarClicParaAbrirEnlace } from "@/lib/tiptap/abrir-enlace-con-clic";
 import type { Json } from "@/lib/types/database.types";
 
 // Calculado una sola vez al cargar el módulo, no dentro del componente:
@@ -70,6 +71,7 @@ export function EditorEstatico({
         spellcheck: "true",
       },
       transformPasted: crearTransformPasted(),
+      handleClick: manejarClicParaAbrirEnlace,
     },
   });
 

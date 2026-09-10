@@ -28,7 +28,7 @@ export function NuevoApunteButton({
     return (
       <Button
         aria-label="Crear nuevo apunte"
-        size="icon-lg"
+        size="icon-xl"
         nativeButton={false}
         render={<Link href={href} />}
         className={cn(
@@ -36,14 +36,14 @@ export function NuevoApunteButton({
           className,
         )}
       >
-        <PlusIcon className="size-5" aria-hidden />
+        <PlusIcon className="size-6" aria-hidden />
       </Button>
     );
   }
 
   return (
-    <Button nativeButton={false} render={<Link href={href} />} className={className}>
-      <PlusIcon aria-hidden />
+    <Button size="xl" nativeButton={false} render={<Link href={href} />} className={className}>
+      <PlusIcon aria-hidden className="size-5" />
       Nuevo apunte
     </Button>
   );

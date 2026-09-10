@@ -94,10 +94,10 @@ export default function TerminosPage() {
         <p className="text-sm text-muted-foreground">
           Para consultas sobre estos términos, escribe a{" "}
           <a
-            href="mailto:exsparknco@gmail.com"
+            href="mailto:contacto@pandatomic.com"
             className="text-primary underline"
           >
-            exsparknco@gmail.com
+            contacto@pandatomic.com
           </a>
           . Puedes leer también nuestra{" "}
           <a href="/privacidad" className="text-primary underline">

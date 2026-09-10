@@ -1,5 +1,6 @@
 import { Fragment, Slice } from "@tiptap/pm/model";
 import type { Node as NodoProseMirror } from "@tiptap/pm/model";
+import type { Editor } from "@tiptap/react";
 
 // El pegado (tanto de texto plano sin HTML como, más comúnmente, de HTML con
 // saltos de línea sueltos: notepad, un PDF, un chat) puede llegar convertido
@@ -69,4 +70,23 @@ export function crearTransformPasted() {
     const contenido = dividirEnParrafos(slice.content);
     return new Slice(contenido, slice.openStart, slice.openEnd);
   };
+}
+
+// Repara notas que ya quedaron guardadas con el problema de arriba, de antes
+// de que `transformPasted` existiera (esa corrección solo normaliza pegados
+// nuevos, nunca reescribe contenido ya persistido). Aplica la misma división
+// por saltos duros, pero sobre el documento entero en vez de sobre un slice
+// recién pegado, como una transacción normal: para el editor colaborativo
+// esto sincroniza a Yjs igual que cualquier otro cambio del usuario, no hace
+// falta ningún camino especial. Devuelve `false` sin despachar nada si el
+// documento ya estaba limpio, para no ensuciar el historial de deshacer con
+// una transacción que no cambia nada.
+export function repararParrafosDelDocumento(editor: Editor): boolean {
+  const { doc } = editor.state;
+  const contenidoReparado = dividirEnParrafos(doc.content);
+  if (contenidoReparado.eq(doc.content)) return false;
+
+  const tr = editor.state.tr.replaceWith(0, doc.content.size, contenidoReparado);
+  editor.view.dispatch(tr);
+  return true;
 }

@@ -42,7 +42,7 @@ export function RecuperarForm({ onVolver }: RecuperarFormProps) {
     // El resultado de esta llamada no se usa para decidir qué mostrar: la
     // confirmación es siempre la misma, exista o no la cuenta.
     await supabase.auth.resetPasswordForEmail(correo, {
-      redirectTo: `${window.location.origin}/actualizar-contrasena`,
+      redirectTo: `${window.location.origin}/auth/callback?next=/actualizar-contrasena`,
       captchaToken: captchaToken ?? undefined,
     });
 
@@ -73,6 +73,7 @@ export function RecuperarForm({ onVolver }: RecuperarFormProps) {
           type="email"
           autoComplete="email"
           required
+          disabled={cargando}
           value={correo}
           onChange={(event) => {
             setCorreo(event.target.value);
@@ -96,7 +97,7 @@ export function RecuperarForm({ onVolver }: RecuperarFormProps) {
       <button
         type="button"
         onClick={onVolver}
-        className="text-sm text-primary hover:underline"
+        className="cursor-pointer text-sm text-primary hover:underline"
       >
         Volver a iniciar sesión
       </button>

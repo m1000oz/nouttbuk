@@ -4,7 +4,7 @@ type SeccionVaciaProps = {
   icon: ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
   titulo: string;
   descripcion: string;
-  accion: ReactNode;
+  accion?: ReactNode;
 };
 
 // Versión a escala de sección (no de página completa) del patrón de estado

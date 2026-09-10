@@ -6,12 +6,52 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { NAV_ITEMS, type NavItem } from "@/components/nav/nav-items";
 import { NuevoApunteButton } from "@/components/nav/fab-nuevo-apunte";
+import { ProToolsSidebar } from "@/components/nav/pro-tools-sidebar";
+import { ProToolsProvider, useProTools } from "@/lib/context/pro-tools-context";
 import { AuthModal, type AuthModalMode } from "@/components/auth/auth-modal";
 import { AuthGateProvider } from "@/components/nav/auth-gate";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { TimerIcon } from "@phosphor-icons/react";
+
+function GlobalPomodoroWidget({ className }: { className?: string }) {
+  const { pomodoroIsRunning, pomodoroTime, pomodoroTheme, pomodoroMode, setActiveTool } = useProTools();
+  
+  // No mostrar nada si no está corriendo y está en el tiempo por defecto
+  const isDefaultTime = pomodoroTime === (pomodoroMode === "work" ? 25 * 60 : 5 * 60);
+  if (!pomodoroIsRunning && isDefaultTime) return null;
+
+  const m = Math.floor(pomodoroTime / 60).toString().padStart(2, "0");
+  const s = (pomodoroTime % 60).toString().padStart(2, "0");
+
+  const themeColors = {
+    silent: "text-slate-500 border-slate-500/30 bg-slate-500/10",
+    rain: "text-blue-500 border-blue-500/30 bg-blue-500/10",
+    lofi: "text-fuchsia-500 border-fuchsia-500/30 bg-fuchsia-500/10",
+    cafe: "text-orange-500 border-orange-500/30 bg-orange-500/10"
+  };
+
+  return (
+    <button 
+      onClick={() => setActiveTool("pomodoro")}
+      className={cn(
+        "px-4 py-3 rounded-xl border flex items-center gap-4 transition-all hover:opacity-80 backdrop-blur-md cursor-pointer", 
+        themeColors[pomodoroTheme],
+        className
+      )}
+    >
+      <div className="flex items-center gap-2">
+        <TimerIcon className={cn("size-4", pomodoroIsRunning && "animate-pulse")} weight={pomodoroIsRunning ? "fill" : "regular"} />
+        <span className="text-[10px] font-bold uppercase tracking-widest">
+          {pomodoroMode === "work" ? "Focus" : "Break"}
+        </span>
+      </div>
+      <span className="font-mono font-bold text-sm">{m}:{s}</span>
+    </button>
+  );
+}
 
 export type ShellSession = {
   id: string;
@@ -94,19 +134,16 @@ function MobileNavLink({
       bloqueado={bloqueado}
       onRequiereLogin={onRequiereLogin}
       className={cn(
-        "flex flex-1 flex-col items-center gap-0.5 py-1 text-[0.65rem] font-medium",
+        "flex flex-1 flex-col items-center gap-1 py-2 text-[0.7rem] font-medium",
         activo ? "text-primary" : "text-muted-foreground",
       )}
     >
-      <Icono weight={activo ? "fill" : "regular"} className="size-5" aria-hidden />
-      {item.label}
+      <Icono weight={activo ? "fill" : "regular"} className="size-6 shrink-0" aria-hidden />
+      <span className="w-full truncate text-center leading-none">{item.label}</span>
     </ShellNavLink>
   );
 }
 
-const MITAD_NAV = Math.ceil(NAV_ITEMS.length / 2);
-const navItemsIzquierda = NAV_ITEMS.slice(0, MITAD_NAV);
-const navItemsDerecha = NAV_ITEMS.slice(MITAD_NAV);
 
 export function AppShell({ session, children }: AppShellProps) {
   const pathname = usePathname();
@@ -165,131 +202,133 @@ export function AppShell({ session, children }: AppShellProps) {
   const nombreVisible = session?.perfil?.nombre ?? session?.perfil?.usuario;
 
   return (
-    <div className="flex min-h-full flex-1">
-      <aside className="hidden w-60 shrink-0 flex-col gap-6 border-r border-sidebar-border bg-sidebar px-4 py-6 text-sidebar-foreground md:flex">
-        <Link
-          href="/"
-          className="px-2 text-lg font-bold text-sidebar-primary"
-        >
-          Nouttbuk
-        </Link>
+    <ProToolsProvider>
+      <div className="flex min-h-full flex-1">
+        <aside className="hidden sticky top-0 h-screen w-64 shrink-0 flex-col gap-6 border-r border-sidebar-border bg-sidebar px-5 py-8 text-sidebar-foreground md:flex">
+          <Link
+            href="/"
+            className="px-2 text-2xl font-bold text-sidebar-primary"
+          >
+            Nouttbuk
+          </Link>
 
-        <nav className="flex flex-col gap-1">
-          {NAV_ITEMS.map((item) => {
-            const activo = pathname === item.href;
-            const bloqueado = item.requiresAuth && !autenticado;
-            const Icono = item.icon;
-            return (
-              <ShellNavLink
-                key={item.href}
-                item={item}
-                activo={activo}
-                bloqueado={bloqueado}
-                onRequiereLogin={() => abrirAuth("login")}
-                className={cn(
-                  "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                  activo
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                )}
-              >
-                <Icono
-                  weight={activo ? "fill" : "regular"}
-                  className="size-5"
-                  aria-hidden
-                />
-                {item.label}
-              </ShellNavLink>
-            );
-          })}
-        </nav>
-
-        <NuevoApunteButton
-          variant="sidebar"
-          className="mt-2"
-          carpetaId={carpetaIdActual}
-        />
-
-        <div className="mt-auto">
-          {autenticado ? (
-            <Link
-              href="/perfil"
-              className="flex items-center gap-2.5 overflow-hidden rounded-lg px-1.5 py-1.5 hover:bg-sidebar-accent"
-            >
-              <Avatar size="sm">
-                <AvatarFallback>
-                  {iniciales(session?.perfil?.nombre)}
-                </AvatarFallback>
-              </Avatar>
-              <span className="truncate text-sm font-medium">
-                {nombreVisible ?? "Mi perfil"}
-              </span>
-            </Link>
-          ) : (
-            <Button
-              type="button"
-              onClick={() => abrirAuth("login")}
-              className="w-full"
-            >
-              Iniciar sesión
-            </Button>
-          )}
-        </div>
-      </aside>
-
-      <div className="flex flex-1 flex-col">
-        <main
-          id="main-content"
-          tabIndex={-1}
-          className="flex flex-1 flex-col pb-20 md:pb-0 focus:outline-none"
-        >
-          <AuthGateProvider abrirLogin={() => abrirAuth("login")}>
-            {children}
-          </AuthGateProvider>
-        </main>
-      </div>
-
-      <nav
-        aria-label="Navegación principal"
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card md:hidden"
-      >
-        <div className="relative flex h-16 items-center justify-around px-2">
-          {navItemsIzquierda.map((item) => (
-            <MobileNavLink
-              key={item.href}
-              item={item}
-              activo={pathname === item.href}
-              bloqueado={item.requiresAuth && !autenticado}
-              onRequiereLogin={() => abrirAuth("login")}
-            />
-          ))}
-
-          <div className="w-14 shrink-0" aria-hidden />
-
-          {navItemsDerecha.map((item) => (
-            <MobileNavLink
-              key={item.href}
-              item={item}
-              activo={pathname === item.href}
-              bloqueado={item.requiresAuth && !autenticado}
-              onRequiereLogin={() => abrirAuth("login")}
-            />
-          ))}
+          <nav className="flex flex-col gap-1">
+            {NAV_ITEMS.filter((item) => item.href !== "/perfil").map((item) => {
+              const activo = pathname === item.href;
+              const bloqueado = item.requiresAuth && !autenticado;
+              const Icono = item.icon;
+              return (
+                <ShellNavLink
+                  key={item.href}
+                  item={item}
+                  activo={activo}
+                  bloqueado={bloqueado}
+                  onRequiereLogin={() => abrirAuth("login")}
+                  className={cn(
+                    "flex items-center gap-3 rounded-xl px-4 py-3 text-base font-medium transition-colors",
+                    activo
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                  )}
+                >
+                  <Icono
+                    weight={activo ? "fill" : "regular"}
+                    className="size-6"
+                    aria-hidden
+                  />
+                  {item.label}
+                </ShellNavLink>
+              );
+            })}
+          </nav>
 
           <NuevoApunteButton
+            variant="sidebar"
+            className="mt-2"
+            carpetaId={carpetaIdActual}
+          />
+
+          <GlobalPomodoroWidget className="mt-4 w-full" />
+
+          <div className="mt-auto">
+            {autenticado ? (
+              <Link
+                href="/perfil"
+                className="flex items-center gap-3 overflow-hidden rounded-xl px-3 py-2 hover:bg-sidebar-accent"
+              >
+                <Avatar size="sm">
+                  <AvatarImage src={session?.perfil?.avatar_url || undefined} alt={nombreVisible} />
+                  <AvatarFallback>
+                    {iniciales(session?.perfil?.nombre)}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="truncate text-base font-medium">
+                  {nombreVisible ?? "Mi perfil"}
+                </span>
+              </Link>
+            ) : (
+              <Button
+                type="button"
+                size="xl"
+                onClick={() => abrirAuth("login")}
+                className="w-full"
+              >
+                Iniciar sesión
+              </Button>
+            )}
+          </div>
+        </aside>
+
+        <div className="flex flex-1 flex-col min-w-0">
+          <main
+            id="main-content"
+            tabIndex={-1}
+            className="flex flex-1 flex-col pb-20 md:pb-0 focus:outline-none min-w-0"
+          >
+            <AuthGateProvider abrirLogin={() => abrirAuth("login")}>
+              {children}
+            </AuthGateProvider>
+          </main>
+        </div>
+
+        {/* --- Mobile Floating Pomodoro Widget --- */}
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 md:hidden shadow-xl rounded-xl">
+          <GlobalPomodoroWidget className="mt-0 shadow-lg px-6" />
+        </div>
+
+        <ProToolsSidebar />
+
+        <div className="fixed bottom-20 right-4 z-50 md:hidden">
+          <NuevoApunteButton
             variant="fab"
-            className="absolute left-1/2 -top-5 -translate-x-1/2"
             carpetaId={carpetaIdActual}
           />
         </div>
-      </nav>
 
-      <AuthModal
-        open={authOpen}
-        mode={authMode}
-        onOpenChange={handleAuthOpenChange}
-        onModeChange={setAuthMode}
-      />
-    </div>
+        <nav
+          aria-label="Navegación principal"
+          className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card md:hidden"
+        >
+          <div className="flex h-16 items-center justify-between px-2 pb-1">
+            {NAV_ITEMS.map((item) => (
+              <MobileNavLink
+                key={item.href}
+                item={item}
+                activo={pathname === item.href}
+                bloqueado={item.requiresAuth && !autenticado}
+                onRequiereLogin={() => abrirAuth("login")}
+              />
+            ))}
+          </div>
+        </nav>
+
+        <AuthModal
+          open={authOpen}
+          mode={authMode}
+          onOpenChange={handleAuthOpenChange}
+          onModeChange={setAuthMode}
+        />
+      </div>
+    </ProToolsProvider>
   );
 }

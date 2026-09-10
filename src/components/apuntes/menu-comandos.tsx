@@ -17,6 +17,7 @@ import {
   TextHOneIcon,
   TextHTwoIcon,
   TextHThreeIcon,
+  SigmaIcon,
 } from "@phosphor-icons/react";
 import type { Editor } from "@tiptap/react";
 import { ReactRenderer } from "@tiptap/react";
@@ -37,6 +38,7 @@ const ICONOS: Record<string, React.ComponentType<{ className?: string }>> = {
   cita: QuotesIcon,
   tabla: TableIcon,
   imagen: ImageIcon,
+  formula: SigmaIcon,
 };
 
 // Nombre del evento que dispara el input de imagen persistente montado en
@@ -115,6 +117,12 @@ export function crearItemsComando(): (ItemComando & { icono: string })[] {
       titulo: "Imagen",
       descripcion: "Subir una imagen",
       ejecutar: () => window.dispatchEvent(new CustomEvent(EVENTO_INSERTAR_IMAGEN)),
+    },
+    {
+      icono: "formula",
+      titulo: "Fórmula matemática",
+      descripcion: "Fórmula matemática inline o en bloque",
+      ejecutar: (editor) => editor.chain().focus().insertContent('$$ $$').run(),
     },
   ];
 }

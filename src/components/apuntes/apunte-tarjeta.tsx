@@ -26,6 +26,11 @@ type ApunteTarjetaProps = {
   propietario?: string;
   carpetas: CarpetaOpcion[];
   index: number;
+  // Tile más grande para "el apunte más reciente" en Inicio ("Continuar
+  // donde lo dejaste"): mismo componente, no una tarjeta paralela, así
+  // Inicio y Mis apuntes comparten el mismo diseño de tile. Ninguna pantalla
+  // existente pasa este prop hoy, así que su render queda igual que antes.
+  destacado?: boolean;
 };
 
 // Grid de galería en vez de barras horizontales (design.md ya pedía "grid de
@@ -46,10 +51,11 @@ export function ApunteTarjeta({
   propietario,
   carpetas,
   index,
+  destacado = false,
 }: ApunteTarjetaProps) {
   const prefiereMenosMovimiento = useReducedMotion();
   const esPropio = !propietario;
-  const extracto = extraerTextoPlano(contenido, 120);
+  const extracto = extraerTextoPlano(contenido, destacado ? 220 : 120);
 
   return (
     <div className="relative">
@@ -65,10 +71,41 @@ export function ApunteTarjeta({
           }}
           whileHover={prefiereMenosMovimiento ? undefined : { y: -2 }}
         >
-          <Card className="h-full border border-border shadow-[var(--shadow-card)] ring-0">
-            <CardContent className="flex h-full flex-col gap-2">
+          <Card className="relative h-full border border-border shadow-[var(--shadow-card)] ring-0">
+            {/* Lomo de cuaderno anillado: color de la carpeta (o el color por
+                defecto si no tiene carpeta, resolverColorCarpeta ya cubre
+                ese caso) más anillas metálicas realistas. */}
+            <div
+              className="pointer-events-none absolute inset-y-0 left-0 w-3 border-r border-black/10 shadow-[inset_-1px_0_2px_rgba(0,0,0,0.1)]"
+              style={{ backgroundColor: resolverColorCarpeta(carpeta?.color ?? null) }}
+              aria-hidden
+            >
+              <div className="absolute inset-y-0 right-0 flex flex-col justify-evenly py-4">
+                {Array.from({ length: 7 }).map((_, i) => (
+                  <div key={i} className="relative flex w-[14px] items-center">
+                    {/* Hueco perforado en el lomo/hoja */}
+                    <div className="absolute left-[4px] z-10 size-2.5 rounded-full bg-background shadow-[inset_0_2px_3px_rgba(0,0,0,0.5)]" />
+                    {/* Anilla metálica que pasa por el hueco */}
+                    <div className="absolute left-0 z-20 h-[4px] w-[13px] rounded-full border border-black/20 bg-gradient-to-b from-zinc-200 via-zinc-100 to-zinc-400 shadow-[0_1px_1px_rgba(0,0,0,0.5)]" />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <CardContent className="flex h-full flex-col gap-2 pl-7">
+              {destacado && (
+                <span className="text-xs font-medium text-primary">
+                  Continuar donde lo dejaste
+                </span>
+              )}
               <div className="flex items-start justify-between gap-2 pr-6">
-                <h3 className="line-clamp-2 text-sm font-semibold text-foreground">
+                <h3
+                  className={
+                    destacado
+                      ? "line-clamp-2 text-base font-bold text-foreground"
+                      : "line-clamp-2 text-sm font-semibold text-foreground"
+                  }
+                >
                   {titulo}
                 </h3>
                 {favorito && (
@@ -81,7 +118,13 @@ export function ApunteTarjeta({
               </div>
 
               {extracto && (
-                <p className="line-clamp-3 flex-1 text-xs text-muted-foreground">
+                <p
+                  className={
+                    destacado
+                      ? "line-clamp-5 flex-1 text-xs text-muted-foreground"
+                      : "line-clamp-3 flex-1 text-xs text-muted-foreground"
+                  }
+                >
                   {extracto}
                 </p>
               )}

@@ -114,7 +114,34 @@ export function HojasEditor({
       // preset A4, y la hoja salía "delgadísima" hasta que había texto
       // suficiente para forzar un ancho mayor. Un ancho fijo en px sí cuenta
       // como preferred width real, así que rompe esa ambigüedad de raíz.
-      style={{ width: anchoPagina, maxWidth: "100%" }}
+      //
+      // `minHeight` explícito (no solo `width`): sin esto, el alto real de
+      // este contenedor (`position: relative`, auto) lo determina solo su
+      // hijo en flujo normal (el div con el contenido de ProseMirror), nunca
+      // los `.hoja-editor` de fondo (`position: absolute`, que por spec no
+      // aportan al auto-height de su ancestro posicionado). En un apunte
+      // real la última hoja casi nunca está llena hasta el borde, así que
+      // ese fondo de la última página sobresalía por debajo del propio
+      // contenido en flujo, en algunos casos por cientos de píxeles — y
+      // como ese fondo SÍ cuenta para el scroll (un descendiente
+      // absolutamente posicionado sin ancestro con overflow:hidden de por
+      // medio extiende el scrollable overflow igual), el navegador ya
+      // scrolleaba hasta ahí de por sí. El colchón de scroll agregado en
+      // `.lienzo-editor` (apunte-editor.tsx, `pb-32 sm:pb-48`) se mide
+      // relativo al alto de ESTE contenedor: sin este `minHeight`, ese
+      // colchón se calculaba a partir del contenido en flujo (más corto) y
+      // terminaba escondido por completo debajo de la última hoja que ya
+      // sobresalía más abajo — visualmente cero colchón nuevo, el scroll
+      // seguía terminando justo en el borde de la hoja (reportado
+      // literalmente así: "el final de la página sigue siendo el margen
+      // final de la hoja"). Confirmado con un apunte real de 9 hojas: el
+      // fondo de la última hoja sobresalía ~316px por debajo del contenido
+      // en flujo antes de este fix.
+      style={{
+        width: anchoPagina,
+        maxWidth: "100%",
+        minHeight: paginas * alturaPagina + (paginas - 1) * separacionPaginas,
+      }}
       onClick={manejarClicPila}
     >
       {Array.from({ length: paginas }).map((_, indice) => {

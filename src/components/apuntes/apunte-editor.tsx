@@ -336,7 +336,7 @@ export function ApunteEditor({
   }
 
   function handleEtiquetaKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-    if (event.key === "Enter") {
+    if (event.key === "Enter" || event.key === ",") {
       event.preventDefault();
       agregarEtiqueta();
       return;
@@ -359,10 +359,13 @@ export function ApunteEditor({
     // Si el usuario dejó texto sin confirmar con Enter en el campo de
     // etiquetas, igual se guarda al presionar Guardar.
     const etiquetaPendiente = etiquetaInput.trim();
-    const etiquetasFinales =
-      etiquetaPendiente && !etiquetas.includes(etiquetaPendiente)
-        ? [...etiquetas, etiquetaPendiente]
-        : etiquetas;
+    let etiquetasFinales = etiquetas;
+    
+    if (etiquetaPendiente && !etiquetas.includes(etiquetaPendiente)) {
+      etiquetasFinales = [...etiquetas, etiquetaPendiente];
+      setEtiquetas(etiquetasFinales);
+      setEtiquetaInput("");
+    }
 
     const supabase = createClient();
     const campos = {
@@ -422,244 +425,258 @@ export function ApunteEditor({
     <div
       ref={overlayRef}
       data-tema={temaAtelier}
-      className="apunte-editor-overlay fixed inset-0 z-50 flex flex-col bg-background"
+      className="apunte-editor-overlay fixed inset-0 z-[60] flex flex-col bg-background"
     >
-      <header className="print:hidden flex flex-wrap items-center gap-3 border-b border-border px-4 py-3">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          aria-label="Cerrar editor"
-          nativeButton={false}
-          render={<Link href="/apuntes" />}
-        >
-          <XIcon aria-hidden />
-        </Button>
-
-        {/* Título en el header, no como primera línea de la hoja: mismo
-            lugar que Google Docs (junto al menú, no dentro del papel). El
-            input ya existía, solo cambió dónde vive y su tipografía (DM
-            Sans del resto del chrome, no la serif manuscrita reservada
-            para el contenido de la hoja). */}
-        <input
-          ref={tituloInputRef}
-          value={titulo}
-          onChange={(event) => setTitulo(event.target.value)}
-          placeholder="Título del apunte"
-          readOnly={soloLectura}
-          className="min-w-0 flex-1 truncate border-none bg-transparent text-base font-medium text-foreground outline-none placeholder:text-muted-foreground"
-        />
-
-        <div className="flex flex-wrap items-center gap-2">
-          {!soloLectura && (
+      <header className="print:hidden flex flex-col border-b border-border bg-background">
+        {/* Fila superior: Título y metadatos */}
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2">
+          <div className="flex flex-1 items-center gap-2">
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              aria-label={
-                favorito ? "Quitar de favoritos" : "Marcar como favorito"
-              }
-              aria-pressed={favorito}
-              onClick={() => setFavorito((actual) => !actual)}
+              aria-label="Cerrar editor"
+              nativeButton={false}
+              render={<Link href="/apuntes" />}
             >
-              <StarIcon
-                weight={favorito ? "fill" : "regular"}
-                className={favorito ? "text-warning" : undefined}
-                aria-hidden
-              />
+              <XIcon aria-hidden />
             </Button>
-          )}
 
-          {esOwner ? (
-            <Select
-              value={carpetaId ?? "__ninguna__"}
-              onValueChange={(valor) =>
-                setCarpetaId(valor === "__ninguna__" ? null : valor)
-              }
-              items={{
-                __ninguna__: "Sin carpeta",
-                ...Object.fromEntries(
-                  carpetas.map((carpeta) => [carpeta.id, carpeta.nombre]),
-                ),
-              }}
-            >
-              <SelectTrigger size="sm">
-                <SelectValue placeholder="Carpeta" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__ninguna__">Sin carpeta</SelectItem>
-                {carpetas.map((carpeta) => (
-                  <SelectItem key={carpeta.id} value={carpeta.id}>
-                    <FolderIcon
-                      weight="fill"
-                      className="size-3.5"
-                      style={{ color: resolverColorCarpeta(carpeta.color) }}
-                      aria-hidden
-                    />
-                    {carpeta.nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : (
-            carpetaActual && (
-              <Badge variant="secondary">{carpetaActual.nombre}</Badge>
-            )
-          )}
+            <input
+              ref={tituloInputRef}
+              value={titulo}
+              onChange={(event) => setTitulo(event.target.value)}
+              placeholder="Título del apunte"
+              readOnly={soloLectura}
+              className="min-w-[150px] max-w-[400px] flex-1 truncate rounded-md border border-transparent bg-transparent px-2 py-1 text-lg font-semibold text-foreground transition-colors hover:border-border hover:bg-muted/50 focus:border-primary focus:bg-background focus:outline-none placeholder:text-muted-foreground"
+            />
 
-          {esOwner ? (
-            <Select
-              value={cursoId ?? "__ninguno__"}
-              onValueChange={(valor) =>
-                setCursoId(valor === "__ninguno__" ? null : valor)
-              }
-              items={{
-                __ninguno__: "Sin curso",
-                ...Object.fromEntries(
-                  cursos.map((curso) => [
-                    curso.id,
-                    `${curso.nombre} (${curso.carreraNombre})`,
-                  ]),
-                ),
-              }}
-            >
-              <SelectTrigger size="sm">
-                <SelectValue placeholder="Curso" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__ninguno__">Sin curso</SelectItem>
-                {cursos.map((curso) => (
-                  <SelectItem key={curso.id} value={curso.id}>
-                    <span className="flex flex-col py-0.5">
-                      <span>{curso.nombre}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {curso.carreraNombre}
-                      </span>
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : (
-            cursoActual && (
-              <Badge variant="secondary">{cursoActual.nombre}</Badge>
-            )
-          )}
-
-          {esOwner ? (
-            <Select
-              value={visibilidad}
-              onValueChange={(valor) =>
-                setVisibilidad(valor as ApunteVisibilidad)
-              }
-              items={VISIBILIDAD_LABEL}
-            >
-              <SelectTrigger size="sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {(Object.keys(VISIBILIDAD_LABEL) as ApunteVisibilidad[]).map(
-                  (clave) => (
-                    <SelectItem key={clave} value={clave}>
-                      {VISIBILIDAD_LABEL[clave]}
-                    </SelectItem>
-                  ),
-                )}
-              </SelectContent>
-            </Select>
-          ) : (
-            <Badge variant="secondary">{VISIBILIDAD_LABEL[visibilidad]}</Badge>
-          )}
-
-          <span className="mx-0.5 h-5 w-px bg-border" aria-hidden />
-
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label="Esquema del documento"
-            aria-pressed={esquemaVisible}
-            onClick={() => setEsquemaVisible((actual) => !actual)}
-          >
-            <SidebarSimpleIcon aria-hidden />
-          </Button>
-
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label={guiaVisible ? "Ocultar guía rápida" : "Mostrar guía rápida"}
-            aria-pressed={guiaVisible}
-            onClick={() => cambiarGuiaVisible(!guiaVisible)}
-          >
-            <LightbulbIcon weight={guiaVisible ? "fill" : "regular"} aria-hidden />
-          </Button>
-
-          <div className="flex items-center gap-0.5 rounded-md border border-border px-1 py-0.5">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              aria-label="Reducir zoom"
-              onClick={() => setZoom((z) => Math.max(ZOOM_MIN, +(z - ZOOM_PASO).toFixed(2)))}
-            >
-              <MinusIcon aria-hidden />
-            </Button>
-            <span className="w-10 text-center text-xs tabular-nums text-muted-foreground">
-              {Math.round(zoom * 100)}%
-            </span>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              aria-label="Aumentar zoom"
-              onClick={() => setZoom((z) => Math.min(ZOOM_MAX, +(z + ZOOM_PASO).toFixed(2)))}
-            >
-              <PlusIcon aria-hidden />
-            </Button>
+            {!soloLectura && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label={favorito ? "Quitar de favoritos" : "Marcar como favorito"}
+                aria-pressed={favorito}
+                onClick={() => setFavorito((actual) => !actual)}
+              >
+                <StarIcon
+                  weight={favorito ? "fill" : "regular"}
+                  className={favorito ? "text-warning" : undefined}
+                  aria-hidden
+                />
+              </Button>
+            )}
           </div>
 
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label="Imprimir"
-            onClick={() => window.print()}
-          >
-            <PrinterIcon aria-hidden />
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="hidden md:flex flex-wrap items-center gap-2">
+              {esOwner ? (
+                <Select
+                  value={carpetaId ?? "__ninguna__"}
+                  onValueChange={(valor) =>
+                    setCarpetaId(valor === "__ninguna__" ? null : valor)
+                  }
+                  items={{
+                    __ninguna__: "Sin carpeta",
+                    ...Object.fromEntries(
+                      carpetas.map((carpeta) => [carpeta.id, carpeta.nombre]),
+                    ),
+                  }}
+                >
+                  <SelectTrigger size="sm" className="h-8 border-dashed bg-muted/30">
+                    <SelectValue placeholder="Carpeta" />
+                  </SelectTrigger>
+                  <SelectContent container={overlayRef}>
+                    <SelectItem value="__ninguna__">Sin carpeta</SelectItem>
+                    {carpetas.map((carpeta) => (
+                      <SelectItem key={carpeta.id} value={carpeta.id}>
+                        <FolderIcon
+                          weight="fill"
+                          className="size-3.5"
+                          style={{ color: resolverColorCarpeta(carpeta.color) }}
+                          aria-hidden
+                        />
+                        {carpeta.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                carpetaActual && (
+                  <Badge variant="secondary">{carpetaActual.nombre}</Badge>
+                )
+              )}
 
-          {!soloLectura && (
-            <Button type="button" onClick={handleGuardar} loading={guardando}>
-              Guardar
-            </Button>
-          )}
+              {esOwner ? (
+                <Select
+                  value={cursoId ?? "__ninguno__"}
+                  onValueChange={(valor) =>
+                    setCursoId(valor === "__ninguno__" ? null : valor)
+                  }
+                  items={{
+                    __ninguno__: "Sin curso",
+                    ...Object.fromEntries(
+                      cursos.map((curso) => [
+                        curso.id,
+                        `${curso.nombre} (${curso.carreraNombre})`,
+                      ]),
+                    ),
+                  }}
+                >
+                  <SelectTrigger size="sm" className="h-8 border-dashed bg-muted/30">
+                    <SelectValue placeholder="Curso" />
+                  </SelectTrigger>
+                  <SelectContent container={overlayRef}>
+                    <SelectItem value="__ninguno__">Sin curso</SelectItem>
+                    {cursos.map((curso) => (
+                      <SelectItem key={curso.id} value={curso.id}>
+                        <span className="flex flex-col py-0.5">
+                          <span>{curso.nombre}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {curso.carreraNombre}
+                          </span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                cursoActual && (
+                  <Badge variant="secondary">{cursoActual.nombre}</Badge>
+                )
+              )}
+
+              {esOwner ? (
+                <Select
+                  value={visibilidad}
+                  onValueChange={(valor) =>
+                    setVisibilidad(valor as ApunteVisibilidad)
+                  }
+                  items={VISIBILIDAD_LABEL}
+                >
+                  <SelectTrigger size="sm" className="h-8 border-dashed bg-muted/30">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent container={overlayRef}>
+                    {(Object.keys(VISIBILIDAD_LABEL) as ApunteVisibilidad[]).map(
+                      (clave) => (
+                        <SelectItem key={clave} value={clave}>
+                          {VISIBILIDAD_LABEL[clave]}
+                        </SelectItem>
+                      ),
+                    )}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Badge variant="secondary">{VISIBILIDAD_LABEL[visibilidad]}</Badge>
+              )}
+            </div>
+
+            {!soloLectura && (
+              <Button type="button" size="sm" className="ml-2 h-8 px-4" onClick={handleGuardar} loading={guardando}>
+                Guardar
+              </Button>
+            )}
+          </div>
         </div>
+
+        {/* Fila inferior: Menú principal y controles visuales */}
+        {!soloLectura && (
+          <div className="flex flex-wrap items-center justify-between gap-3 px-2 py-1">
+            <EditorMenuBar
+              editor={editorInstancia}
+              overlayRef={overlayRef}
+              soloLectura={soloLectura}
+              titulo={titulo}
+              tituloInputRef={tituloInputRef}
+              onGuardar={handleGuardar}
+              esquemaVisible={esquemaVisible}
+              onEsquemaVisibleChange={setEsquemaVisible}
+              guiaVisible={guiaVisible}
+              onGuiaVisibleChange={cambiarGuiaVisible}
+              zoom={zoom}
+              onZoomChange={setZoom}
+              onAbrirConfigurarPagina={() => setConfigurarPaginaAbierto(true)}
+              onAbrirBuscarReemplazar={() => setBuscarReemplazarAbierto(true)}
+              onAbrirContarPalabras={() => setContarPalabrasAbierto(true)}
+              tema={temaAtelier}
+              onTemaChange={cambiarTemaAtelier}
+            />
+
+            <div className="hidden md:flex items-center gap-1.5 pr-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs text-muted-foreground"
+                aria-pressed={esquemaVisible}
+                onClick={() => setEsquemaVisible((actual) => !actual)}
+              >
+                <SidebarSimpleIcon className="mr-1.5 size-3.5" aria-hidden />
+                Esquema
+              </Button>
+
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs text-muted-foreground"
+                aria-pressed={guiaVisible}
+                onClick={() => cambiarGuiaVisible(!guiaVisible)}
+              >
+                <LightbulbIcon weight={guiaVisible ? "fill" : "regular"} className="mr-1.5 size-3.5" aria-hidden />
+                Guía
+              </Button>
+
+              <span className="mx-1 h-4 w-px bg-border" aria-hidden />
+
+              <div className="flex items-center gap-0.5 rounded-md border border-border/50 bg-muted/10 px-1 py-0.5">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  className="size-6"
+                  aria-label="Reducir zoom"
+                  onClick={() => setZoom((z) => Math.max(ZOOM_MIN, +(z - ZOOM_PASO).toFixed(2)))}
+                >
+                  <MinusIcon className="size-3" aria-hidden />
+                </Button>
+                <span className="w-9 text-center text-[11px] tabular-nums text-muted-foreground">
+                  {Math.round(zoom * 100)}%
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  className="size-6"
+                  aria-label="Aumentar zoom"
+                  onClick={() => setZoom((z) => Math.max(ZOOM_MAX, +(z + ZOOM_PASO).toFixed(2)))}
+                >
+                  <PlusIcon className="size-3" aria-hidden />
+                </Button>
+              </div>
+
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                className="ml-1 size-7"
+                aria-label="Imprimir"
+                onClick={() => window.print()}
+              >
+                <PrinterIcon className="size-3.5 text-muted-foreground" aria-hidden />
+              </Button>
+            </div>
+          </div>
+        )}
       </header>
 
+      {/* Barra de Formato Centrada (estilo isla flotante moderna) */}
       {!soloLectura && (
-        <EditorMenuBar
-          editor={editorInstancia}
-          overlayRef={overlayRef}
-          soloLectura={soloLectura}
-          titulo={titulo}
-          tituloInputRef={tituloInputRef}
-          onGuardar={handleGuardar}
-          esquemaVisible={esquemaVisible}
-          onEsquemaVisibleChange={setEsquemaVisible}
-          guiaVisible={guiaVisible}
-          onGuiaVisibleChange={cambiarGuiaVisible}
-          zoom={zoom}
-          onZoomChange={setZoom}
-          onAbrirConfigurarPagina={() => setConfigurarPaginaAbierto(true)}
-          onAbrirBuscarReemplazar={() => setBuscarReemplazarAbierto(true)}
-          onAbrirContarPalabras={() => setContarPalabrasAbierto(true)}
-          tema={temaAtelier}
-          onTemaChange={cambiarTemaAtelier}
-        />
-      )}
-      {!soloLectura && (
-        <EditorBarraPersistente editor={editorInstancia} overlayRef={overlayRef} />
+        <div className="print:hidden flex justify-center border-b border-border bg-muted/20 px-2 py-1.5 backdrop-blur-md">
+          <EditorBarraPersistente editor={editorInstancia} overlayRef={overlayRef} />
+        </div>
       )}
 
       <div className="flex flex-1 overflow-hidden">
@@ -673,7 +690,12 @@ export function ApunteEditor({
             desplazan juntos y el lienzo de fondo se extiende naturalmente
             hasta donde termine el contenido, sin dos barras de scroll. */}
         <div className="flex flex-1 flex-col overflow-y-auto">
-          <div className="mx-auto flex w-full max-w-[794px] flex-col gap-3 px-6 pt-6">
+          {/* print:hidden acá: sin esto, "Imprimir"/"Descargar > Documento
+              (PDF)" imprimía también las etiquetas, el aviso de "Compartido
+              por" y el botón de compartir, no solo el contenido real de las
+              hojas (pedido explícito del usuario: "trata que solo se guarde
+              el contenido de las hojas"). */}
+          <div className="mx-auto flex w-full max-w-[794px] flex-col gap-3 px-6 pt-6 print:hidden">
             {error && (
               <p
                 role="alert"
@@ -748,10 +770,26 @@ export function ApunteEditor({
           {/* El lienzo (escritorio de grafito cálido) y la hoja (papel
               propio, siempre cálido) le dan al editor la sensación de
               instrumento de escritura, no de cartulina infinita ni de
-              procesador de textos genérico. */}
-          <div className="lienzo-editor mt-4 flex flex-1 items-start justify-center px-4 py-10 sm:px-8">
+              procesador de textos genérico. `pb-32`/`sm:pb-48` (en vez de
+              simetría con el `pt-10` de arriba): este es el último hijo del
+              contenedor con scroll, así que ese padding-bottom es el único
+              colchón entre el final real de la última hoja y el tope del
+              scroll. Con `py-10` parejo (40px) el scroll llegaba exactamente
+              al borde de la hoja y se sentía como chocar contra una pared en
+              vez de desacelerar, sobre todo notando que ya hay 32px de
+              separación visual entre hojas (SEPARACION_PAGINAS_PX): un
+              colchón final más chico que el hueco entre páginas se sentía
+              más brusco que el propio salto de página. */}
+          <div className="lienzo-editor mt-4 flex flex-1 items-start justify-center px-4 pt-10 pb-32 sm:px-8 sm:pb-48">
             <AmbienteAtelier />
-            <div style={{ transform: `scale(${zoom})`, transformOrigin: "top center" }}>
+            {/* zoom-lienzo: hook para que @media print (globals.css) anule
+                este transform con !important. El zoom de pantalla no debe
+                viajar al PDF/impresión (una hoja "achicada" al 60% en
+                pantalla se imprimiría igual de achicada). */}
+            <div
+              className="zoom-lienzo"
+              style={{ transform: `scale(${zoom})`, transformOrigin: "top center" }}
+            >
               <HojasEditor
                 editor={editorInstancia}
                 geometria={geometria}

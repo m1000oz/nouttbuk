@@ -11,6 +11,7 @@ import { mapearErrorAuth } from "@/lib/auth/mapear-error-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CampoContrasena } from "@/components/auth/campo-contrasena";
 import {
   Select,
   SelectContent,
@@ -40,6 +41,7 @@ export function SignupForm({ onSuccess, onIrALogin }: SignupFormProps) {
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [correoError, setCorreoError] = useState<string | null>(null);
+  const [contrasenaError, setContrasenaError] = useState<string | null>(null);
   const [mostrarLinkLogin, setMostrarLinkLogin] = useState(false);
   const [cargando, setCargando] = useState(false);
   const turnstileRef = useRef<TurnstileWidgetHandle>(null);
@@ -61,10 +63,16 @@ export function SignupForm({ onSuccess, onIrALogin }: SignupFormProps) {
     event.preventDefault();
     setError(null);
     setCorreoError(null);
+    setContrasenaError(null);
     setMostrarLinkLogin(false);
 
     if (!esCorreoInstitucionalValido(correo)) {
       setCorreoError(MENSAJE_DOMINIO_INVALIDO);
+      return;
+    }
+
+    if (contrasena.length < 8) {
+      setContrasenaError("La contraseña debe tener al menos 8 caracteres.");
       return;
     }
 
@@ -114,6 +122,7 @@ export function SignupForm({ onSuccess, onIrALogin }: SignupFormProps) {
         <Input
           id="signup-nombre"
           required
+          disabled={cargando}
           value={nombre}
           onChange={(event) => setNombre(event.target.value)}
         />
@@ -123,6 +132,7 @@ export function SignupForm({ onSuccess, onIrALogin }: SignupFormProps) {
         <Input
           id="signup-usuario"
           required
+          disabled={cargando}
           value={usuario}
           onChange={(event) => setUsuario(event.target.value)}
         />
@@ -134,6 +144,7 @@ export function SignupForm({ onSuccess, onIrALogin }: SignupFormProps) {
           onValueChange={(valor) =>
             setCarreraId(valor === "__ninguna__" ? null : valor)
           }
+          disabled={cargando}
           items={{
             __ninguna__: "Sin especificar",
             ...Object.fromEntries(
@@ -175,6 +186,7 @@ export function SignupForm({ onSuccess, onIrALogin }: SignupFormProps) {
           type="email"
           autoComplete="email"
           required
+          disabled={cargando}
           value={correo}
           onChange={(event) => {
             setCorreo(event.target.value);
@@ -192,7 +204,7 @@ export function SignupForm({ onSuccess, onIrALogin }: SignupFormProps) {
                 <button
                   type="button"
                   onClick={onIrALogin}
-                  className="underline hover:text-foreground"
+                  className="cursor-pointer underline hover:text-foreground"
                 >
                   Inicia sesión
                 </button>
@@ -201,18 +213,19 @@ export function SignupForm({ onSuccess, onIrALogin }: SignupFormProps) {
           </p>
         )}
       </div>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="signup-contrasena">Contraseña</Label>
-        <Input
-          id="signup-contrasena"
-          type="password"
-          autoComplete="new-password"
-          required
-          minLength={8}
-          value={contrasena}
-          onChange={(event) => setContrasena(event.target.value)}
-        />
-      </div>
+      <CampoContrasena
+        id="signup-contrasena"
+        label="Contraseña"
+        value={contrasena}
+        onChange={(valor) => {
+          setContrasena(valor);
+          setContrasenaError(null);
+        }}
+        autoComplete="new-password"
+        required
+        disabled={cargando}
+        error={contrasenaError}
+      />
       <TurnstileWidget ref={turnstileRef} onTokenChange={setCaptchaToken} />
       <Button
         type="submit"

@@ -26,8 +26,8 @@ import { cn } from "@/lib/utils";
 // Medidas de la grilla, compartidas entre el layout CSS y la matemática de
 // arrastre (pixel <-> franja/día): si estos números cambian, arrastrar y
 // dibujar tienen que seguir de acuerdo.
-const ALTURA_FRANJA = 28;
-const ANCHO_COLUMNA_HORAS = 56;
+const ALTURA_FRANJA = 30;
+const ANCHO_COLUMNA_HORAS = 64;
 // Umbral en px antes de considerar que un puntero realmente "arrastró" en
 // vez de ser un clic simple (o una activación por teclado, que nunca pasa
 // por pointerdown/move y llega directo a onClick).
@@ -45,6 +45,14 @@ type CalendarioSemanaProps = {
   franjasOcupadas?: Set<string>;
   nombrePorPerfil?: Record<string, string>;
 };
+
+export function formatearHoraAMPM(hora24: string): string {
+  const [h, m] = hora24.split(":");
+  const hNum = Number(h);
+  const ampm = hNum >= 12 ? "PM" : "AM";
+  const h12 = hNum % 12 || 12;
+  return `${h12}:${m} ${ampm}`;
+}
 
 type ArrastreCreacion = {
   dia: number;
@@ -127,7 +135,7 @@ export function CalendarioSemana({
     indiceDia: number,
     event: ReactPointerEvent<HTMLButtonElement>,
   ) {
-    const rect = gridRef.current!.getBoundingClientRect();
+    const rect = event.currentTarget.getBoundingClientRect();
     const franja = Math.min(
       TOTAL_FRANJAS - 1,
       Math.max(0, franjaDesdeClienteY(event.clientY, rect.top)),
@@ -138,7 +146,7 @@ export function CalendarioSemana({
 
   function manejarPointerMoveDia(event: ReactPointerEvent<HTMLButtonElement>) {
     if (!arrastreCreacion) return;
-    const rect = gridRef.current!.getBoundingClientRect();
+    const rect = event.currentTarget.getBoundingClientRect();
     const franja = Math.min(
       TOTAL_FRANJAS - 1,
       Math.max(0, franjaDesdeClienteY(event.clientY, rect.top)),
@@ -364,13 +372,14 @@ export function CalendarioSemana({
         {Array.from({ length: TOTAL_FRANJAS }).map((_, franja) => (
           <div
             key={`hora-${franja}`}
-            className={cn(
-              "border-b border-border px-1 text-right text-[10px] text-muted-foreground",
-              franja % 2 === 0 ? "border-b-border" : "border-b-transparent",
-            )}
+            className="relative pr-2 text-right text-[10px] text-muted-foreground"
             style={{ gridRow: franja + 2 }}
           >
-            {franja % 2 === 0 ? etiquetaFranja(franja) : ""}
+            {franja % 2 === 0 ? (
+              <span className="absolute -top-[7px] right-2 bg-card px-1 font-medium leading-none whitespace-nowrap">
+                {formatearHoraAMPM(etiquetaFranja(franja))}
+              </span>
+            ) : null}
           </div>
         ))}
 
@@ -384,7 +393,7 @@ export function CalendarioSemana({
                 key={clave}
                 className={cn(
                   "border-b border-l border-border",
-                  franja % 2 === 1 && "border-b-border/50",
+                  franja % 2 === 0 && "border-b-border/50",
                   libreParaTodos && "bg-success/10",
                 )}
                 style={{ gridColumn: indiceDia + 2, gridRow: franja + 2 }}
@@ -447,10 +456,10 @@ export function CalendarioSemana({
           const etiqueta = interactivo || !nombreDueno ? bloque.titulo : nombreDueno;
           const izquierda = (100 / bloque.columnas) * bloque.columna;
           const ancho = 100 / bloque.columnas;
-          const titulo = `${bloque.titulo} (${bloque.hora_inicio.slice(0, 5)}–${bloque.hora_fin.slice(0, 5)})`;
+          const titulo = `${bloque.titulo} (${formatearHoraAMPM(bloque.hora_inicio.slice(0, 5))}–${formatearHoraAMPM(bloque.hora_fin.slice(0, 5))})`;
           const unaSolaFranja = filasSpan(bloque.hora_inicio, bloque.hora_fin) === 1;
           const claseTexto = cn(
-            "text-xs leading-[14px] font-semibold",
+            "text-sm sm:text-base font-semibold leading-tight tracking-tight",
             unaSolaFranja ? "line-clamp-1" : "line-clamp-2",
           );
 
@@ -464,7 +473,7 @@ export function CalendarioSemana({
             return (
               <div key={bloque.id} style={celdaStyle}>
                 <div
-                  className="absolute inset-y-0 m-px overflow-hidden rounded-md px-1.5 py-px text-left text-white"
+                  className="absolute inset-y-0 m-px flex flex-col items-start overflow-hidden rounded-md p-1.5 text-left text-white"
                   style={{
                     left: `${izquierda}%`,
                     width: `${ancho}%`,
@@ -473,6 +482,11 @@ export function CalendarioSemana({
                   title={titulo}
                 >
                   <span className={claseTexto}>{etiqueta}</span>
+                  {!unaSolaFranja && (
+                    <span className="mt-0.5 text-xs font-medium leading-tight tracking-tight opacity-90">
+                      {formatearHoraAMPM(bloque.hora_inicio.slice(0, 5))} - {formatearHoraAMPM(bloque.hora_fin.slice(0, 5))}
+                    </span>
+                  )}
                 </div>
               </div>
             );
@@ -527,7 +541,7 @@ export function CalendarioSemana({
               <button
                 type="button"
                 className={cn(
-                  "absolute m-px overflow-hidden rounded-md px-1.5 py-px text-left text-white outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "absolute m-px flex flex-col items-start overflow-hidden rounded-md p-1.5 text-left text-white outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   enArrastre && "shadow-lg ring-2 ring-white/40",
                 )}
                 style={estiloBoton}
@@ -538,6 +552,11 @@ export function CalendarioSemana({
                 onClick={(event) => manejarClickBloque(bloque, event)}
               >
                 <span className={claseTexto}>{etiqueta}</span>
+                {!unaSolaFranja && (
+                  <span className="mt-0.5 text-xs font-medium leading-tight tracking-tight opacity-90">
+                    {formatearHoraAMPM(bloque.hora_inicio.slice(0, 5))} - {formatearHoraAMPM(bloque.hora_fin.slice(0, 5))}
+                  </span>
+                )}
                 <span
                   aria-hidden
                   className="group absolute inset-x-0 top-0 flex h-2 items-start justify-center overflow-hidden"

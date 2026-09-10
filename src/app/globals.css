@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "katex/dist/katex.min.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -360,7 +361,93 @@
     max-width: 100%;
     height: auto;
     border-radius: var(--radius-md);
-    margin-block: 0.5em;
+  }
+
+  /* Envoltura del NodeView de React de la imagen redimensionable (ver
+     imagen-nodo.tsx). El nodo es `inline: true` (imagen-extension.ts): vive
+     DENTRO de un párrafo, como un carácter más, para que pueda "convivir
+     con el texto" (pedido explícito) en vez de partir el párrafo en dos
+     como hacía cuando era un nodo de bloque. `display: inline-block` (no
+     el `inline` puro por defecto de un <span>) para que `width`/las asas de
+     redimensionar tengan una caja propia con posición real.
+     - "linea" (por defecto): sin float, la imagen fluye como cualquier
+       palabra del párrafo — el modo "En línea con el texto" de Docs.
+     - "izquierda"/"derecha": `float` de verdad, no una alineación de
+       bloque disfrazada de eso — esto es lo que hace que el resto del
+       texto del párrafo fluya alrededor, el equivalente real al "Ajustar
+       texto" de Docs. */
+  .imagen-nodo {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+    vertical-align: text-bottom;
+  }
+  .imagen-nodo[data-align="izquierda"] {
+    float: left;
+    margin: 0.2em 1em 0.2em 0;
+  }
+  .imagen-nodo[data-align="derecha"] {
+    float: right;
+    margin: 0.2em 0 0.2em 1em;
+  }
+  .imagen-nodo.is-seleccionada img {
+    outline: 2px solid #caa15a;
+    outline-offset: 2px;
+  }
+  /* Sin esto, un párrafo cuyo único contenido "alto" es una imagen flotante
+     (nada de texto propio que la acompañe, o menos texto del que hace
+     falta para bajar hasta su borde inferior) mide `offsetHeight` más bajo
+     que la imagen real: un <p> normal no establece un nuevo contexto de
+     formato de bloque, así que un float que sobresale por debajo de sus
+     líneas de texto no cuenta para el alto automático del propio <p> (bug
+     real de CSS, no específico de este proyecto). Paginacion mide
+     `offsetHeight` nodo por nodo para decidir los saltos de página
+     (pagination-extension.ts): con esta fuga, un párrafo con una imagen
+     flotante alta se medía más bajo de lo que en verdad ocupa en pantalla,
+     corriendo el salto de página tarde y dejando la imagen cortada a la
+     mitad entre dos hojas. El clearfix hace que cada párrafo se mida a sí
+     mismo completo. También limita a propósito el float a UN solo párrafo
+     por vez (no lo deja "escaparse" hacia el siguiente como sí permite
+     Docs): dejar que un float atraviese el límite entre dos nodos de nivel
+     superior desalinearía justo esa medición por nodo de la que depende
+     toda la paginación. */
+  .tiptap-content p::after {
+    content: "";
+    display: table;
+    clear: both;
+  }
+  /* Asas de esquina: mismo acento de latón que el resto del sistema
+     (.barra-flotante-boton.is-activo), no un azul de sistema operativo
+     genérico. Solo cuatro esquinas (no las ocho de Docs): las de los lados
+     implicarían un redimensionado no proporcional, que para una imagen
+     normal casi siempre es un error del usuario, no una intención real. */
+  .imagen-asa {
+    position: absolute;
+    width: 0.7rem;
+    height: 0.7rem;
+    border-radius: 2px;
+    background: #caa15a;
+    border: 1px solid rgb(0 0 0 / 0.35);
+    z-index: 5;
+  }
+  .imagen-barra-flotante {
+    position: absolute;
+    top: -2.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 0.125rem;
+    border-radius: 9999px;
+    background: rgb(28 23 18 / 0.92);
+    backdrop-filter: blur(14px);
+    padding: 0.25rem;
+    box-shadow: 0 10px 25px rgb(0 0 0 / 0.35);
+    z-index: 6;
+  }
+  .apunte-editor-overlay[data-tema="claro"] .imagen-barra-flotante {
+    background: rgb(255 255 255 / 0.92);
+    box-shadow: 0 10px 25px rgb(0 0 0 / 0.14);
   }
   .tiptap-content ul[data-type="taskList"] {
     list-style: none;
@@ -419,7 +506,21 @@
   /* Lámpara: el resplandor cálido que "ilumina" la hoja desde arriba, con un
      parpadeo lento e irregular (no un pulso sinusoidal parejo, que se lee
      como una animación de sistema en vez de una llama real) — el momento de
-     marca de esta pantalla, no un efecto suelto más. */
+     marca de esta pantalla, no un efecto suelto más. Solo `opacity`, sin
+     `transform: scale(...)` (la versión anterior de esta animación sí lo
+     tenía): el contenedor que envuelve el editor solo declara
+     `overflow-y-auto` (apunte-editor.tsx), pero por spec de CSS un eje en
+     auto/scroll fuerza al otro a dejar de ser `visible` también, así que ese
+     contenedor también quedaba con scroll horizontal habilitado; el `scale`
+     periódico de este pseudo-elemento ancho (`ellipse 750px...`, más ancho
+     que la hoja) lo hacía crecer más allá del borde del contenedor en cada
+     ciclo de 7s, disparando y ocultando la barra de scroll horizontal solo
+     en modo oscuro (el único tema donde esta lámpara se muestra, ver más
+     abajo). Quitar el `scale` elimina la causa geométrica de raíz sin tocar
+     `overflow` en ningún ancestro (ver el comentario de `.lienzo-editor`
+     sobre por qué reintroducir `overflow:hidden` ahí rompería el scroll de
+     apuntes largos, Pass 10); el parpadeo real de llama sigue leyéndose
+     solo con `opacity`. */
   .lienzo-editor::before {
     content: "";
     position: absolute;
@@ -436,19 +537,15 @@
     0%,
     100% {
       opacity: 0.65;
-      transform: scale(1);
     }
     22% {
       opacity: 1;
-      transform: scale(1.035);
     }
     48% {
       opacity: 0.55;
-      transform: scale(0.98);
     }
     71% {
       opacity: 0.85;
-      transform: scale(1.015);
     }
   }
   .polvo-contenedor {
@@ -603,15 +700,24 @@
      menú superior, en vez de una píldora que aparece solo al seleccionar
      texto. Comparte clases (.barra-flotante-boton, -separador) a propósito:
      es el mismo lenguaje visual, solo cambia el contenedor. */
-  .barra-persistente {
+  .menu-superior-atelier {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
     gap: 0.125rem;
-    border-bottom: 1px solid var(--border);
-    background: rgb(28 23 18 / 0.92);
-    backdrop-filter: blur(14px);
-    padding: 0.35rem 0.75rem;
+  }
+  .barra-persistente {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0 0.5rem;
+  }
+  .barra-persistente::-webkit-scrollbar {
+    display: none;
   }
   .barra-flotante-boton {
     display: inline-flex;
@@ -820,6 +926,18 @@
   .apunte-editor-overlay .lienzo-editor {
     background: none !important;
     padding: 0 !important;
+  }
+  /* Motas de polvo decorativas (ambiente-atelier.tsx): puramente estéticas
+     en pantalla, no deben viajar al PDF junto con el contenido real. */
+  .apunte-editor-overlay .polvo-contenedor {
+    display: none !important;
+  }
+  /* El zoom de pantalla (botones +/- del header, apunte-editor.tsx) es un
+     `transform: scale()` en línea puramente visual para esta sesión de
+     navegador: sin anularlo acá, un apunte visto al 60% o 150% se imprimía
+     igual de achicado o agrandado en el PDF en vez de a tamaño real. */
+  .apunte-editor-overlay .zoom-lienzo {
+    transform: none !important;
   }
 }
 

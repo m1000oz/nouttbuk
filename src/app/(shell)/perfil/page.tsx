@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { redirect } from "next/navigation";
 import { NotePencilIcon } from "@phosphor-icons/react/dist/ssr";
 
@@ -87,45 +88,68 @@ export default async function PerfilPage() {
   );
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-6 py-10">
+    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-4 md:px-6 py-6 md:py-10">
       {perfilIncompleto && (
         <p className="rounded-lg border border-dashed border-border bg-muted/50 px-3 py-2 text-center text-sm text-muted-foreground">
           Te registraste con Google. Completa tu nombre de usuario y tu
           carrera en &quot;Editar perfil&quot;.
         </p>
       )}
-      <div className="flex flex-col items-center gap-3 text-center">
-        <Avatar size="lg">
-          {perfil?.avatar_url && <AvatarImage src={perfil.avatar_url} alt="" />}
-          <AvatarFallback>{iniciales(perfil?.nombre)}</AvatarFallback>
-        </Avatar>
-        <div>
-          <h1 className="text-xl font-bold text-foreground">
+
+      <div className="relative w-full h-32 md:h-48 rounded-t-2xl md:rounded-2xl bg-muted shadow-xs overflow-hidden">
+        <Image
+          src="/pandatomic_banner_v2.jpg"
+          alt="Banner de perfil"
+          fill
+          priority
+          className="object-cover object-center"
+        />
+        <div className="absolute inset-0 bg-black/5 mix-blend-overlay pointer-events-none" aria-hidden />
+      </div>
+
+      <div className="relative -mt-20 md:-mt-24 flex flex-col gap-4 px-2 md:px-4">
+        <div className="flex items-end justify-between">
+          <Avatar size="3xl" className="border-4 border-background bg-background shadow-xs ring-1 ring-border/50">
+            {perfil?.avatar_url && <AvatarImage src={perfil.avatar_url} alt="" />}
+            <AvatarFallback>{iniciales(perfil?.nombre)}</AvatarFallback>
+          </Avatar>
+          
+          {perfil && (
+            <div className="mb-2">
+              <EditarPerfilSheet
+                perfilId={user.id}
+                perfil={{
+                  nombre: perfil.nombre,
+                  usuario: perfil.usuario,
+                  carreraId: perfil.carrera_id,
+                  avatarUrl: perfil.avatar_url,
+                  usuarioActualizadoEn: perfil.usuario_actualizado_en,
+                  carreraActualizadaEn: perfil.carrera_actualizada_en,
+                }}
+                carreras={carreras ?? []}
+              />
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
             {perfil?.nombre ?? "Tu perfil"}
           </h1>
           {perfil?.usuario && (
-            <p className="text-sm text-muted-foreground">@{perfil.usuario}</p>
+            <p className="text-lg font-medium text-muted-foreground">@{perfil.usuario}</p>
           )}
         </div>
-        {perfil?.carrera?.nombre && (
-          <p className="text-sm text-foreground">{perfil.carrera.nombre}</p>
-        )}
-        {perfil?.universidad && (
-          <p className="text-sm text-muted-foreground">{perfil.universidad}</p>
-        )}
-        {perfil && (
-          <EditarPerfilSheet
-            perfilId={user.id}
-            perfil={{
-              nombre: perfil.nombre,
-              usuario: perfil.usuario,
-              carreraId: perfil.carrera_id,
-              avatarUrl: perfil.avatar_url,
-              usuarioActualizadoEn: perfil.usuario_actualizado_en,
-              carreraActualizadaEn: perfil.carrera_actualizada_en,
-            }}
-            carreras={carreras ?? []}
-          />
+
+        {(perfil?.carrera?.nombre || perfil?.universidad) && (
+          <div className="flex flex-col gap-0.5 pt-2">
+            {perfil?.carrera?.nombre && (
+              <p className="text-base font-medium text-foreground">{perfil.carrera.nombre}</p>
+            )}
+            {perfil?.universidad && (
+              <p className="text-base text-muted-foreground">{perfil.universidad}</p>
+            )}
+          </div>
         )}
       </div>
 
@@ -135,9 +159,10 @@ export default async function PerfilPage() {
         contactos={stats?.contactos ?? 0}
       />
 
-      <CvBoton />
-
-      <FeedbackBoton />
+      <div className="flex flex-col gap-3 mt-4">
+        <CvBoton />
+        <FeedbackBoton />
+      </div>
 
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-semibold text-muted-foreground">
@@ -148,7 +173,6 @@ export default async function PerfilPage() {
             icon={NotePencilIcon}
             titulo="Todavía no tienes apuntes públicos"
             descripcion="Publica un apunte con visibilidad Comunidad para que aparezca aquí."
-            accion={<NuevoApunteButton variant="sidebar" />}
           />
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

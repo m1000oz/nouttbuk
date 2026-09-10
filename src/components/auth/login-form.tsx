@@ -7,6 +7,7 @@ import { mapearErrorAuth } from "@/lib/auth/mapear-error-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CampoContrasena } from "@/components/auth/campo-contrasena";
 import {
   TurnstileWidget,
   type TurnstileWidgetHandle,
@@ -74,25 +75,24 @@ export function LoginForm({ onSuccess, onIrARecuperar }: LoginFormProps) {
           type="email"
           autoComplete="email"
           required
+          disabled={cargando}
           value={correo}
           onChange={(event) => setCorreo(event.target.value)}
         />
       </div>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="login-contrasena">Contraseña</Label>
-        <Input
-          id="login-contrasena"
-          type="password"
-          autoComplete="current-password"
-          required
-          value={contrasena}
-          onChange={(event) => setContrasena(event.target.value)}
-        />
-      </div>
+      <CampoContrasena
+        id="login-contrasena"
+        label="Contraseña"
+        value={contrasena}
+        onChange={setContrasena}
+        autoComplete="current-password"
+        required
+        disabled={cargando}
+      />
       <button
         type="button"
         onClick={onIrARecuperar}
-        className="self-start text-sm text-primary hover:underline"
+        className="cursor-pointer self-start text-sm text-primary hover:underline"
       >
         ¿Olvidaste tu contraseña?
       </button>

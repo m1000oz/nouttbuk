@@ -23,6 +23,8 @@ import { useEstadoEditor } from "@/components/apuntes/editor-controles-formato";
 import { crearItemsComando } from "@/components/apuntes/menu-comandos";
 import { toast } from "@/components/ui/toast";
 import type { TemaEditor } from "@/lib/tiptap/tema-editor";
+import { repararParrafosDelDocumento } from "@/lib/tiptap/pegar-lineas-como-parrafos";
+import { convertirDocumentoAMarkdown } from "@/lib/tiptap/exportar-markdown";
 
 const ZOOM_OPCIONES = [50, 75, 100, 125, 150];
 const INTERLINEADO_OPCIONES: { valor: string; etiqueta: string }[] = [
@@ -61,17 +63,55 @@ async function pegarDesdePortapapeles(editor: Editor) {
   }
 }
 
-function descargarTexto(editor: Editor, nombreArchivo: string) {
-  const texto = editor.getText();
-  const blob = new Blob([texto], { type: "text/plain;charset=utf-8" });
+// Único helper de descarga para los cuatro formatos de "Archivo > Descargar"
+// (antes solo existía para .txt): arma el Blob y dispara la descarga vía un
+// <a download> temporal, el mismo patrón para cualquier tipo MIME/extensión.
+function descargarArchivo(contenido: string, nombreArchivo: string, extension: string, tipoMime: string) {
+  const blob = new Blob([contenido], { type: `${tipoMime};charset=utf-8` });
   const url = URL.createObjectURL(blob);
   const enlace = document.createElement("a");
   enlace.href = url;
-  enlace.download = `${nombreArchivo.trim() || "apunte"}.txt`;
+  enlace.download = `${nombreArchivo.trim() || "apunte"}.${extension}`;
   document.body.appendChild(enlace);
   enlace.click();
   enlace.remove();
   URL.revokeObjectURL(url);
+}
+
+// Documento HTML mínimo pero autocontenido (sin depender de las clases
+// .tiptap-content de la app, que no viajan con el archivo): reproduce solo
+// lo que Markdown no puede (negrita/cursiva/tablas se ven, alineación de
+// texto y resaltado de color también, ya que HTML sí los soporta de forma
+// nativa vía el propio `style` que ya generan las extensiones del editor).
+function descargarHtml(editor: Editor, nombreArchivo: string) {
+  const html = `<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>${nombreArchivo.trim() || "Apunte"}</title>
+<style>
+body { font-family: system-ui, sans-serif; line-height: 1.6; max-width: 794px; margin: 2rem auto; padding: 0 1rem; }
+img { max-width: 100%; }
+table { border-collapse: collapse; width: 100%; }
+th, td { border: 1px solid #ccc; padding: 0.4em 0.6em; }
+blockquote { border-inline-start: 3px solid #ccc; padding-inline-start: 1em; color: #555; margin-inline-start: 0; }
+</style>
+</head>
+<body>
+${editor.getHTML()}
+</body>
+</html>
+`;
+  descargarArchivo(html, nombreArchivo, "html", "text/html");
+}
+
+function descargarMarkdown(editor: Editor, nombreArchivo: string) {
+  const markdown = convertirDocumentoAMarkdown(editor.getJSON());
+  descargarArchivo(markdown, nombreArchivo, "md", "text/markdown");
+}
+
+function descargarTexto(editor: Editor, nombreArchivo: string) {
+  descargarArchivo(editor.getText(), nombreArchivo, "txt", "text/plain");
 }
 
 type EditorMenuBarProps = {
@@ -153,6 +193,16 @@ export function EditorMenuBar({
     editor!.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   }
 
+  function repararFormato() {
+    const reparado = repararParrafosDelDocumento(editor!);
+    toast.add({
+      title: reparado
+        ? "Formato reparado. Guarda el apunte para conservar el cambio."
+        : "No se encontró nada que reparar en este apunte.",
+      type: reparado ? "success" : "info",
+    });
+  }
+
   return (
     <Menubar
       // text-foreground explícito (no alcanza con heredarlo): body ya fijó
@@ -160,7 +210,7 @@ export function EditorMenuBar({
       // reevalúa solo porque .apunte-editor-overlay redefina --foreground
       // más abajo. Solo un elemento con su propia declaración de color
       // dispara una reevaluación de var(--foreground) en este scope.
-      className="menu-superior-atelier print:hidden h-auto rounded-none border-0 border-b border-border bg-transparent px-2 py-1 text-foreground"
+      className="menu-superior-atelier print:hidden overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden h-auto rounded-none border-0 bg-transparent text-foreground"
     >
       <MenubarMenu>
         <MenubarTrigger>Archivo</MenubarTrigger>
@@ -195,6 +245,12 @@ export function EditorMenuBar({
             <MenubarSubContent container={overlayRef}>
               <MenubarItem onClick={() => window.print()}>
                 Documento (PDF)
+              </MenubarItem>
+              <MenubarItem onClick={() => descargarHtml(editor, titulo)}>
+                Página web (.html)
+              </MenubarItem>
+              <MenubarItem onClick={() => descargarMarkdown(editor, titulo)}>
+                Markdown (.md)
               </MenubarItem>
               <MenubarItem onClick={() => descargarTexto(editor, titulo)}>
                 Texto plano (.txt)
@@ -418,6 +474,8 @@ export function EditorMenuBar({
           <MenubarCheckboxItem checked={spellcheckActivo} onCheckedChange={alternarOrtografia}>
             Ortografía
           </MenubarCheckboxItem>
+          <MenubarSeparator />
+          <MenubarItem onClick={repararFormato}>Reparar formato</MenubarItem>
         </MenubarContent>
       </MenubarMenu>
     </Menubar>

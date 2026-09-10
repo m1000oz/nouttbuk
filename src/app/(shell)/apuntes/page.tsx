@@ -81,7 +81,7 @@ export default async function MisApuntesPage(props: PageProps<"/apuntes">) {
     );
 
   return (
-    <div className="flex flex-1 flex-col gap-8 px-6 py-8">
+    <div className="flex flex-1 flex-col gap-6 px-4 py-6 md:gap-8 md:px-6 md:py-8 min-w-0">
       <div className="flex items-center justify-between gap-4">
         {carpetaActiva ? (
           <div className="flex min-w-0 items-center gap-3">
