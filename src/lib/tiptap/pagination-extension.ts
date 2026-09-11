@@ -92,6 +92,24 @@ function encontrarPosicionDeCorte(
   return null;
 }
 
+// Comprueba si dos listas de puntos de corte son funcionalmente equivalentes:
+// las mismas posiciones exactas en el documento y alturas de hueco dentro de
+// una tolerancia de subpíxeles (2px por defecto). Esto corta de raíz bucles
+// infinitos donde el navegador oscila 1px debido al redondeo o reflow.
+export function sonCortesEquivalentes(
+  cortesA: { pos: number; hueco: number }[] | null,
+  cortesB: { pos: number; hueco: number }[] | null,
+  toleranciaHueco = 2,
+): boolean {
+  if (!cortesA || !cortesB) return false;
+  if (cortesA.length !== cortesB.length) return false;
+  for (let i = 0; i < cortesA.length; i++) {
+    if (cortesA[i].pos !== cortesB[i].pos) return false;
+    if (Math.abs(cortesA[i].hueco - cortesB[i].hueco) > toleranciaHueco) return false;
+  }
+  return true;
+}
+
 // Extensión que casi siempre solo agrega decoraciones de vista (nunca toca
 // `doc`): mide el alto real ya renderizado de cada nodo de nivel superior y,
 // cuando uno haría que el acumulado cruce el límite de una hoja A4, inserta
@@ -152,6 +170,8 @@ export const Paginacion = Extension.create<OpcionesPaginacion>({
         view(editorView) {
           let recalculoProgramado = false;
           let firmaAnterior = "";
+          let cortesAnteriores: { pos: number; hueco: number }[] | null = null;
+          const historialFirmas = new Set<string>();
           // Cuántas veces seguidas esta misma función se volvió a disparar a
           // sí misma (dispatch → update() del plugin → programarRecalculo())
           // sin que una pasada intermedia haya convergido (visto abajo,
@@ -386,8 +406,11 @@ export const Paginacion = Extension.create<OpcionesPaginacion>({
                   // Espacio que sobra en la página ACTUAL (una sola
                   // `alturaUtil`, no un múltiplo) más el margen inferior de
                   // esta página, el pasillo entre hojas, y el margen
-                  // superior de la próxima.
-                  const hueco = alturaUtil - acumulado + margenPagina * 2 + separacionPaginas;
+                  // superior de la próxima. Se redondea a px enteros para
+                  // erradicar oscilaciones por subpíxeles entre pasadas.
+                  const hueco = Math.round(
+                    Math.max(0, alturaUtil - acumulado) + margenPagina * 2 + separacionPaginas,
+                  );
                   puntosDeCorte.push({ pos, hueco });
                   paginaActual += 1;
                   // Reinicio, no seguir sumando: el nodo que se está por
@@ -425,18 +448,25 @@ export const Paginacion = Extension.create<OpcionesPaginacion>({
             // decoraciones, para que nunca quede desactualizado.
             actualizarPaginasCalculadas(paginaActual);
 
-            // Evita despachar una transacción idéntica a la anterior: sin
-            // esto, el ResizeObserver reaccionaría a los cambios de tamaño
-            // que sus propias decoraciones provocan en un ciclo (converge
-            // solo, pero de forma más lenta e innecesaria).
+            // Evita despachar una transacción idéntica o equivalente a la anterior:
+            // 1. firma === firmaAnterior: Pasada exactamente idéntica a la previa.
+            // 2. sonCortesEquivalentes: Mismas posiciones de corte con diferencia de
+            //    hueco <= 2px (subpixel jitter / colapso de margen estabilizado).
+            // 3. historialFirmas.has(firma): Ciclo cerrado detectado (p. ej. oscilación
+            //    periódica A -> B -> A). Detiene el bucle inmediatamente manteniendo
+            //    el estado actual, sin agotar MAX_PASADAS_ENCADENADAS.
             const firma = JSON.stringify(puntosDeCorte);
-            if (firma === firmaAnterior) {
-              // Pasada que no cambió nada: la cadena de recálculos (si
-              // hubiera una en curso) terminó acá, así que es seguro volver
-              // a permitir que se programe una nueva desde cero.
+            if (
+              firma === firmaAnterior ||
+              sonCortesEquivalentes(puntosDeCorte, cortesAnteriores, 2) ||
+              historialFirmas.has(firma)
+            ) {
               pasadasEncadenadas = 0;
               divisionesEncadenadas = 0;
               recalculoProgramado = false;
+              historialFirmas.clear();
+              cortesAnteriores = puntosDeCorte;
+              firmaAnterior = firma;
               return;
             }
 
@@ -448,8 +478,12 @@ export const Paginacion = Extension.create<OpcionesPaginacion>({
               pasadasEncadenadas = 0;
               divisionesEncadenadas = 0;
               recalculoProgramado = false;
+              historialFirmas.clear();
               return;
             }
+
+            historialFirmas.add(firma);
+            cortesAnteriores = puntosDeCorte;
             firmaAnterior = firma;
 
             const decoraciones = puntosDeCorte.map(({ pos, hueco }) =>
@@ -511,13 +545,28 @@ export const Paginacion = Extension.create<OpcionesPaginacion>({
           // reflujo de texto no siempre dispara el ResizeObserver de
           // arriba: EVENTO_GEOMETRIA_CAMBIO fuerza el recálculo cuando eso
           // pasa (ver configuracion-pagina.ts).
-          window.addEventListener(EVENTO_GEOMETRIA_CAMBIO, programarRecalculo);
+          const manejarCambioGeometria = () => {
+            cortesAnteriores = null;
+            firmaAnterior = "";
+            historialFirmas.clear();
+            pasadasEncadenadas = 0;
+            programarRecalculo();
+          };
+          window.addEventListener(EVENTO_GEOMETRIA_CAMBIO, manejarCambioGeometria);
 
           return {
-            update: () => programarRecalculo(),
+            update: (view, prevState) => {
+              if (prevState && prevState.doc !== view.state.doc) {
+                cortesAnteriores = null;
+                firmaAnterior = "";
+                historialFirmas.clear();
+                pasadasEncadenadas = 0;
+              }
+              programarRecalculo();
+            },
             destroy: () => {
               observador.disconnect();
-              window.removeEventListener(EVENTO_GEOMETRIA_CAMBIO, programarRecalculo);
+              window.removeEventListener(EVENTO_GEOMETRIA_CAMBIO, manejarCambioGeometria);
             },
           };
         },

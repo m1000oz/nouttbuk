@@ -12,15 +12,20 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Editor } from "@tiptap/react";
 import {
+  CircleNotchIcon,
+  CloudCheckIcon,
+  CloudIcon,
   FolderIcon,
   LightbulbIcon,
   LinkIcon,
   MinusIcon,
   PlusIcon,
   PrinterIcon,
+  ShareNetworkIcon,
   SidebarSimpleIcon,
   StarIcon,
   UsersThreeIcon,
+  WarningCircleIcon,
   XIcon,
 } from "@phosphor-icons/react";
 
@@ -35,8 +40,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toast";
-import { CompartirSheet } from "@/components/apuntes/compartir-sheet";
-import { EnlacePublicoSheet } from "@/components/apuntes/enlace-publico-sheet";
+import { NouttbukLogo } from "@/components/brand";
+import { DialogoCompartirApunte } from "@/components/apuntes/dialogo-compartir-apunte";
 import { EditorEstatico } from "@/components/apuntes/editor-estatico";
 import { EditorColaborativo } from "@/components/apuntes/editor-colaborativo";
 import { HojasEditor } from "@/components/apuntes/hojas-editor";
@@ -255,18 +260,27 @@ export function ApunteEditor({
   const [configurarPaginaAbierto, setConfigurarPaginaAbierto] = useState(false);
   const [buscarReemplazarAbierto, setBuscarReemplazarAbierto] = useState(false);
   const [contarPalabrasAbierto, setContarPalabrasAbierto] = useState(false);
-  const [enlacePublicoAbierto, setEnlacePublicoAbierto] = useState(false);
 
-  function abrirEnlacePublico() {
-    if (!apunte?.id) {
-      toast.add({
-        title: "Guarda el apunte antes de compartirlo por enlace.",
-        type: "error",
-      });
-      return;
-    }
-    setEnlacePublicoAbierto(true);
-  }
+  // Compartir estilo Google Docs
+  const [compartirAbierto, setCompartirAbierto] = useState(false);
+  const [idApunteActual, setIdApunteActual] = useState<string | null>(
+    apunte?.id ?? null,
+  );
+  const [enlaceTokenActual, setEnlaceTokenActual] = useState<string | null>(
+    apunte?.enlaceToken ?? null,
+  );
+  const [enlacePermisoActual, setEnlacePermisoActual] =
+    useState<PermisoColaborador>(apunte?.enlacePermiso ?? "read");
+
+  // Autoguardado inteligente y continuo
+  const [estadoAutoguardado, setEstadoAutoguardado] = useState<
+    "guardado" | "modificado" | "guardando" | "error"
+  >("guardado");
+  const contadorCambiosRef = useRef(0);
+  const timerAutoguardadoRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const montadoRef = useRef(false);
 
   useEffect(() => {
     function manejarAtajoGlobal(event: globalThis.KeyboardEvent) {
@@ -370,75 +384,239 @@ export function ApunteEditor({
     setEtiquetas((actual) => actual.filter((etiqueta) => etiqueta !== valor));
   }
 
-  async function handleGuardar() {
-    const editor = editorInstancia;
-    if (!editor) return;
-    setError(null);
-    setGuardando(true);
+  // Guardar en base de datos (tanto manual como autoguardado en background)
+  const guardarCambiosServidor = useCallback(
+    async (silencioso = false, tituloCustom?: string): Promise<string | null> => {
+      const editor = editorInstancia;
+      if (!editor) return null;
 
-    // Si el usuario dejó texto sin confirmar con Enter en el campo de
-    // etiquetas, igual se guarda al presionar Guardar.
-    const etiquetaPendiente = etiquetaInput.trim();
-    let etiquetasFinales = etiquetas;
-    
-    if (etiquetaPendiente && !etiquetas.includes(etiquetaPendiente)) {
-      etiquetasFinales = [...etiquetas, etiquetaPendiente];
-      setEtiquetas(etiquetasFinales);
-      setEtiquetaInput("");
-    }
+      if (!silencioso) setGuardando(true);
+      setEstadoAutoguardado("guardando");
+      setError(null);
 
-    const supabase = createClient();
-    const campos = {
-      titulo: titulo.trim() || "Sin título",
-      contenido: editor.getJSON(),
-      carpeta_id: carpetaId,
-      curso_id: cursoId,
+      const etiquetaPendiente = etiquetaInput.trim();
+      let etiquetasFinales = etiquetas;
+      if (etiquetaPendiente && !etiquetas.includes(etiquetaPendiente)) {
+        etiquetasFinales = [...etiquetas, etiquetaPendiente];
+        setEtiquetas(etiquetasFinales);
+        setEtiquetaInput("");
+      }
+
+      const supabase = createClient();
+      const titFinal = (tituloCustom ?? titulo).trim() || "Sin título";
+      const campos = {
+        titulo: titFinal,
+        contenido: editor.getJSON(),
+        carpeta_id: carpetaId,
+        curso_id: cursoId,
+        visibilidad,
+        etiquetas: etiquetasFinales,
+        favorito,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (idApunteActual) {
+        const { error: dbError } = await supabase
+          .from("apuntes")
+          .update(campos)
+          .eq("id", idApunteActual);
+
+        if (!silencioso) setGuardando(false);
+
+        if (dbError) {
+          setEstadoAutoguardado("error");
+          if (!silencioso) {
+            setError("No se pudo guardar los cambios. Intenta de nuevo.");
+            toast.add({ title: "No se pudo guardar el apunte.", type: "error" });
+          }
+          return null;
+        }
+
+        setEstadoAutoguardado("guardado");
+        contadorCambiosRef.current = 0;
+        try {
+          window.localStorage.removeItem(`nouttbuk:borrador:${idApunteActual}`);
+        } catch {}
+
+        if (!silencioso) {
+          toast.add({ title: "Apunte guardado.", type: "success" });
+          router.push("/apuntes");
+          router.refresh();
+        }
+        return idApunteActual;
+      } else {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!user) {
+          if (!silencioso) setGuardando(false);
+          setEstadoAutoguardado("error");
+          setError("Tu sesión expiró. Vuelve a iniciar sesión.");
+          return null;
+        }
+
+        const { data: insertData, error: dbError } = await supabase
+          .from("apuntes")
+          .insert({ ...campos, autor_id: user.id })
+          .select("id")
+          .single();
+
+        if (!silencioso) setGuardando(false);
+
+        if (dbError || !insertData) {
+          setEstadoAutoguardado("error");
+          if (!silencioso) {
+            setError("No se pudo guardar el apunte. Intenta de nuevo.");
+            toast.add({ title: "No se pudo guardar el apunte.", type: "error" });
+          }
+          return null;
+        }
+
+        setIdApunteActual(insertData.id);
+        setEstadoAutoguardado("guardado");
+        contadorCambiosRef.current = 0;
+        try {
+          window.localStorage.removeItem("nouttbuk:borrador:nuevo");
+        } catch {}
+
+        if (!silencioso) {
+          toast.add({ title: "Apunte creado.", type: "success" });
+          router.push("/apuntes");
+          router.refresh();
+        }
+        return insertData.id;
+      }
+    },
+    [
+      editorInstancia,
+      etiquetaInput,
+      etiquetas,
+      titulo,
+      carpetaId,
+      cursoId,
       visibilidad,
-      etiquetas: etiquetasFinales,
       favorito,
-    };
+      idApunteActual,
+      router,
+    ],
+  );
 
-    if (esEdicion && apunte) {
-      const { error: dbError } = await supabase
-        .from("apuntes")
-        .update(campos)
-        .eq("id", apunte.id);
+  // Planificador y disparador de autoguardado continuo
+  const dispararAutoguardado = useCallback(
+    (tituloOverride?: string) => {
+      if (soloLectura || !montadoRef.current) return;
+      const editor = editorInstancia;
+      if (!editor) return;
 
-      setGuardando(false);
-      if (dbError) {
-        setError("No se pudo guardar los cambios. Intenta de nuevo.");
-        toast.add({ title: "No se pudo guardar el apunte.", type: "error" });
-        return;
+      const tit = tituloOverride !== undefined ? tituloOverride : titulo;
+      setEstadoAutoguardado("modificado");
+      contadorCambiosRef.current += 1;
+
+      // Respaldo de seguridad inmediato en localStorage ante un F5 imprevisto
+      try {
+        const clave = idApunteActual ?? "nuevo";
+        window.localStorage.setItem(
+          `nouttbuk:borrador:${clave}`,
+          JSON.stringify({
+            titulo: tit,
+            contenido: editor.getJSON(),
+            timestamp: Date.now(),
+          }),
+        );
+      } catch {}
+
+      if (timerAutoguardadoRef.current) {
+        clearTimeout(timerAutoguardadoRef.current);
       }
-    } else {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
 
-      if (!user) {
-        setGuardando(false);
-        setError("Tu sesión expiró. Vuelve a iniciar sesión.");
-        return;
-      }
+      // Si ya hay 8 o más cambios seguidos, autoguardamos en 500ms; si no, en 2000ms de calma
+      const espera = contadorCambiosRef.current >= 8 ? 500 : 2000;
+      timerAutoguardadoRef.current = setTimeout(() => {
+        if (idApunteActual) {
+          guardarCambiosServidor(true, tit);
+        }
+      }, espera);
+    },
+    [soloLectura, editorInstancia, titulo, idApunteActual, guardarCambiosServidor],
+  );
 
-      const { error: dbError } = await supabase
-        .from("apuntes")
-        .insert({ ...campos, autor_id: user.id });
+  // Escuchar cambios de edición en Tiptap para disparar autoguardado
+  useEffect(() => {
+    if (!editorInstancia || soloLectura) return;
 
-      setGuardando(false);
-      if (dbError) {
-        setError("No se pudo guardar el apunte. Intenta de nuevo.");
-        toast.add({ title: "No se pudo guardar el apunte.", type: "error" });
-        return;
-      }
+    function handleEditorUpdate() {
+      if (!montadoRef.current) return;
+      dispararAutoguardado();
     }
 
-    toast.add({
-      title: esEdicion ? "Apunte guardado." : "Apunte creado.",
-      type: "success",
-    });
-    router.push("/apuntes");
-    router.refresh();
+    editorInstancia.on("update", handleEditorUpdate);
+    return () => {
+      editorInstancia.off("update", handleEditorUpdate);
+    };
+  }, [editorInstancia, soloLectura, dispararAutoguardado]);
+
+  // Recuperar borrador de localStorage si se refrescó en /apuntes/nuevo
+  useEffect(() => {
+    montadoRef.current = true;
+    if (!apunte) {
+      try {
+        const guardado = window.localStorage.getItem("nouttbuk:borrador:nuevo");
+        if (guardado) {
+          const borrador = JSON.parse(guardado);
+          if (borrador.titulo && !titulo) {
+            setTitulo(borrador.titulo);
+          }
+          if (
+            borrador.contenido &&
+            editorInstancia &&
+            editorInstancia.isEmpty
+          ) {
+            editorInstancia.commands.setContent(borrador.contenido);
+            toast.add({
+              title: "Se recuperó tu borrador no guardado.",
+              type: "info",
+            });
+          }
+        }
+      } catch {}
+    }
+  }, [apunte, editorInstancia, titulo]);
+
+  // Advertencia antes de cerrar/recargar si hay cambios pendientes
+  useEffect(() => {
+    function manejarBeforeUnload(event: BeforeUnloadEvent) {
+      if (
+        estadoAutoguardado === "modificado" ||
+        estadoAutoguardado === "guardando"
+      ) {
+        event.preventDefault();
+        event.returnValue = "";
+      }
+    }
+    window.addEventListener("beforeunload", manejarBeforeUnload);
+    return () => window.removeEventListener("beforeunload", manejarBeforeUnload);
+  }, [estadoAutoguardado]);
+
+  // Abrir compartir estilo Google Docs
+  async function handleAbrirCompartir() {
+    if (!idApunteActual) {
+      // Guardar apunte primero para tener un ID real en Supabase
+      const nuevoId = await guardarCambiosServidor(true);
+      if (!nuevoId) {
+        toast.add({
+          title: "Escribe un título o contenido antes de compartir.",
+          type: "error",
+        });
+        return;
+      }
+      window.history.replaceState(null, "", `/apuntes/${nuevoId}/editar`);
+    }
+    setCompartirAbierto(true);
+  }
+
+  async function handleGuardar() {
+    await guardarCambiosServidor(false);
   }
 
   return (
@@ -451,25 +629,66 @@ export function ApunteEditor({
         {/* Fila superior: Título y metadatos */}
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2">
           <div className="flex flex-1 items-center gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              aria-label="Cerrar editor"
-              nativeButton={false}
-              render={<Link href="/apuntes" />}
-            >
-              <XIcon aria-hidden />
-            </Button>
+            <NouttbukLogo
+              href="/apuntes"
+              variant="compact"
+              size="sm"
+              interactive
+              className="mr-1 shrink-0"
+            />
 
             <input
               ref={tituloInputRef}
               value={titulo}
-              onChange={(event) => setTitulo(event.target.value)}
+              onChange={(event) => {
+                const nuevo = event.target.value;
+                setTitulo(nuevo);
+                dispararAutoguardado(nuevo);
+              }}
               placeholder="Título del apunte"
               readOnly={soloLectura}
               className="min-w-[150px] max-w-[400px] flex-1 truncate rounded-md border border-transparent bg-transparent px-2 py-1 text-lg font-semibold text-foreground transition-colors hover:border-border hover:bg-muted/50 focus:border-primary focus:bg-background focus:outline-none placeholder:text-muted-foreground"
             />
+
+            {!soloLectura && (
+              <div
+                className="hidden sm:flex items-center gap-1.5 rounded-full bg-muted/40 px-2.5 py-1 text-xs text-muted-foreground select-none"
+                title={
+                  estadoAutoguardado === "guardado"
+                    ? "Cambios guardados en Nouttbuk"
+                    : estadoAutoguardado === "guardando"
+                      ? "Guardando cambios en Nouttbuk..."
+                      : estadoAutoguardado === "modificado"
+                        ? "Cambios pendientes de autoguardar"
+                        : "Error al guardar. Reintentando..."
+                }
+              >
+                {estadoAutoguardado === "guardado" && (
+                  <>
+                    <CloudCheckIcon weight="fill" className="size-3.5 text-teal-500" aria-hidden />
+                    <span className="text-[11px] font-medium">Guardado</span>
+                  </>
+                )}
+                {estadoAutoguardado === "guardando" && (
+                  <>
+                    <CircleNotchIcon className="size-3.5 animate-spin text-primary" aria-hidden />
+                    <span className="text-[11px] font-medium">Guardando...</span>
+                  </>
+                )}
+                {estadoAutoguardado === "modificado" && (
+                  <>
+                    <CloudIcon className="size-3.5 text-amber-500" aria-hidden />
+                    <span className="text-[11px] font-medium">Editando...</span>
+                  </>
+                )}
+                {estadoAutoguardado === "error" && (
+                  <>
+                    <WarningCircleIcon weight="fill" className="size-3.5 text-destructive" aria-hidden />
+                    <span className="text-[11px] font-medium text-destructive">Error</span>
+                  </>
+                )}
+              </div>
+            )}
 
             {!soloLectura && (
               <Button
@@ -598,10 +817,10 @@ export function ApunteEditor({
                 type="button"
                 variant="outline"
                 size="sm"
-                className="ml-2 h-8"
-                onClick={abrirEnlacePublico}
+                className="ml-2 h-8 gap-1.5"
+                onClick={handleAbrirCompartir}
               >
-                <LinkIcon aria-hidden />
+                <ShareNetworkIcon weight="bold" className="size-3.5 text-primary" aria-hidden />
                 Compartir
               </Button>
             )}
@@ -783,21 +1002,6 @@ export function ApunteEditor({
                 />
               )}
             </div>
-
-            {visibilidad === "group" && esOwner && (
-              <div className="flex items-center justify-end gap-3 rounded-lg border border-dashed border-border bg-muted/50 px-3 py-2">
-                {apunte?.id ? (
-                  <CompartirSheet
-                    apunteId={apunte.id}
-                    colaboradores={colaboradoresIniciales}
-                  />
-                ) : (
-                  <Button type="button" variant="outline" size="sm" disabled>
-                    Guarda el apunte para invitar colaboradores
-                  </Button>
-                )}
-              </div>
-            )}
           </div>
 
           {/* El lienzo (escritorio de grafito cálido) y la hoja (papel
@@ -893,16 +1097,22 @@ export function ApunteEditor({
         </>
       )}
 
-      {esOwner && apunte?.id && (
-        <EnlacePublicoSheet
-          apunteId={apunte.id}
+      {esOwner && idApunteActual && (
+        <DialogoCompartirApunte
+          apunteId={idApunteActual}
           titulo={titulo}
-          token={apunte.enlaceToken}
-          permiso={apunte.enlacePermiso}
+          enlaceToken={enlaceTokenActual}
+          enlacePermiso={enlacePermisoActual}
           visibilidad={visibilidad}
+          colaboradoresIniciales={colaboradoresIniciales}
+          open={compartirAbierto}
+          onOpenChange={setCompartirAbierto}
+          overlayRef={overlayRef}
           onVisibilidadCambiada={setVisibilidad}
-          open={enlacePublicoAbierto}
-          onOpenChange={setEnlacePublicoAbierto}
+          onEnlaceActualizado={(nuevoTok, nuevoPerm) => {
+            setEnlaceTokenActual(nuevoTok);
+            setEnlacePermisoActual(nuevoPerm);
+          }}
         />
       )}
     </div>

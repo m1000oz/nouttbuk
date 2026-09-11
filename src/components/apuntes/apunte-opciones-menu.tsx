@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import {
   DotsThreeVerticalIcon,
   FolderIcon,
-  LinkIcon,
   ShareNetworkIcon,
   TrashIcon,
 } from "@phosphor-icons/react";
@@ -19,7 +18,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { EnlacePublicoSheet } from "@/components/apuntes/enlace-publico-sheet";
+import { DialogoCompartirApunte } from "@/components/apuntes/dialogo-compartir-apunte";
 import {
   Sheet,
   SheetContent,
@@ -77,8 +76,7 @@ export function ApunteOpcionesMenu({
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [moverOpen, setMoverOpen] = useState(false);
-  const [compartirOpen, setCompartirOpen] = useState(false);
-  const [enlacePublicoOpen, setEnlacePublicoOpen] = useState(false);
+  const [compartirDialogOpen, setCompartirDialogOpen] = useState(false);
   const [eliminarOpen, setEliminarOpen] = useState(false);
   const [cargando, setCargando] = useState(false);
 
@@ -96,26 +94,6 @@ export function ApunteOpcionesMenu({
       return;
     }
     toast.add({ title: "Apunte movido.", type: "success" });
-    router.refresh();
-  }
-
-  async function cambiarVisibilidad(visibilidad: ApunteVisibilidad) {
-    setCargando(true);
-    const supabase = createClient();
-    const { error } = await supabase
-      .from("apuntes")
-      .update({ visibilidad })
-      .eq("id", apunteId);
-    setCargando(false);
-    setCompartirOpen(false);
-    if (error) {
-      toast.add({
-        title: "No se pudo actualizar la visibilidad.",
-        type: "error",
-      });
-      return;
-    }
-    toast.add({ title: "Visibilidad actualizada.", type: "success" });
     router.refresh();
   }
 
@@ -156,13 +134,9 @@ export function ApunteOpcionesMenu({
             <FolderIcon aria-hidden />
             Mover a carpeta
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setCompartirOpen(true)}>
+          <DropdownMenuItem onClick={() => setCompartirDialogOpen(true)}>
             <ShareNetworkIcon aria-hidden />
             Compartir
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setEnlacePublicoOpen(true)}>
-            <LinkIcon aria-hidden />
-            Compartir por enlace
           </DropdownMenuItem>
           <DropdownMenuItem
             variant="destructive"
@@ -225,55 +199,14 @@ export function ApunteOpcionesMenu({
         </SheetContent>
       </Sheet>
 
-      <Sheet open={compartirOpen} onOpenChange={setCompartirOpen}>
-        <SheetContent
-          side="bottom"
-          className="mx-auto w-full rounded-t-xl border-t border-border sm:max-w-sm"
-        >
-          <div
-            className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-border"
-            aria-hidden
-          />
-          <SheetHeader>
-            <SheetTitle>Compartir apunte</SheetTitle>
-            <SheetDescription>
-              Elige quién puede ver este apunte.
-            </SheetDescription>
-          </SheetHeader>
-          <div className="flex flex-col gap-1 px-4 pb-4">
-            {(Object.keys(VISIBILIDAD_LABEL) as ApunteVisibilidad[]).map(
-              (clave) => (
-                <button
-                  key={clave}
-                  type="button"
-                  disabled={cargando}
-                  onClick={() => cambiarVisibilidad(clave)}
-                  className={cn(
-                    "flex items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm hover:bg-muted",
-                    visibilidadActual === clave && "bg-muted font-medium",
-                  )}
-                >
-                  {VISIBILIDAD_LABEL[clave]}
-                </button>
-              ),
-            )}
-            {visibilidadActual === "group" && (
-              <p className="px-2.5 pt-1 text-xs text-muted-foreground">
-                Abre el apunte para invitar colaboradores.
-              </p>
-            )}
-          </div>
-        </SheetContent>
-      </Sheet>
-
-      <EnlacePublicoSheet
+      <DialogoCompartirApunte
         apunteId={apunteId}
         titulo={titulo}
-        token={enlaceToken}
-        permiso={enlacePermiso}
+        enlaceToken={enlaceToken}
+        enlacePermiso={enlacePermiso}
         visibilidad={visibilidadActual}
-        open={enlacePublicoOpen}
-        onOpenChange={setEnlacePublicoOpen}
+        open={compartirDialogOpen}
+        onOpenChange={setCompartirDialogOpen}
       />
 
       <Dialog open={eliminarOpen} onOpenChange={setEliminarOpen}>
