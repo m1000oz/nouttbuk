@@ -4,10 +4,6 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { colorParaUsuario } from "@/lib/liveblocks/color-usuario";
 
-const liveblocks = new Liveblocks({
-  secret: process.env.LIVEBLOCKS_SECRET_KEY!,
-});
-
 const PREFIJO_SALA = "apunte-";
 
 // La sala de un apunte solo se otorga a su dueño o a un colaborador con
@@ -63,6 +59,14 @@ export async function POST(request: Request) {
     .select("nombre, avatar_url")
     .eq("id", user.id)
     .single();
+
+  // Se construye por petición, no en el ámbito del módulo: el constructor de
+  // Liveblocks valida la clave al instante, y en el ámbito del módulo eso se
+  // evalúa durante "next build" (al recolectar los datos de cada ruta), donde
+  // el secreto no tiene por qué existir todavía.
+  const liveblocks = new Liveblocks({
+    secret: process.env.LIVEBLOCKS_SECRET_KEY!,
+  });
 
   const session = liveblocks.prepareSession(user.id, {
     userInfo: {
