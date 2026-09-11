@@ -158,20 +158,32 @@ max_indexes = 5
 [auth]
 enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
-# in emails. Matches how this app is actually accessed in dev (`npm run dev`
-# serves on localhost, not 127.0.0.1); the previous value here plus the
-# `https://127.0.0.1:3000` entry below neither matched the real host nor the
-# real scheme, so GoTrue silently fell back to `site_url` instead of erroring
-# on the OAuth redirect, and the auth code landed on `/` (Comunidad) instead
-# of `/auth/callback`, never getting exchanged for a session (hit live with
-# a real Google/PUCP SSO login on 2026-09-05).
-site_url = "http://localhost:3000"
+# in emails. Apunta al dominio real de producción (Vercel) porque este valor
+# es el que GoTrue usa para construir los enlaces de los correos de Auth y
+# como destino de reserva cuando un `redirectTo` no está en la lista de abajo.
+# Dejarlo en localhost hacía que, desde producción, el login con Google y los
+# enlaces de recuperación terminaran apuntando a la máquina de quien abriera
+# el correo. El desarrollo local sigue funcionando porque las URLs de
+# localhost están en `additional_redirect_urls` y tanto `handleGoogle()` como
+# `recuperar-form.tsx` mandan siempre un `redirectTo` explícito basado en
+# `window.location.origin`, que gana sobre este valor.
+#
+# Cuidado: GoTrue no rechaza un `redirectTo` que no esté en la lista, lo
+# sustituye en silencio por `site_url`, así que un host o esquema mal escrito
+# no da error, solo manda a la persona al lugar equivocado (pasó en vivo con
+# un login real de Google/PUCP el 2026-09-05).
+site_url = "https://nouttbuk.vercel.app"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-# Both host variants are listed since either could end up in
-# `window.location.origin` depending on how the dev server is opened.
+# Se listan los dos hosts locales porque cualquiera de los dos puede acabar en
+# `window.location.origin` según cómo se abra el servidor de desarrollo, más el
+# dominio de producción. Son coincidencias exactas, no prefijos: los deploys de
+# vista previa de Vercel tienen otro subdominio y por eso el login no va a
+# funcionar en ellos, solo en el dominio de producción y en local.
 additional_redirect_urls = [
+  "https://nouttbuk.vercel.app/auth/callback",
+  "https://nouttbuk.vercel.app",
   "http://localhost:3000/auth/callback",
   "http://127.0.0.1:3000/auth/callback",
   "http://127.0.0.1:3000",
