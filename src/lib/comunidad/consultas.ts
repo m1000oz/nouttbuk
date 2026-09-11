@@ -84,6 +84,51 @@ export type PublicacionFeedRow = NonNullable<
   Awaited<ReturnType<typeof consultaFeedComunidad>>["data"]
 >[number];
 
+export async function consultaFeedAmigos(
+  supabase: SupabaseClient<Database>,
+  perfilId: string,
+  from: number,
+  to: number
+) {
+  const { data: amigos } = await supabase.rpc("obtener_amigos", { perfil_id: perfilId });
+  const friendIds = amigos?.map((a: any) => a.id) || [];
+  
+  if (friendIds.length === 0) {
+    // Para que los tipos coincidan, devolvemos la misma query estructurada, 
+    // pero buscando un ID inexistente.
+    return supabase
+      .from("publicaciones")
+      .select(`
+        id, created_at,
+        apunte:apuntes!inner(
+          id, titulo, contenido, created_at, curso:cursos(nombre),
+          autor:profiles!apuntes_autor_id_fkey!inner(id, nombre, usuario, avatar_url, carrera_id)
+        )
+      `)
+      .eq("apunte.autor_id", "00000000-0000-0000-0000-000000000000");
+  }
+
+  return supabase
+    .from("publicaciones")
+    .select(
+      `
+      id,
+      created_at,
+      apunte:apuntes!inner(
+        id,
+        titulo,
+        contenido,
+        created_at,
+        curso:cursos(nombre),
+        autor:profiles!apuntes_autor_id_fkey!inner(id, nombre, usuario, avatar_url, carrera_id)
+      )
+    `,
+    )
+    .in("apunte.autor_id", friendIds)
+    .order("created_at", { ascending: false })
+    .range(from, to);
+}
+
 export type ConteosPublicacion = {
   reacciones: number;
   guardados: number;

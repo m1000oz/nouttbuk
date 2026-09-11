@@ -38,7 +38,7 @@ export function FeedbackComposer({
     const { data, error: dbError } = await supabase
       .from("feedback")
       .insert({ autor_id: usuarioId, texto: valor })
-      .select("id, texto, estado, created_at, autor:profiles(nombre, usuario, avatar_url)")
+      .select("id, texto, estado, created_at, autor_id, autor:profiles(nombre, usuario, avatar_url)")
       .single();
 
     setEnviando(false);
@@ -53,6 +53,7 @@ export function FeedbackComposer({
       texto: data.texto,
       estado: data.estado,
       createdAt: data.created_at,
+      autorId: data.autor_id,
       autor: {
         nombre: data.autor?.nombre ?? "Tú",
         usuario: data.autor?.usuario ?? "",

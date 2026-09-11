@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -12,6 +12,7 @@ import {
 } from "@/lib/comunidad/consultas";
 import { Button } from "@/components/ui/button";
 import { PublicacionCard } from "@/components/comunidad/publicacion-card";
+import { SugerenciasCarrusel } from "@/components/amigos/sugerencias-carrusel";
 
 type FeedComunidadProps = {
   publicacionesIniciales: PublicacionCardData[];
@@ -29,6 +30,16 @@ export function FeedComunidad({
   const [publicaciones, setPublicaciones] = useState(publicacionesIniciales);
   const [hayMas, setHayMas] = useState(hayMasIniciales);
   const [cargando, setCargando] = useState(false);
+  const [myId, setMyId] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function checkUser() {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) setMyId(user.id);
+    }
+    checkUser();
+  }, []);
 
   async function cargarMas() {
     setCargando(true);
@@ -71,7 +82,16 @@ export function FeedComunidad({
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-3">
         {publicaciones.map((publicacion, index) => (
-          <PublicacionCard key={publicacion.id} {...publicacion} index={index} />
+          <div key={publicacion.id} className="flex flex-col gap-3">
+            <PublicacionCard {...publicacion} index={index} />
+            {index === 2 && myId && (
+              <div className="my-4 -mx-6 md:mx-0">
+                <div className="px-6 md:px-0">
+                  <SugerenciasCarrusel myId={myId} />
+                </div>
+              </div>
+            )}
+          </div>
         ))}
       </div>
 

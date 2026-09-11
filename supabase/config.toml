@@ -251,15 +251,33 @@ enable_signup = true
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
 # If enabled, users need to confirm their email address before signing in.
-enable_confirmations = false
+# Activado a pedido explícito del usuario (2026-09-10), como capa adicional
+# de seguridad específica para el registro con correo/contraseña: a
+# diferencia de Google (donde PUCP/Google Workspace ya verificó la cuenta
+# antes de que GoTrue la vea), un registro con correo/contraseña nunca prueba
+# que la persona realmente controla esa casilla, solo que el dominio
+# coincide con @pucp.edu.pe. `signup-form.tsx` maneja el paso de
+# verificación con el código de 6 dígitos que este flag hace que se envíe
+# (vía `confirmation.html`, que ahora muestra `{{ .Token }}` en vez de un
+# botón/enlace). No afecta el login con Google en absoluto, ese sigue
+# devolviendo sesión inmediata como siempre.
+enable_confirmations = true
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
 secure_password_change = false
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
 max_frequency = "1s"
 # Number of characters used in the email OTP.
 otp_length = 6
-# Number of seconds before the email OTP expires (defaults to 1 hour).
-otp_expiry = 3600
+# Number of seconds before the email OTP expires (defaults to 1 hour). Bajado
+# a 15 minutos a pedido explícito del usuario (2026-09-10): GoTrue evalúa
+# esto contra `auth.users.recovery_sent_at` en cada `/verify`, sin importar
+# la edad de la fila en `one_time_tokens` (confirmado con dos pruebas
+# controladas: un `recovery_sent_at` viejo rechaza el enlace aunque la fila
+# del token sea nueva, y viceversa un `recovery_sent_at` fresco lo acepta
+# aunque la fila del token sea vieja). Requiere `supabase stop && start`
+# local y `supabase config push --linked` en la nube para tomar efecto,
+# igual que cualquier otro cambio de `[auth]`.
+otp_expiry = 900
 
 # SMTP de producción vía Resend (dominio pandatomic.com verificado en
 # Resend → Domains). RESEND_API_KEY se define en .env.local. Sin este

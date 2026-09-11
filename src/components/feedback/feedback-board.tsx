@@ -25,6 +25,16 @@ export function FeedbackBoard({ usuarioId, ideas }: FeedbackBoardProps) {
     setIdeasLocal((actual) => [idea, ...actual]);
   }
 
+  function handleIdeaEditada(id: string, nuevoTexto: string) {
+    setIdeasLocal((actual) =>
+      actual.map((idea) => (idea.id === id ? { ...idea, texto: nuevoTexto } : idea)),
+    );
+  }
+
+  function handleIdeaEliminada(id: string) {
+    setIdeasLocal((actual) => actual.filter((idea) => idea.id !== id));
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-background">
       <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
@@ -52,7 +62,12 @@ export function FeedbackBoard({ usuarioId, ideas }: FeedbackBoardProps) {
 
         <FeedbackComposer usuarioId={usuarioId} onIdeaCreada={handleIdeaCreada} />
 
-        <FeedbackLista usuarioId={usuarioId} ideas={ideasLocal} />
+        <FeedbackLista
+          usuarioId={usuarioId}
+          ideas={ideasLocal}
+          onEditarIdea={handleIdeaEditada}
+          onEliminarIdea={handleIdeaEliminada}
+        />
       </div>
     </div>
   );

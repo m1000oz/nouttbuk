@@ -1,7 +1,7 @@
 import { MENSAJE_DOMINIO_INVALIDO } from "@/lib/auth/dominio-institucional";
 
 export type ResultadoErrorAuth = {
-  tipo: "dominio" | "credenciales" | "duplicado" | "red";
+  tipo: "dominio" | "credenciales" | "duplicado" | "codigo" | "red";
   mensaje: string;
 };
 
@@ -31,6 +31,18 @@ export function mapearErrorAuth(error: unknown): ResultadoErrorAuth {
     return {
       tipo: "duplicado",
       mensaje: "Ya existe una cuenta con este correo.",
+    };
+  }
+
+  // Mensaje real devuelto por GoTrue para verifyOtp/resend con un código de
+  // 6 dígitos incorrecto, ya usado, o vencido (confirmado contra el stack
+  // local: mismo `error_code: otp_expired` que el enlace de recuperación,
+  // pero acá se muestra dentro del paso de "verificar código" del signup,
+  // no como un enlace roto).
+  if (mensajeNormalizado.includes("token has expired or is invalid")) {
+    return {
+      tipo: "codigo",
+      mensaje: "El código no es válido o ya venció. Solicita uno nuevo.",
     };
   }
 

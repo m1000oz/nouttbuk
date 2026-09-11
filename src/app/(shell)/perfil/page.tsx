@@ -193,6 +193,10 @@ export default async function PerfilPage() {
         <Link href="/privacidad" className="underline hover:text-foreground">
           Política de privacidad
         </Link>
+        <span className="h-3 w-px bg-border" aria-hidden />
+        <Link href="/creditos" className="underline hover:text-foreground">
+          Créditos
+        </Link>
       </div>
     </div>
   );

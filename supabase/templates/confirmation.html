@@ -8,7 +8,7 @@
   </head>
   <body style="margin:0; padding:0; background-color:#F1F5F9; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
     <div style="display:none; max-height:0; overflow:hidden; opacity:0;">
-      Confirma tu correo para empezar a usar Nouttbuk.
+      Tu código de verificación de Nouttbuk, expira en 15 minutos.
     </div>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F1F5F9;">
       <tr>
@@ -26,27 +26,20 @@
                 </h1>
                 <p style="margin:0 0 24px 0; font-size:15px; line-height:1.6; color:#475569;">
                   Gracias por crear tu cuenta en Nouttbuk con el correo <strong>{{ .Email }}</strong>.
-                  Confirma tu correo para empezar a organizar tus apuntes y descubrir la comunidad
-                  académica de la PUCP.
+                  Ingresa este código en la pantalla de verificación para activar tu cuenta:
                 </p>
-                <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                   <tr>
-                    <td style="border-radius:10px; background-color:#4F46E5;">
-                      <a
-                        href="{{ .ConfirmationURL }}"
-                        style="display:inline-block; padding:14px 32px; font-size:15px; font-weight:600; color:#FFFFFF; text-decoration:none; border-radius:10px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;"
-                      >
-                        Confirmar cuenta
-                      </a>
+                    <td align="center" style="padding:20px; background-color:#F8FAFC; border:1px solid #E2E8F0; border-radius:12px;">
+                      <span style="font-size:32px; font-weight:700; letter-spacing:0.3em; color:#0F172A; font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;">
+                        {{ .Token }}
+                      </span>
                     </td>
                   </tr>
                 </table>
                 <p style="margin:24px 0 0 0; font-size:13px; line-height:1.6; color:#94A3B8;">
-                  Si tú no creaste esta cuenta, puedes ignorar este correo.
-                </p>
-                <p style="margin:16px 0 0 0; font-size:12px; line-height:1.6; color:#CBD5E1; word-break:break-all;">
-                  Si el botón no funciona, copia y pega este enlace en tu navegador:<br />
-                  <a href="{{ .ConfirmationURL }}" style="color:#4F46E5;">{{ .ConfirmationURL }}</a>
+                  Este código expira en 15 minutos. Si tú no creaste esta cuenta, puedes ignorar
+                  este correo.
                 </p>
               </td>
             </tr>

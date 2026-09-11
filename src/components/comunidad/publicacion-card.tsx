@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "motion/react";
 import {
   BookmarkSimpleIcon,
@@ -37,9 +38,13 @@ export function PublicacionCard({
   index,
 }: PublicacionCardProps) {
   const prefiereMenosMovimiento = useReducedMotion();
+  const router = useRouter();
 
   return (
-    <Link href={`/comunidad/${id}`} className="block">
+    <div 
+      onClick={() => router.push(`/comunidad/${id}`)} 
+      className="block cursor-pointer"
+    >
       <motion.div
         initial={prefiereMenosMovimiento ? false : { opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -53,18 +58,24 @@ export function PublicacionCard({
         <Card className="border border-border shadow-[var(--shadow-card)] ring-0">
           <CardContent className="flex flex-col gap-3">
             <div className="flex items-center gap-2">
-              <Avatar size="sm">
-                {autor.avatarUrl && <AvatarImage src={autor.avatarUrl} alt="" />}
-                <AvatarFallback>{iniciales(autor.nombre)}</AvatarFallback>
-              </Avatar>
-              <div className="flex min-w-0 flex-1 flex-col">
-                <span className="truncate text-sm font-medium text-foreground">
-                  {autor.nombre}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {fechaRelativa(createdAt)}
-                </span>
-              </div>
+              <Link
+                href={`/u/${autor.usuario}`}
+                className="flex items-center gap-2 min-w-0 hover:opacity-80 transition-opacity"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Avatar size="sm">
+                  {autor.avatarUrl && <AvatarImage src={autor.avatarUrl} alt="" />}
+                  <AvatarFallback>{iniciales(autor.nombre)}</AvatarFallback>
+                </Avatar>
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate text-sm font-medium text-foreground">
+                    {autor.nombre}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {fechaRelativa(createdAt)}
+                  </span>
+                </div>
+              </Link>
             </div>
 
             <div className="flex flex-col gap-1">
@@ -100,6 +111,6 @@ export function PublicacionCard({
           </CardContent>
         </Card>
       </motion.div>
-    </Link>
+    </div>
   );
 }

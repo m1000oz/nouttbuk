@@ -32,6 +32,7 @@ type SignupFormProps = {
 type Carrera = { id: string; nombre: string };
 
 export function SignupForm({ onSuccess, onIrALogin }: SignupFormProps) {
+  const [paso, setPaso] = useState<"datos" | "verificar">("datos");
   const [nombre, setNombre] = useState("");
   const [usuario, setUsuario] = useState("");
   const [carreraId, setCarreraId] = useState<string | null>(null);
@@ -44,6 +45,17 @@ export function SignupForm({ onSuccess, onIrALogin }: SignupFormProps) {
   const [contrasenaError, setContrasenaError] = useState<string | null>(null);
   const [mostrarLinkLogin, setMostrarLinkLogin] = useState(false);
   const [cargando, setCargando] = useState(false);
+
+  // Estado del paso de verificación: distinto código/error/loading del
+  // formulario de datos, porque conviven en la misma sesión del componente
+  // (volver de "verificar" a "datos" no debe perder lo que la persona ya
+  // escribió arriba, ver handleVolver).
+  const [codigo, setCodigo] = useState("");
+  const [codigoError, setCodigoError] = useState<string | null>(null);
+  const [verificando, setVerificando] = useState(false);
+  const [reenviando, setReenviando] = useState(false);
+  const [reenvioMensaje, setReenvioMensaje] = useState<string | null>(null);
+
   const turnstileRef = useRef<TurnstileWidgetHandle>(null);
   const captchaRequerido = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
 
@@ -79,7 +91,7 @@ export function SignupForm({ onSuccess, onIrALogin }: SignupFormProps) {
     setCargando(true);
 
     const supabase = createClient();
-    const { error: authError } = await supabase.auth.signUp({
+    const { data, error: authError } = await supabase.auth.signUp({
       email: correo,
       password: contrasena,
       options: {
@@ -89,6 +101,7 @@ export function SignupForm({ onSuccess, onIrALogin }: SignupFormProps) {
     });
 
     setCargando(false);
+    turnstileRef.current?.reset();
 
     if (authError) {
       const resultado = mapearErrorAuth(authError);
@@ -100,11 +113,136 @@ export function SignupForm({ onSuccess, onIrALogin }: SignupFormProps) {
       } else {
         setError(resultado.mensaje);
       }
-      turnstileRef.current?.reset();
+      return;
+    }
+
+    // A diferencia de Google (donde PUCP/Google Workspace ya verificó la
+    // cuenta), un registro con correo/contraseña nunca prueba que la
+    // persona controla esa casilla, solo que el dominio coincide con
+    // @pucp.edu.pe. Con `enable_confirmations = true`, signUp() no
+    // devuelve sesión hasta que se confirme el código de 6 dígitos que
+    // GoTrue ya envió por correo (confirmation.html): se pasa al paso de
+    // verificación en vez de cerrar el modal.
+    if (!data.session) {
+      setPaso("verificar");
       return;
     }
 
     onSuccess();
+  }
+
+  async function handleVerificarCodigo(event: FormEvent) {
+    event.preventDefault();
+    setCodigoError(null);
+    setReenvioMensaje(null);
+    setVerificando(true);
+
+    const supabase = createClient();
+    const { error: verifyError } = await supabase.auth.verifyOtp({
+      email: correo,
+      token: codigo,
+      type: "signup",
+    });
+
+    setVerificando(false);
+
+    if (verifyError) {
+      setCodigoError(mapearErrorAuth(verifyError).mensaje);
+      return;
+    }
+
+    onSuccess();
+  }
+
+  async function handleReenviarCodigo() {
+    setCodigoError(null);
+    setReenvioMensaje(null);
+    setReenviando(true);
+
+    const supabase = createClient();
+    const { error: resendError } = await supabase.auth.resend({
+      type: "signup",
+      email: correo,
+      options: { captchaToken: captchaToken ?? undefined },
+    });
+
+    setReenviando(false);
+    turnstileRef.current?.reset();
+
+    if (resendError) {
+      setCodigoError(mapearErrorAuth(resendError).mensaje);
+      return;
+    }
+
+    setReenvioMensaje("Te enviamos un nuevo código a tu correo.");
+  }
+
+  function handleVolver() {
+    setPaso("datos");
+    setCodigo("");
+    setCodigoError(null);
+    setReenvioMensaje(null);
+  }
+
+  if (paso === "verificar") {
+    return (
+      <form onSubmit={handleVerificarCodigo} className="flex flex-col gap-4">
+        <p className="text-sm text-foreground">
+          Te enviamos un código de 6 dígitos a <strong>{correo}</strong>.
+          Ingrésalo para activar tu cuenta.
+        </p>
+        {codigoError && (
+          <p role="alert" className="text-sm text-destructive">
+            {codigoError}
+          </p>
+        )}
+        {reenvioMensaje && (
+          <p className="text-sm text-muted-foreground">{reenvioMensaje}</p>
+        )}
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="signup-codigo">Código de verificación</Label>
+          <Input
+            id="signup-codigo"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={6}
+            required
+            disabled={verificando}
+            value={codigo}
+            onChange={(event) =>
+              setCodigo(event.target.value.replace(/\D/g, "").slice(0, 6))
+            }
+            aria-invalid={Boolean(codigoError)}
+            className="text-center text-lg tracking-[0.3em]"
+          />
+        </div>
+        <TurnstileWidget ref={turnstileRef} onTokenChange={setCaptchaToken} />
+        <Button
+          type="submit"
+          loading={verificando}
+          disabled={codigo.length !== 6}
+        >
+          Verificar
+        </Button>
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <button
+            type="button"
+            onClick={handleVolver}
+            className="cursor-pointer underline hover:text-foreground"
+          >
+            Usar otro correo
+          </button>
+          <button
+            type="button"
+            onClick={handleReenviarCodigo}
+            disabled={reenviando || (captchaRequerido && !captchaToken)}
+            className="cursor-pointer underline hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {reenviando ? "Reenviando…" : "Reenviar código"}
+          </button>
+        </div>
+      </form>
+    );
   }
 
   return (

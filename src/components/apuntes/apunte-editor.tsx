@@ -14,6 +14,7 @@ import type { Editor } from "@tiptap/react";
 import {
   FolderIcon,
   LightbulbIcon,
+  LinkIcon,
   MinusIcon,
   PlusIcon,
   PrinterIcon,
@@ -35,6 +36,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toast";
 import { CompartirSheet } from "@/components/apuntes/compartir-sheet";
+import { EnlacePublicoSheet } from "@/components/apuntes/enlace-publico-sheet";
 import { EditorEstatico } from "@/components/apuntes/editor-estatico";
 import { EditorColaborativo } from "@/components/apuntes/editor-colaborativo";
 import { HojasEditor } from "@/components/apuntes/hojas-editor";
@@ -84,6 +86,8 @@ type ApunteEditorProps = {
     visibilidad: ApunteVisibilidad;
     etiquetas: string[];
     favorito: boolean;
+    enlaceToken: string | null;
+    enlacePermiso: PermisoColaborador;
   };
   permisoActual?: PermisoApunte;
   autorNombre?: string;
@@ -211,6 +215,8 @@ export function ApunteEditor({
     }
   }
 
+  const initGeomRef = useRef(false);
+  
   useEffect(() => {
     try {
       const guardado = window.localStorage.getItem(claveGeometria);
@@ -229,11 +235,13 @@ export function ApunteEditor({
     }
     // Solo al montar (o si cambia de qué apunte se trata): no queremos
     // releer localStorage en cada tecleo.
+    initGeomRef.current = true;
   }, [claveGeometria]);
 
   useEffect(() => {
     actualizarGeometria(geometria);
     actualizarEncabezadoPie(encabezadoPie);
+    if (!initGeomRef.current) return;
     try {
       window.localStorage.setItem(
         claveGeometria,
@@ -247,6 +255,18 @@ export function ApunteEditor({
   const [configurarPaginaAbierto, setConfigurarPaginaAbierto] = useState(false);
   const [buscarReemplazarAbierto, setBuscarReemplazarAbierto] = useState(false);
   const [contarPalabrasAbierto, setContarPalabrasAbierto] = useState(false);
+  const [enlacePublicoAbierto, setEnlacePublicoAbierto] = useState(false);
+
+  function abrirEnlacePublico() {
+    if (!apunte?.id) {
+      toast.add({
+        title: "Guarda el apunte antes de compartirlo por enlace.",
+        type: "error",
+      });
+      return;
+    }
+    setEnlacePublicoAbierto(true);
+  }
 
   useEffect(() => {
     function manejarAtajoGlobal(event: globalThis.KeyboardEvent) {
@@ -573,6 +593,19 @@ export function ApunteEditor({
               )}
             </div>
 
+            {esOwner && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="ml-2 h-8"
+                onClick={abrirEnlacePublico}
+              >
+                <LinkIcon aria-hidden />
+                Compartir
+              </Button>
+            )}
+
             {!soloLectura && (
               <Button type="button" size="sm" className="ml-2 h-8 px-4" onClick={handleGuardar} loading={guardando}>
                 Guardar
@@ -858,6 +891,19 @@ export function ApunteEditor({
             overlayRef={overlayRef}
           />
         </>
+      )}
+
+      {esOwner && apunte?.id && (
+        <EnlacePublicoSheet
+          apunteId={apunte.id}
+          titulo={titulo}
+          token={apunte.enlaceToken}
+          permiso={apunte.enlacePermiso}
+          visibilidad={visibilidad}
+          onVisibilidadCambiada={setVisibilidad}
+          open={enlacePublicoAbierto}
+          onOpenChange={setEnlacePublicoAbierto}
+        />
       )}
     </div>
   );

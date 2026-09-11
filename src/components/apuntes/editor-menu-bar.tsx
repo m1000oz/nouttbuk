@@ -132,6 +132,19 @@ type EditorMenuBarProps = {
   onAbrirContarPalabras: () => void;
   tema: TemaEditor;
   onTemaChange: (tema: TemaEditor) => void;
+  // Diferencias puntuales para reutilizar este mismo menú en CvEditor
+  // (src/components/cv/cv-editor.tsx): un CV es un documento único por
+  // persona, sin lista a la que volver ni "Nuevo apunte", se descarga solo
+  // como PDF (no tiene sentido consumirlo como .md/.html), y "Reparar
+  // formato" es específico de recuperar apuntes corrompidos por edición
+  // colaborativa, algo que un CV nunca tiene. Parametrizar estas 4
+  // diferencias evita duplicar las ~450 líneas de este componente en un
+  // segundo archivo casi idéntico.
+  mostrarNuevoApunte?: boolean;
+  mostrarRenombrar?: boolean;
+  formatosDescarga?: Array<"pdf" | "html" | "md" | "txt">;
+  mostrarRepararFormato?: boolean;
+  rutaCerrar?: string;
 };
 
 // Menú superior tipo Docs (Archivo/Edición/Ver/Insertar/Formato/Herramientas),
@@ -160,6 +173,11 @@ export function EditorMenuBar({
   onAbrirContarPalabras,
   tema,
   onTemaChange,
+  mostrarNuevoApunte = true,
+  mostrarRenombrar = true,
+  formatosDescarga = ["pdf", "html", "md", "txt"],
+  mostrarRepararFormato = true,
+  rutaCerrar = "/apuntes",
 }: EditorMenuBarProps) {
   const router = useRouter();
   const estado = useEstadoEditor(editor);
@@ -215,46 +233,59 @@ export function EditorMenuBar({
       <MenubarMenu>
         <MenubarTrigger>Archivo</MenubarTrigger>
         <MenubarContent container={overlayRef}>
-          <MenubarItem onClick={() => router.push("/apuntes/nuevo")}>
-            Nuevo apunte
-          </MenubarItem>
+          {mostrarNuevoApunte && (
+            <MenubarItem onClick={() => router.push("/apuntes/nuevo")}>
+              Nuevo apunte
+            </MenubarItem>
+          )}
           <MenubarItem onClick={onGuardar}>
             Guardar
             <MenubarShortcut>Ctrl+S</MenubarShortcut>
           </MenubarItem>
-          <MenubarItem
-            onClick={() => {
-              // Diferido: al cerrarse, el menú de Base UI le devuelve el
-              // foco a su propio trigger recién cuando termina su animación
-              // de cierre (duration-100 en dropdown-menu.tsx), después de
-              // que este onClick ya corrió — un focus() síncrono, o incluso
-              // en el siguiente tick, se pisa un instante más tarde. 150ms
-              // le gana con margen a esa restauración.
-              setTimeout(() => {
-                tituloInputRef.current?.focus();
-                tituloInputRef.current?.select();
-              }, 150);
-            }}
-          >
-            Renombrar
-          </MenubarItem>
+          {mostrarRenombrar && (
+            <MenubarItem
+              onClick={() => {
+                // Diferido: al cerrarse, el menú de Base UI le devuelve el
+                // foco a su propio trigger recién cuando termina su
+                // animación de cierre (duration-100 en dropdown-menu.tsx),
+                // después de que este onClick ya corrió — un focus()
+                // síncrono, o incluso en el siguiente tick, se pisa un
+                // instante más tarde. 150ms le gana con margen a esa
+                // restauración.
+                setTimeout(() => {
+                  tituloInputRef.current?.focus();
+                  tituloInputRef.current?.select();
+                }, 150);
+              }}
+            >
+              Renombrar
+            </MenubarItem>
+          )}
           <MenubarItem onClick={onAbrirConfigurarPagina}>Configurar página</MenubarItem>
           <MenubarSeparator />
           <MenubarSub>
             <MenubarSubTrigger>Descargar</MenubarSubTrigger>
             <MenubarSubContent container={overlayRef}>
-              <MenubarItem onClick={() => window.print()}>
-                Documento (PDF)
-              </MenubarItem>
-              <MenubarItem onClick={() => descargarHtml(editor, titulo)}>
-                Página web (.html)
-              </MenubarItem>
-              <MenubarItem onClick={() => descargarMarkdown(editor, titulo)}>
-                Markdown (.md)
-              </MenubarItem>
-              <MenubarItem onClick={() => descargarTexto(editor, titulo)}>
-                Texto plano (.txt)
-              </MenubarItem>
+              {formatosDescarga.includes("pdf") && (
+                <MenubarItem onClick={() => window.print()}>
+                  Documento (PDF)
+                </MenubarItem>
+              )}
+              {formatosDescarga.includes("html") && (
+                <MenubarItem onClick={() => descargarHtml(editor, titulo)}>
+                  Página web (.html)
+                </MenubarItem>
+              )}
+              {formatosDescarga.includes("md") && (
+                <MenubarItem onClick={() => descargarMarkdown(editor, titulo)}>
+                  Markdown (.md)
+                </MenubarItem>
+              )}
+              {formatosDescarga.includes("txt") && (
+                <MenubarItem onClick={() => descargarTexto(editor, titulo)}>
+                  Texto plano (.txt)
+                </MenubarItem>
+              )}
             </MenubarSubContent>
           </MenubarSub>
           <MenubarItem onClick={() => window.print()}>
@@ -262,7 +293,7 @@ export function EditorMenuBar({
             <MenubarShortcut>Ctrl+P</MenubarShortcut>
           </MenubarItem>
           <MenubarSeparator />
-          <MenubarItem onClick={() => router.push("/apuntes")}>Cerrar</MenubarItem>
+          <MenubarItem onClick={() => router.push(rutaCerrar)}>Cerrar</MenubarItem>
         </MenubarContent>
       </MenubarMenu>
 
@@ -474,8 +505,12 @@ export function EditorMenuBar({
           <MenubarCheckboxItem checked={spellcheckActivo} onCheckedChange={alternarOrtografia}>
             Ortografía
           </MenubarCheckboxItem>
-          <MenubarSeparator />
-          <MenubarItem onClick={repararFormato}>Reparar formato</MenubarItem>
+          {mostrarRepararFormato && (
+            <>
+              <MenubarSeparator />
+              <MenubarItem onClick={repararFormato}>Reparar formato</MenubarItem>
+            </>
+          )}
         </MenubarContent>
       </MenubarMenu>
     </Menubar>

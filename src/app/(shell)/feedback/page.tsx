@@ -16,7 +16,7 @@ export default async function FeedbackPage() {
 
   const { data: ideas } = await supabase
     .from("feedback")
-    .select("id, texto, estado, created_at, autor:profiles(nombre, usuario, avatar_url)")
+    .select("id, texto, estado, created_at, autor_id, autor:profiles(nombre, usuario, avatar_url)")
     .order("created_at", { ascending: false });
 
   const filas = ideas ?? [];
@@ -46,6 +46,7 @@ export default async function FeedbackPage() {
     texto: fila.texto,
     estado: fila.estado,
     createdAt: fila.created_at,
+    autorId: fila.autor_id,
     autor: {
       nombre: fila.autor?.nombre ?? "Alguien",
       usuario: fila.autor?.usuario ?? "",

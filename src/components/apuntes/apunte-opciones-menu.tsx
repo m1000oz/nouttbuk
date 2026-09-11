@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   DotsThreeVerticalIcon,
   FolderIcon,
+  LinkIcon,
   ShareNetworkIcon,
   TrashIcon,
 } from "@phosphor-icons/react";
@@ -18,6 +19,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { EnlacePublicoSheet } from "@/components/apuntes/enlace-publico-sheet";
 import {
   Sheet,
   SheetContent,
@@ -36,15 +38,18 @@ import {
 } from "@/components/ui/dialog";
 import { resolverColorCarpeta } from "@/lib/carpetas/colores";
 import { cn } from "@/lib/utils";
-import type { ApunteVisibilidad } from "@/lib/types/enums";
+import type { ApunteVisibilidad, PermisoColaborador } from "@/lib/types/enums";
 
 type CarpetaOpcion = { id: string; nombre: string; color: string };
 
 type ApunteOpcionesMenuProps = {
   apunteId: string;
+  titulo: string;
   esPropio: boolean;
   carpetaIdActual: string | null;
   visibilidadActual: ApunteVisibilidad;
+  enlaceToken: string | null;
+  enlacePermiso: PermisoColaborador;
   carpetas: CarpetaOpcion[];
 };
 
@@ -61,15 +66,19 @@ const VISIBILIDAD_LABEL: Record<ApunteVisibilidad, string> = {
 // mostrar la opción.
 export function ApunteOpcionesMenu({
   apunteId,
+  titulo,
   esPropio,
   carpetaIdActual,
   visibilidadActual,
+  enlaceToken,
+  enlacePermiso,
   carpetas,
 }: ApunteOpcionesMenuProps) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [moverOpen, setMoverOpen] = useState(false);
   const [compartirOpen, setCompartirOpen] = useState(false);
+  const [enlacePublicoOpen, setEnlacePublicoOpen] = useState(false);
   const [eliminarOpen, setEliminarOpen] = useState(false);
   const [cargando, setCargando] = useState(false);
 
@@ -150,6 +159,10 @@ export function ApunteOpcionesMenu({
           <DropdownMenuItem onClick={() => setCompartirOpen(true)}>
             <ShareNetworkIcon aria-hidden />
             Compartir
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setEnlacePublicoOpen(true)}>
+            <LinkIcon aria-hidden />
+            Compartir por enlace
           </DropdownMenuItem>
           <DropdownMenuItem
             variant="destructive"
@@ -252,6 +265,16 @@ export function ApunteOpcionesMenu({
           </div>
         </SheetContent>
       </Sheet>
+
+      <EnlacePublicoSheet
+        apunteId={apunteId}
+        titulo={titulo}
+        token={enlaceToken}
+        permiso={enlacePermiso}
+        visibilidad={visibilidadActual}
+        open={enlacePublicoOpen}
+        onOpenChange={setEnlacePublicoOpen}
+      />
 
       <Dialog open={eliminarOpen} onOpenChange={setEliminarOpen}>
         <DialogContent>

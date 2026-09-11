@@ -10,7 +10,7 @@ import { fechaRelativa } from "@/lib/fecha/relativa";
 import { extraerTextoPlano } from "@/lib/tiptap/extraer-texto-plano";
 import { resolverColorCarpeta } from "@/lib/carpetas/colores";
 import type { Json } from "@/lib/types/database.types";
-import type { ApunteVisibilidad } from "@/lib/types/enums";
+import type { ApunteVisibilidad, PermisoColaborador } from "@/lib/types/enums";
 
 type CarpetaOpcion = { id: string; nombre: string; color: string };
 
@@ -24,6 +24,8 @@ type ApunteTarjetaProps = {
   favorito: boolean;
   visibilidad: ApunteVisibilidad;
   propietario?: string;
+  enlaceToken?: string | null;
+  enlacePermiso?: PermisoColaborador;
   carpetas: CarpetaOpcion[];
   index: number;
   // Tile más grande para "el apunte más reciente" en Inicio ("Continuar
@@ -49,6 +51,8 @@ export function ApunteTarjeta({
   favorito,
   visibilidad,
   propietario,
+  enlaceToken = null,
+  enlacePermiso = "read",
   carpetas,
   index,
   destacado = false,
@@ -159,9 +163,12 @@ export function ApunteTarjeta({
       <div className="absolute top-2 right-2">
         <ApunteOpcionesMenu
           apunteId={id}
+          titulo={titulo}
           esPropio={esPropio}
           carpetaIdActual={carpetaId}
           visibilidadActual={visibilidad}
+          enlaceToken={enlaceToken}
+          enlacePermiso={enlacePermiso}
           carpetas={carpetas}
         />
       </div>

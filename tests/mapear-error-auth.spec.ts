@@ -24,6 +24,13 @@ describe("mapearErrorAuth", () => {
     expect(resultado.tipo).toBe("duplicado");
   });
 
+  it("reconoce un código de verificación inválido o vencido", () => {
+    const resultado = mapearErrorAuth(
+      new Error("Token has expired or is invalid"),
+    );
+    expect(resultado.tipo).toBe("codigo");
+  });
+
   it("cae en el caso genérico para errores no reconocidos", () => {
     const resultado = mapearErrorAuth(new Error("algo salió mal"));
     expect(resultado.tipo).toBe("red");

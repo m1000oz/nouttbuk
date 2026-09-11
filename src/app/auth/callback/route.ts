@@ -3,13 +3,17 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
 // Destino del "Authorized redirect URI" que se configura en Google Cloud
-// Console (a través de Supabase Auth, no directo a este dominio): GoTrue
-// procesa el código de Google en su propio /auth/v1/callback y recién ahí
-// redirige acá con `?code=...` para intercambiarlo por una sesión, o con
-// `?error_description=...` si algo falló antes de llegar a nuestro lado (p.
-// ej. el trigger de dominio institucional rechazando una cuenta que no es
-// @pucp.edu.pe). En ambos casos se vuelve a `/` con el modal de login
-// abierto, nunca se deja a la persona en una URL de callback en blanco.
+// Console (a través de Supabase Auth, no directo a este dominio) y también
+// el destino de todo enlace de recuperación de contraseña. GoTrue redirige
+// acá con `?code=...` en el único caso de éxito real (Google o el enlace de
+// recuperación), con `?error_description=...` si algo falló antes de
+// llegar a nuestro lado (p. ej. el trigger de dominio institucional
+// rechazando una cuenta que no es @pucp.edu.pe), o sin ningún parámetro de
+// éxito/error legible acá (el error real vive en el fragmento de la URL,
+// ver el chequeo de `!code` más abajo). En todos los casos que no sean el
+// de éxito se vuelve a `/` con el modal de login abierto y un mensaje,
+// nunca se deja a la persona en una URL de callback en blanco ni se la deja
+// avanzar como si hubiera tenido éxito.
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
@@ -27,15 +31,35 @@ export async function GET(request: Request) {
     );
   }
 
-  if (code) {
-    const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+  if (!code) {
+    // GoTrue reporta un token vencido/inválido/reusado (otp_expired, etc.)
+    // en el FRAGMENTO de la URL (`#error=...`), nunca como query param: ese
+    // formato es un resabio del flujo implícito, pensado para que un script
+    // en el cliente lea `location.hash`. Un fragmento nunca llega a este
+    // route handler (corre en el servidor), así que la ausencia de `code`
+    // acá es la única señal visible del lado del servidor de que la
+    // verificación falló. Antes de este chequeo, este caso caía directo al
+    // `return` final asumiendo éxito, así que un enlace de recuperación ya
+    // vencido igual terminaba en /actualizar-contrasena, donde el chequeo
+    // de esa página ("¿hay alguna sesión?") aprobaba igual si el navegador
+    // ya tenía una sesión propia activa sin relación con el enlace, es
+    // decir, la expiración de 1 hora no se llegaba a aplicar realmente
+    // (bug real reportado 2026-09-10: un enlace abierto 8 horas después
+    // seguía funcionando).
+    return NextResponse.redirect(
+      `${origin}/?login=1&auth_error=${encodeURIComponent(
+        "El enlace no es válido o ya venció. Solicita uno nuevo.",
+      )}`,
+    );
+  }
 
-    if (error) {
-      return NextResponse.redirect(
-        `${origin}/?login=1&auth_error=${encodeURIComponent(error.message)}`,
-      );
-    }
+  const supabase = await createClient();
+  const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+  if (error) {
+    return NextResponse.redirect(
+      `${origin}/?login=1&auth_error=${encodeURIComponent(error.message)}`,
+    );
   }
 
   // A diferencia del login con correo/contraseña (que ya trae usuario/

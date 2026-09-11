@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   NotePencilIcon, 
   CheckSquareOffsetIcon, 
@@ -16,11 +16,16 @@ import {
   PlusIcon,
   TrashIcon,
   CheckCircleIcon,
-  CircleIcon
+  CircleIcon,
+  GearIcon,
+  CatIcon,
+  MusicNotesIcon,
+  PianoKeysIcon,
+  WaveformIcon,
+  XIcon
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Sheet,
   SheetContent,
@@ -116,13 +121,50 @@ export function ProToolsSidebar() {
     activeCarpetaId, setActiveCarpetaId, carpetas,
     postIts, addPostIt, updatePostIt, removePostIt,
     pomodoroTime, pomodoroMode, pomodoroIsRunning, pomodoroTheme, pomodoroGoal,
+    pomodoroSettings, setPomodoroSettings, pomodoroCycle,
     togglePomodoro, resetPomodoro, setPomodoroTheme, setPomodoroGoal,
     tasks, addTask, toggleTask, removeTask
   } = useProTools();
   
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [newTaskText, setNewTaskText] = useState("");
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [catQueue, setCatQueue] = useState<string[]>([]);
+  const [currentCat, setCurrentCat] = useState<string | null>(null);
 
+  // Pre-fetch cats
+  useEffect(() => {
+    if (pomodoroTheme !== "cat") return;
+    
+    async function fetchCats() {
+      try {
+        const res = await fetch('https://api.thecatapi.com/v1/images/search?mime_types=gif&limit=10');
+        const data = await res.json();
+        const urls = data.map((c: any) => c.url).filter(Boolean);
+        if (urls.length > 0) {
+          setCatQueue(prev => [...prev, ...urls]);
+        }
+      } catch (e) {
+        console.error("Failed to fetch cats", e);
+      }
+    }
+    
+    if (catQueue.length < 3) {
+      fetchCats();
+    }
+  }, [pomodoroTheme, catQueue.length]);
+
+  // Assign cat when break starts
+  useEffect(() => {
+    if (pomodoroTheme === "cat" && pomodoroMode !== "work") {
+      if (catQueue.length > 0 && !currentCat) {
+        setCurrentCat(catQueue[0]);
+        setCatQueue(prev => prev.slice(1));
+      }
+    } else {
+      setCurrentCat(null);
+    }
+  }, [pomodoroMode, pomodoroTheme, catQueue, currentCat]);
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
@@ -232,7 +274,7 @@ export function ProToolsSidebar() {
       </div>
 
       {/* --- Panels (Sheets) --- */}
-      <Sheet open={activeTool !== null} onOpenChange={(o) => { if (!o) setActiveTool(null); }}>
+      <Sheet open={activeTool !== null} onOpenChange={(o) => { if (!o) { setActiveTool(null); setSettingsOpen(false); } }}>
         <SheetContent 
           side="right" 
           className="w-[320px] sm:w-[380px] p-0 flex flex-col shadow-[0_20px_50px_-12px_rgba(0,0,0,0.3)] 
@@ -446,28 +488,162 @@ export function ProToolsSidebar() {
                 accentColor: "bg-orange-400 text-orange-950",
                 pulse: "shadow-orange-500/30",
                 label: "Cafetería"
+              },
+              cat: {
+                bgGradient: pomodoroMode === "work" ? "bg-[#2A1620]" : "bg-[#FFF4EC]",
+                orbColor: "hidden",
+                textColor: pomodoroMode === "work" ? "text-[#FF9EC4]" : "text-[#C21E56]",
+                accentColor: pomodoroMode === "work" ? "bg-[#F0407A] text-[#FFF4EC] rounded-none border-[3px] border-[#F0407A] shadow-[4px_4px_0_0_#FF9EC4]" : "bg-[#FFD9E4] text-[#C21E56] rounded-none border-[3px] border-[#C21E56] shadow-[4px_4px_0_0_#FF9EC4]",
+                pulse: "",
+                label: "study nook"
+              },
+              synthwave: {
+                bgGradient: "from-purple-900 via-pink-900 to-violet-950",
+                orbColor: "border-pink-400/30 bg-pink-500/10",
+                textColor: "text-pink-100",
+                accentColor: "bg-pink-400 text-pink-950",
+                pulse: "shadow-pink-500/30",
+                label: "Synthwave"
+              },
+              classical: {
+                bgGradient: "from-yellow-900 via-amber-900 to-orange-950",
+                orbColor: "border-amber-400/30 bg-amber-500/10",
+                textColor: "text-amber-100",
+                accentColor: "bg-amber-400 text-amber-950",
+                pulse: "shadow-amber-500/30",
+                label: "Clásica"
               }
             };
 
             const current = themeConfig[pomodoroTheme];
-            const maxTime = pomodoroMode === "work" ? 25 * 60 : 5 * 60;
+            const maxTime = pomodoroMode === "work" 
+              ? pomodoroSettings.workDuration * 60 
+              : pomodoroMode === "break"
+                ? pomodoroSettings.breakDuration * 60
+                : pomodoroSettings.longBreakDuration * 60;
             const progress = ((maxTime - pomodoroTime) / maxTime) * 100;
+
+            if (settingsOpen) {
+              return (
+                <div className="flex flex-1 flex-col overflow-y-auto bg-card">
+                  <SheetHeader className="px-6 py-5 border-b border-border/50 bg-muted/30 shrink-0 flex flex-row items-center justify-between sticky top-0 z-10 pr-14">
+                    <SheetTitle className="flex items-center gap-2">
+                      <GearIcon className="size-5 text-indigo-500" />
+                      Ajustes del Pomodoro
+                    </SheetTitle>
+                    <button 
+                      onClick={() => setSettingsOpen(false)}
+                      className="p-1 rounded-md hover:bg-muted/80"
+                    >
+                      Volver
+                    </button>
+                  </SheetHeader>
+                  <div className="p-6 flex flex-col gap-8">
+
+                    
+                    <div className="flex flex-col gap-4">
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-semibold">Tiempo de Focus (min)</label>
+                        <span className="text-sm font-medium text-muted-foreground">{pomodoroSettings.workDuration}</span>
+                      </div>
+                      <input 
+                        type="range"
+                        min={5} max={120} step={5} 
+                        value={pomodoroSettings.workDuration} 
+                        onChange={(e) => {
+                          const v = parseInt(e.target.value);
+                          setPomodoroSettings({ ...pomodoroSettings, workDuration: v });
+                          if (pomodoroMode === "work") {
+                            resetPomodoro("work");
+                          }
+                        }}
+                        className="w-full accent-indigo-500 h-2 bg-muted rounded-lg appearance-none cursor-pointer"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-4">
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-semibold">Descanso Corto (min)</label>
+                        <span className="text-sm font-medium text-muted-foreground">{pomodoroSettings.breakDuration}</span>
+                      </div>
+                      <input 
+                        type="range"
+                        min={1} max={30} step={1} 
+                        value={pomodoroSettings.breakDuration} 
+                        onChange={(e) => {
+                          const v = parseInt(e.target.value);
+                          setPomodoroSettings({ ...pomodoroSettings, breakDuration: v });
+                          if (pomodoroMode === "break") {
+                            resetPomodoro("break");
+                          }
+                        }}
+                        className="w-full accent-indigo-500 h-2 bg-muted rounded-lg appearance-none cursor-pointer"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-4">
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-semibold">Descanso Largo (min)</label>
+                        <span className="text-sm font-medium text-muted-foreground">{pomodoroSettings.longBreakDuration}</span>
+                      </div>
+                      <input 
+                        type="range"
+                        min={5} max={60} step={5} 
+                        value={pomodoroSettings.longBreakDuration} 
+                        onChange={(e) => {
+                          const v = parseInt(e.target.value);
+                          setPomodoroSettings({ ...pomodoroSettings, longBreakDuration: v });
+                          if (pomodoroMode === "long_break") {
+                            resetPomodoro("long_break");
+                          }
+                        }}
+                        className="w-full accent-indigo-500 h-2 bg-muted rounded-lg appearance-none cursor-pointer"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-border/50">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-sm font-semibold" htmlFor="autoStart">Auto-iniciar el siguiente modo</label>
+                        <span className="text-xs text-muted-foreground">Alterna entre focus y breaks automáticamente</span>
+                      </div>
+                      <input 
+                        type="checkbox"
+                        id="autoStart"
+                        checked={pomodoroSettings.autoStart}
+                        onChange={(e) => setPomodoroSettings({ ...pomodoroSettings, autoStart: e.target.checked })}
+                        className="size-5 accent-indigo-500 cursor-pointer"
+                      />
+                    </div>
+
+                  </div>
+                </div>
+              );
+            }
 
             return (
               <div className={cn(
-                "flex flex-1 flex-col overflow-hidden transition-colors duration-700 bg-gradient-to-br",
+                "flex flex-1 flex-col overflow-hidden transition-colors duration-700 relative",
+                pomodoroTheme !== "cat" && "bg-gradient-to-br",
                 current.bgGradient
               )}>
                 
                 {/* Header inmersivo (sin fondo para integrarse al gradiente) */}
-                <SheetHeader className="px-6 py-5 shrink-0 z-10 flex flex-row items-center justify-between">
+                <SheetHeader className="px-6 py-5 shrink-0 z-10 flex flex-row items-center justify-between pr-14">
                   <SheetTitle className={cn("flex items-center gap-2 font-medium tracking-wide", current.textColor)}>
                     <TimerIcon className="size-5" />
                     {current.label}
                   </SheetTitle>
-                  <span className={cn("text-xs font-semibold px-2.5 py-1 rounded-full bg-black/20 backdrop-blur-md border border-white/10", current.textColor)}>
-                    {pomodoroMode === "work" ? "🔥 FOCUS" : "☕ BREAK"}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className={cn("text-xs font-semibold px-2.5 py-1 rounded-full bg-black/20 backdrop-blur-md border border-white/10", current.textColor)}>
+                      {pomodoroMode === "work" ? "🔥 FOCUS" : pomodoroMode === "long_break" ? "🔋 BREAK LARGO" : "☕ BREAK"}
+                    </span>
+                    <button 
+                      onClick={() => setSettingsOpen(true)}
+                      className={cn("p-1.5 rounded-md hover:bg-white/10 transition-colors", current.textColor)}
+                    >
+                      <GearIcon className="size-5" />
+                    </button>
+                  </div>
                 </SheetHeader>
                 
                 <div className="flex flex-1 flex-col px-6 pb-6 items-center z-10 overflow-y-auto">
@@ -482,48 +658,83 @@ export function ProToolsSidebar() {
                     />
                   </div>
                   
-                  {/* Orb / Timer Principal con efecto respiración y anillo de progreso SVG */}
-                  <div className="relative flex size-56 items-center justify-center mt-2">
-                    {/* SVG Progress Ring */}
-                    <svg className="absolute inset-0 size-full -rotate-90 pointer-events-none drop-shadow-xl" viewBox="0 0 100 100">
-                      <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="4" />
-                      <circle 
-                        cx="50" cy="50" r="46" fill="none" 
-                        stroke="currentColor" strokeWidth="4" 
-                        strokeDasharray="289" strokeDashoffset={289 - (289 * progress) / 100} 
-                        strokeLinecap="round"
-                        className={cn("transition-all duration-1000 ease-linear", current.textColor)}
-                      />
-                    </svg>
-
-                    {/* Glassmorphism Orb */}
-                    <div className={cn(
-                      "flex flex-col size-48 items-center justify-center rounded-full border backdrop-blur-md transition-all duration-700 shadow-2xl",
-                      current.orbColor,
-                      pomodoroIsRunning && `shadow-[0_0_40px_-10px] ${current.pulse}`
-                    )}>
-                      <span className="text-5xl font-bold font-mono tracking-tighter text-white drop-shadow-md">
+                  {pomodoroTheme === "cat" ? (
+                    <div className="flex flex-col items-center justify-center mt-6 mb-4 w-full font-['Quicksand',sans-serif]">
+                      <style dangerouslySetInnerHTML={{__html: "@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Press+Start+2P&family=Quicksand:wght@500;600;700&display=swap');"}} />
+                      
+                      {pomodoroMode !== "work" && currentCat && (
+                        <div className="bg-[#FFFFFF] p-3 pb-8 shadow-[inset_-3px_0_0_0_#C21E56,inset_3px_0_0_0_#C21E56,inset_0_-3px_0_0_#C21E56,inset_0_3px_0_0_#C21E56,8px_8px_0_0_#FF9EC4] relative w-full max-w-[240px] aspect-[4/3] flex flex-col items-center justify-center mb-8 mx-auto">
+                          <div className="w-full h-full bg-[#FFD9E4] overflow-hidden flex items-center justify-center relative">
+                            {currentCat ? (
+                              <img src={currentCat} className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="text-[#C21E56] text-xs font-bold uppercase">Cargando...</span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      
+                      <span 
+                        style={{ fontFamily: '"Press Start 2P", monospace' }} 
+                        className={cn(
+                          "transition-all duration-300 tabular-nums leading-none tracking-wider", 
+                          pomodoroMode === "work" ? "text-[#F0407A] text-[4rem] drop-shadow-[3px_3px_0_rgba(0,0,0,0.4)] mt-12 mb-8" : "text-[#C21E56] text-4xl mb-4"
+                        )}
+                      >
                         {formatTime(pomodoroTime)}
                       </span>
-                      {pomodoroIsRunning && (
-                        <span className={cn("mt-2 text-xs font-medium uppercase tracking-widest animate-pulse", current.textColor)}>
-                          Corriendo...
-                        </span>
-                      )}
                     </div>
+                  ) : (
+                    <div className="relative flex size-56 items-center justify-center mt-2">
+                      {/* SVG Progress Ring */}
+                      <svg className="absolute inset-0 size-full -rotate-90 pointer-events-none drop-shadow-xl" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="4" />
+                        <circle 
+                          cx="50" cy="50" r="46" fill="none" 
+                          stroke="currentColor" strokeWidth="4" 
+                          strokeDasharray="289" strokeDashoffset={289 - (289 * progress) / 100} 
+                          strokeLinecap="round"
+                          className={cn("transition-all duration-1000 ease-linear", current.textColor)}
+                        />
+                      </svg>
+
+                      {/* Glassmorphism Orb */}
+                      <div className={cn(
+                        "flex flex-col size-48 items-center justify-center rounded-full border backdrop-blur-md transition-all duration-700 shadow-2xl overflow-hidden relative",
+                        current.orbColor,
+                        pomodoroIsRunning && `shadow-[0_0_40px_-10px] ${current.pulse}`
+                      )}>
+                        <span className="text-5xl font-bold font-mono tracking-tighter text-white drop-shadow-md z-10">
+                          {formatTime(pomodoroTime)}
+                        </span>
+                        {pomodoroIsRunning && (
+                          <span className={cn("mt-2 text-xs font-medium uppercase tracking-widest animate-pulse z-10", current.textColor)}>
+                            Corriendo...
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className={cn("text-xs font-medium mt-4 tracking-widest uppercase opacity-70", current.textColor)}>
+                    Ciclo {pomodoroCycle} de {pomodoroSettings.longBreakInterval}
                   </div>
 
                   {/* Input de Meta/Objetivo (Goal Tracker) */}
-                  <div className="w-full mt-6 mb-4 px-4 relative">
+                  <div className="w-full mt-4 mb-4 px-4 relative">
                     <input
                       type="text"
                       placeholder="¿En qué te enfocarás hoy?"
                       value={pomodoroGoal}
                       onChange={(e) => setPomodoroGoal(e.target.value)}
                       className={cn(
-                        "w-full bg-transparent border-b-2 border-white/10 pb-2 text-center text-lg font-medium outline-none transition-colors focus:border-white/40 placeholder:text-white/20",
+                        "w-full bg-transparent border-b-2 pb-2 text-center text-lg font-medium outline-none transition-colors",
+                        pomodoroTheme === "cat" 
+                          ? "border-transparent focus:border-transparent placeholder:opacity-50" 
+                          : "border-white/10 focus:border-white/40 placeholder:text-white/20",
                         current.textColor
                       )}
+                      style={pomodoroTheme === "cat" ? { fontFamily: '"Caveat", cursive', fontSize: '1.6rem' } : undefined}
                     />
                   </div>
 
@@ -573,7 +784,7 @@ export function ProToolsSidebar() {
                         {pomodoroIsRunning ? (
                           <PauseIcon weight="fill" className="size-8" />
                         ) : (
-                          <PlayIcon weight="fill" className="size-8 translate-x-0.5" />
+                          <PlayIcon weight="fill" className="size-8 ml-1" />
                         )}
                       </button>
 
@@ -587,12 +798,15 @@ export function ProToolsSidebar() {
                     </div>
                     
                     {/* Selector de mundos/temas */}
-                    <div className="w-full grid grid-cols-4 gap-3 bg-black/20 backdrop-blur-md p-2 rounded-2xl border border-white/10 mt-4">
+                    <div className="w-full grid grid-cols-7 gap-2 bg-black/20 backdrop-blur-md p-2 rounded-2xl border border-white/10 mt-4">
                       {[
-                        { id: "silent", icon: SpeakerSlashIcon },
-                        { id: "rain", icon: CloudRainIcon },
-                        { id: "lofi", icon: HeadphonesIcon },
-                        { id: "cafe", icon: CoffeeIcon }
+                        { id: "silent", icon: SpeakerSlashIcon, name: "Nada" },
+                        { id: "rain", icon: CloudRainIcon, name: "Lluvia" },
+                        { id: "lofi", icon: HeadphonesIcon, name: "Lo-Fi" },
+                        { id: "cafe", icon: CoffeeIcon, name: "Café" },
+                        { id: "cat", icon: CatIcon, name: "Gatos" },
+                        { id: "classical", icon: PianoKeysIcon, name: "Clásica" },
+                        { id: "synthwave", icon: WaveformIcon, name: "Synth" },
                       ].map((theme) => {
                          const Icon = theme.icon;
                          const isActive = pomodoroTheme === theme.id;
@@ -601,13 +815,14 @@ export function ProToolsSidebar() {
                              key={theme.id}
                              onClick={() => setPomodoroTheme(theme.id as any)}
                              className={cn(
-                               "flex flex-col items-center justify-center py-3 rounded-xl transition-all cursor-pointer",
+                               "flex flex-col items-center justify-center py-2.5 rounded-xl transition-all cursor-pointer group relative",
                                isActive 
                                  ? "bg-white/20 shadow-sm" 
                                  : "hover:bg-white/5 opacity-50 hover:opacity-100"
                              )}
+                             title={theme.name}
                            >
-                             <Icon weight={isActive ? "fill" : "regular"} className={cn("size-6", current.textColor)} />
+                             <Icon weight={isActive ? "fill" : "regular"} className={cn("size-5", current.textColor)} />
                            </button>
                          );
                       })}

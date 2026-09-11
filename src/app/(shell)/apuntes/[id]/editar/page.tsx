@@ -24,7 +24,7 @@ export default async function EditarApuntePage(
       supabase
         .from("apuntes")
         .select(
-          "id, titulo, contenido, carpeta_id, curso_id, visibilidad, etiquetas, favorito, autor_id, autor:profiles!apuntes_autor_id_fkey(nombre)",
+          "id, titulo, contenido, carpeta_id, curso_id, visibilidad, etiquetas, favorito, autor_id, enlace_token, enlace_permiso, autor:profiles!apuntes_autor_id_fkey(nombre)",
         )
         .eq("id", id)
         .single(),
@@ -79,6 +79,8 @@ export default async function EditarApuntePage(
         visibilidad: apunte.visibilidad,
         etiquetas: apunte.etiquetas,
         favorito: apunte.favorito,
+        enlaceToken: apunte.enlace_token,
+        enlacePermiso: apunte.enlace_permiso,
       }}
       permisoActual={esOwner ? "owner" : (colaboracion?.permiso ?? "read")}
       autorNombre={apunte.autor?.nombre}

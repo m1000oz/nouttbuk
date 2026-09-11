@@ -14,7 +14,7 @@ import { SeccionVacia } from "@/components/shared/seccion-vacia";
 import { ApunteTarjeta } from "@/components/apuntes/apunte-tarjeta";
 import { NuevoApunteButton } from "@/components/nav/fab-nuevo-apunte";
 import type { Json } from "@/lib/types/database.types";
-import type { ApunteVisibilidad } from "@/lib/types/enums";
+import type { ApunteVisibilidad, PermisoColaborador } from "@/lib/types/enums";
 
 type ApunteItem = {
   id: string;
@@ -25,6 +25,8 @@ type ApunteItem = {
   favorito: boolean;
   visibilidad: ApunteVisibilidad;
   propietario?: string;
+  enlaceToken?: string | null;
+  enlacePermiso?: PermisoColaborador;
 };
 
 type CarpetaOpcion = { id: string; nombre: string; color: string };
@@ -95,6 +97,8 @@ function ListaApuntes({
           favorito={apunte.favorito}
           visibilidad={apunte.visibilidad}
           propietario={apunte.propietario}
+          enlaceToken={apunte.enlaceToken}
+          enlacePermiso={apunte.enlacePermiso}
           carpetas={carpetas}
           index={index}
         />

@@ -15,22 +15,30 @@ import { toast } from "@/components/ui/toast";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { TimerIcon } from "@phosphor-icons/react";
+import { NouttbukLogo } from "@/components/brand";
 
 function GlobalPomodoroWidget({ className }: { className?: string }) {
-  const { pomodoroIsRunning, pomodoroTime, pomodoroTheme, pomodoroMode, setActiveTool } = useProTools();
+  const { pomodoroIsRunning, pomodoroTime, pomodoroTheme, pomodoroMode, setActiveTool, pomodoroSettings } = useProTools();
   
   // No mostrar nada si no está corriendo y está en el tiempo por defecto
-  const isDefaultTime = pomodoroTime === (pomodoroMode === "work" ? 25 * 60 : 5 * 60);
+  const isDefaultTime = pomodoroTime === (
+    pomodoroMode === "work" ? pomodoroSettings.workDuration * 60 
+    : pomodoroMode === "break" ? pomodoroSettings.breakDuration * 60 
+    : pomodoroSettings.longBreakDuration * 60
+  );
   if (!pomodoroIsRunning && isDefaultTime) return null;
 
   const m = Math.floor(pomodoroTime / 60).toString().padStart(2, "0");
   const s = (pomodoroTime % 60).toString().padStart(2, "0");
 
-  const themeColors = {
+  const themeColors: Record<string, string> = {
     silent: "text-slate-500 border-slate-500/30 bg-slate-500/10",
     rain: "text-blue-500 border-blue-500/30 bg-blue-500/10",
     lofi: "text-fuchsia-500 border-fuchsia-500/30 bg-fuchsia-500/10",
-    cafe: "text-orange-500 border-orange-500/30 bg-orange-500/10"
+    cafe: "text-orange-500 border-orange-500/30 bg-orange-500/10",
+    cat: "text-rose-400 border-rose-400/30 bg-rose-400/10",
+    synthwave: "text-pink-500 border-pink-500/30 bg-pink-500/10",
+    classical: "text-amber-500 border-amber-500/30 bg-amber-500/10"
   };
 
   return (
@@ -205,12 +213,9 @@ export function AppShell({ session, children }: AppShellProps) {
     <ProToolsProvider>
       <div className="flex min-h-full flex-1">
         <aside className="hidden sticky top-0 h-screen w-64 shrink-0 flex-col gap-6 border-r border-sidebar-border bg-sidebar px-5 py-8 text-sidebar-foreground md:flex">
-          <Link
-            href="/"
-            className="px-2 text-2xl font-bold text-sidebar-primary"
-          >
-            Nouttbuk
-          </Link>
+          <div className="px-2">
+            <NouttbukLogo href="/" variant="compact" size="md" />
+          </div>
 
           <nav className="flex flex-col gap-1">
             {NAV_ITEMS.filter((item) => item.href !== "/perfil").map((item) => {
@@ -252,20 +257,22 @@ export function AppShell({ session, children }: AppShellProps) {
 
           <div className="mt-auto">
             {autenticado ? (
-              <Link
-                href="/perfil"
-                className="flex items-center gap-3 overflow-hidden rounded-xl px-3 py-2 hover:bg-sidebar-accent"
-              >
-                <Avatar size="sm">
-                  <AvatarImage src={session?.perfil?.avatar_url || undefined} alt={nombreVisible} />
-                  <AvatarFallback>
-                    {iniciales(session?.perfil?.nombre)}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="truncate text-base font-medium">
-                  {nombreVisible ?? "Mi perfil"}
-                </span>
-              </Link>
+              <div className="flex items-center gap-1 w-full">
+                <Link
+                  href="/perfil"
+                  className="flex flex-1 items-center gap-3 overflow-hidden rounded-xl px-3 py-2 hover:bg-sidebar-accent"
+                >
+                  <Avatar size="sm">
+                    <AvatarImage src={session?.perfil?.avatar_url || undefined} alt={nombreVisible} />
+                    <AvatarFallback>
+                      {iniciales(session?.perfil?.nombre)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="truncate text-base font-medium">
+                    {nombreVisible ?? "Mi perfil"}
+                  </span>
+                </Link>
+              </div>
             ) : (
               <Button
                 type="button"

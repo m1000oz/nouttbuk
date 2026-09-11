@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { LoginForm } from "@/components/auth/login-form";
 import { SignupForm } from "@/components/auth/signup-form";
 import { RecuperarForm } from "@/components/auth/recuperar-form";
+import { NouttbukLogo } from "@/components/brand";
 
 // Logo oficial de Google en cuatro colores (uso permitido dentro de un botón
 // "Continuar/Iniciar sesión con Google", parte de las brand guidelines de
@@ -104,6 +105,9 @@ export function AuthModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
+          <div className="flex justify-center pb-2">
+            <NouttbukLogo variant="compact" size="md" />
+          </div>
           <DialogTitle>{TITULOS[mode]}</DialogTitle>
           <DialogDescription>{DESCRIPCIONES[mode]}</DialogDescription>
         </DialogHeader>
@@ -172,7 +176,14 @@ export function AuthModal({
             >
               Política de privacidad
             </Link>
-            .
+            . |{" "}
+            <Link
+              href="/creditos"
+              onClick={() => onOpenChange(false)}
+              className="underline hover:text-foreground"
+            >
+              Créditos
+            </Link>
           </p>
         </div>
       </DialogContent>

@@ -34,6 +34,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      amistades: {
+        Row: {
+          created_at: string
+          estado: string
+          id: string
+          receptor_id: string
+          solicitante_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          estado: string
+          id?: string
+          receptor_id: string
+          solicitante_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          estado?: string
+          id?: string
+          receptor_id?: string
+          solicitante_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "amistades_receptor_id_fkey"
+            columns: ["receptor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "amistades_solicitante_id_fkey"
+            columns: ["solicitante_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       apuntes: {
         Row: {
           autor_id: string
@@ -41,6 +83,8 @@ export type Database = {
           contenido: Json
           created_at: string
           curso_id: string | null
+          enlace_permiso: Database["public"]["Enums"]["permiso_colaborador"]
+          enlace_token: string | null
           etiquetas: string[]
           favorito: boolean
           id: string
@@ -54,6 +98,8 @@ export type Database = {
           contenido?: Json
           created_at?: string
           curso_id?: string | null
+          enlace_permiso?: Database["public"]["Enums"]["permiso_colaborador"]
+          enlace_token?: string | null
           etiquetas?: string[]
           favorito?: boolean
           id?: string
@@ -67,6 +113,8 @@ export type Database = {
           contenido?: Json
           created_at?: string
           curso_id?: string | null
+          enlace_permiso?: Database["public"]["Enums"]["permiso_colaborador"]
+          enlace_token?: string | null
           etiquetas?: string[]
           favorito?: boolean
           id?: string
@@ -328,6 +376,35 @@ export type Database = {
             columns: ["carrera_id"]
             isOneToOne: false
             referencedRelation: "carreras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cv: {
+        Row: {
+          autor_id: string
+          contenido: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          autor_id: string
+          contenido?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          autor_id?: string
+          contenido?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cv_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -634,6 +711,27 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      buscar_usuarios: {
+        Args: { query: string }
+        Returns: {
+          avatar_url: string | null
+          carrera_actualizada_en: string | null
+          carrera_id: string | null
+          created_at: string
+          id: string
+          nombre: string
+          universidad: string
+          updated_at: string
+          usuario: string
+          usuario_actualizado_en: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_perfil_stats: {
         Args: never
         Returns: {
@@ -649,6 +747,82 @@ export type Database = {
           guardados: number
           publicacion_id: string
           reacciones: number
+        }[]
+      }
+      obtener_amigos: {
+        Args: { perfil_id: string }
+        Returns: {
+          avatar_url: string | null
+          carrera_actualizada_en: string | null
+          carrera_id: string | null
+          created_at: string
+          id: string
+          nombre: string
+          universidad: string
+          updated_at: string
+          usuario: string
+          usuario_actualizado_en: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      obtener_apunte_compartido: {
+        Args: { p_token: string }
+        Returns: {
+          autor_avatar_url: string
+          autor_id: string
+          autor_nombre: string
+          autor_usuario: string
+          contenido: Json
+          created_at: string
+          curso_nombre: string
+          enlace_permiso: Database["public"]["Enums"]["permiso_colaborador"]
+          id: string
+          titulo: string
+        }[]
+      }
+      obtener_solicitudes_pendientes: {
+        Args: { perfil_id: string }
+        Returns: {
+          avatar_url: string | null
+          carrera_actualizada_en: string | null
+          carrera_id: string | null
+          created_at: string
+          id: string
+          nombre: string
+          universidad: string
+          updated_at: string
+          usuario: string
+          usuario_actualizado_en: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      sugerir_amigos: {
+        Args: { limite?: number; perfil_id: string }
+        Returns: {
+          amigos_en_comun: number
+          avatar_url: string
+          carrera_id: string
+          id: string
+          nombre: string
+          razon: string
+          universidad: string
+          usuario: string
+        }[]
+      }
+      unirse_por_enlace: {
+        Args: { p_token: string }
+        Returns: {
+          apunte_id_resultado: string
         }[]
       }
     }
