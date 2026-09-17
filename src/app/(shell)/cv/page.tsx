@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { CvCtaCard } from "@/components/cv/cv-cta-card";
 import { PromptCard } from "@/components/cv/prompt-card";
 import { createClient } from "@/lib/supabase/server";
+import { tienePerfilIncompleto } from "@/lib/perfil/perfil-incompleto";
 import { PASOS_GUIA_CV, SITUACION_SIN_EXPERIENCIA } from "@/lib/cv/guia";
 
 export default async function CvPage() {
@@ -13,6 +14,10 @@ export default async function CvPage() {
 
   if (!user) {
     redirect("/?login=1");
+  }
+
+  if (await tienePerfilIncompleto(supabase, user.id, user.email)) {
+    redirect("/completar-perfil");
   }
 
   // Solo se necesita saber si ya existe una fila y cuándo se editó por

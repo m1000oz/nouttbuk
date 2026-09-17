@@ -17,10 +17,28 @@ export default async function ShellLayout({
   if (user) {
     const { data: perfil } = await supabase
       .from("profiles")
-      .select("nombre, usuario, avatar_url")
+      .select("nombre, usuario, avatar_url, universidad, carrera:carreras(nombre)")
       .eq("id", user.id)
       .single();
-    session = { id: user.id, perfil };
+
+    const carreraNombre = perfil?.carrera
+      ? (Array.isArray(perfil.carrera)
+          ? (perfil.carrera[0] as { nombre: string })?.nombre
+          : (perfil.carrera as { nombre: string }).nombre)
+      : null;
+
+    session = {
+      id: user.id,
+      perfil: perfil
+        ? {
+            nombre: perfil.nombre,
+            usuario: perfil.usuario,
+            avatar_url: perfil.avatar_url,
+            universidad: perfil.universidad ?? "PUCP",
+            carrera: carreraNombre,
+          }
+        : null,
+    };
   }
 
   return <AppShell session={session}>{children}</AppShell>;

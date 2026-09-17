@@ -6,6 +6,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 
 import { createClient } from "@/lib/supabase/server";
+import { tienePerfilIncompleto } from "@/lib/perfil/perfil-incompleto";
 import { SeccionVacia } from "@/components/shared/seccion-vacia";
 import { MateriaRecienteCard } from "@/components/inicio/materia-reciente-card";
 import { HorarioHoy } from "@/components/inicio/horario-hoy";
@@ -36,6 +37,10 @@ export default async function InicioPage() {
 
   if (!user) {
     redirect("/?login=1");
+  }
+
+  if (await tienePerfilIncompleto(supabase, user.id, user.email)) {
+    redirect("/completar-perfil");
   }
 
   const [
@@ -262,7 +267,7 @@ export default async function InicioPage() {
               Comunidad
             </h2>
             <Link
-              href="/"
+              href="/comunidad"
               className="text-sm font-medium text-primary hover:underline"
             >
               Ver toda la comunidad

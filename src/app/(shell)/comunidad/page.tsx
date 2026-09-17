@@ -15,7 +15,7 @@ import { FeedAmigos } from "@/components/comunidad/feed-amigos";
 import { FiltrosComunidad } from "@/components/comunidad/filtros-comunidad";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-export default async function ComunidadPage(props: PageProps<"/">) {
+export default async function ComunidadPage(props: PageProps<"/comunidad">) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 

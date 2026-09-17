@@ -40,6 +40,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useProTools } from "@/lib/context/pro-tools-context";
+import { useAuthGate } from "@/components/nav/auth-gate";
 
 function GlobalContextLinker({ 
   carpetas, 
@@ -116,16 +117,26 @@ const PRO_TOOLS = [
 ] as const;
 
 export function ProToolsSidebar() {
-  const { 
-    activeTool, setActiveTool, 
+  const {
+    activeTool, setActiveTool,
     activeCarpetaId, setActiveCarpetaId, carpetas,
+    autenticado,
     postIts, addPostIt, updatePostIt, removePostIt,
     pomodoroTime, pomodoroMode, pomodoroIsRunning, pomodoroTheme, pomodoroGoal,
     pomodoroSettings, setPomodoroSettings, pomodoroCycle,
     togglePomodoro, resetPomodoro, setPomodoroTheme, setPomodoroGoal,
     tasks, addTask, toggleTask, removeTask
   } = useProTools();
-  
+  const { abrirLogin } = useAuthGate();
+
+  function alternarHerramienta(toolId: (typeof PRO_TOOLS)[number]["id"]) {
+    if (toolId !== "pomodoro" && !autenticado) {
+      abrirLogin();
+      return;
+    }
+    setActiveTool(activeTool === toolId ? null : toolId);
+  }
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [newTaskText, setNewTaskText] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -198,7 +209,7 @@ export function ProToolsSidebar() {
             return (
               <button
                 key={tool.id}
-                onClick={() => setActiveTool(activo ? null : tool.id)}
+                onClick={() => alternarHerramienta(tool.id)}
                 className={cn(
                   "flex size-11 cursor-pointer items-center justify-center rounded-xl transition-all",
                   activo 
@@ -239,7 +250,7 @@ export function ProToolsSidebar() {
               <button
                 key={tool.id}
                 onClick={() => {
-                  setActiveTool(activo ? null : tool.id);
+                  alternarHerramienta(tool.id);
                   setMobileMenuOpen(false);
                 }}
                 className={cn(

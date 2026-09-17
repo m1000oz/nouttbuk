@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { tienePerfilIncompleto } from "@/lib/perfil/perfil-incompleto";
 import { BloqueSheet } from "@/components/calendario/bloque-sheet";
 import { CalendarioSemana } from "@/components/calendario/calendario-semana";
 import { CompartirCalendarioSheet } from "@/components/calendario/compartir-calendario-sheet";
@@ -20,6 +21,10 @@ export default async function CalendarioPage() {
 
   if (!user) {
     redirect("/?login=1");
+  }
+
+  if (await tienePerfilIncompleto(supabase, user.id, user.email)) {
+    redirect("/completar-perfil");
   }
 
   const [{ data: perfil }, { data: compartidosConmigo }, { data: conQuienComparto }] =

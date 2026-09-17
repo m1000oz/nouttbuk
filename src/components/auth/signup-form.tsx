@@ -7,7 +7,7 @@ import {
   esCorreoInstitucionalValido,
   MENSAJE_DOMINIO_INVALIDO,
 } from "@/lib/auth/dominio-institucional";
-import { mapearErrorAuth } from "@/lib/auth/mapear-error-auth";
+import { mapearErrorAuth, MENSAJE_CUENTA_DUPLICADA } from "@/lib/auth/mapear-error-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -113,6 +113,19 @@ export function SignupForm({ onSuccess, onIrALogin }: SignupFormProps) {
       } else {
         setError(resultado.mensaje);
       }
+      return;
+    }
+
+    // Para una cuenta ya existente y confirmada, GoTrue no devuelve un
+    // error: por diseño (evitar que alguien enumere correos registrados)
+    // responde con un usuario "ofuscado", sin sesión, pero con
+    // `identities: []` (ninguna identidad real asociada). Sin este chequeo,
+    // el código de abajo trataba esa respuesta igual que un registro nuevo
+    // y avanzaba a "verificar código" aunque GoTrue nunca envió nada,
+    // exactamente el bug reportado: sin alerta y sin correo.
+    if (data.user && data.user.identities && data.user.identities.length === 0) {
+      setCorreoError(MENSAJE_CUENTA_DUPLICADA);
+      setMostrarLinkLogin(true);
       return;
     }
 

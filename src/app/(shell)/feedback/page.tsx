@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { tienePerfilIncompleto } from "@/lib/perfil/perfil-incompleto";
 import { FeedbackBoard } from "@/components/feedback/feedback-board";
 import type { FeedbackIdea } from "@/components/feedback/feedback-lista";
 
@@ -12,6 +13,10 @@ export default async function FeedbackPage() {
 
   if (!user) {
     redirect("/?login=1");
+  }
+
+  if (await tienePerfilIncompleto(supabase, user.id, user.email)) {
+    redirect("/completar-perfil");
   }
 
   const { data: ideas } = await supabase

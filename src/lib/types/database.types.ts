@@ -513,6 +513,92 @@ export type Database = {
           },
         ]
       }
+      notas_adhesivas: {
+        Row: {
+          autor_id: string
+          carpeta_id: string | null
+          color: string
+          created_at: string
+          id: string
+          texto: string
+          updated_at: string
+        }
+        Insert: {
+          autor_id: string
+          carpeta_id?: string | null
+          color?: string
+          created_at?: string
+          id?: string
+          texto?: string
+          updated_at?: string
+        }
+        Update: {
+          autor_id?: string
+          carpeta_id?: string | null
+          color?: string
+          created_at?: string
+          id?: string
+          texto?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notas_adhesivas_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notas_adhesivas_carpeta_id_fkey"
+            columns: ["carpeta_id"]
+            isOneToOne: false
+            referencedRelation: "carpetas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pomodoro_configuracion: {
+        Row: {
+          auto_start: boolean
+          autor_id: string
+          break_duration: number
+          created_at: string
+          long_break_duration: number
+          long_break_interval: number
+          updated_at: string
+          work_duration: number
+        }
+        Insert: {
+          auto_start?: boolean
+          autor_id: string
+          break_duration?: number
+          created_at?: string
+          long_break_duration?: number
+          long_break_interval?: number
+          updated_at?: string
+          work_duration?: number
+        }
+        Update: {
+          auto_start?: boolean
+          autor_id?: string
+          break_duration?: number
+          created_at?: string
+          long_break_duration?: number
+          long_break_interval?: number
+          updated_at?: string
+          work_duration?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pomodoro_configuracion_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -702,6 +788,51 @@ export type Database = {
             columns: ["publicacion_id"]
             isOneToOne: false
             referencedRelation: "publicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tareas_rapidas: {
+        Row: {
+          autor_id: string
+          carpeta_id: string | null
+          completada: boolean
+          created_at: string
+          id: string
+          texto: string
+          updated_at: string
+        }
+        Insert: {
+          autor_id: string
+          carpeta_id?: string | null
+          completada?: boolean
+          created_at?: string
+          id?: string
+          texto: string
+          updated_at?: string
+        }
+        Update: {
+          autor_id?: string
+          carpeta_id?: string | null
+          completada?: boolean
+          created_at?: string
+          id?: string
+          texto?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tareas_rapidas_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tareas_rapidas_carpeta_id_fkey"
+            columns: ["carpeta_id"]
+            isOneToOne: false
+            referencedRelation: "carpetas"
             referencedColumns: ["id"]
           },
         ]

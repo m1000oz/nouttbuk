@@ -115,7 +115,7 @@ export function DetallePublicacion({
           size="icon"
           aria-label="Cerrar publicación"
           nativeButton={false}
-          render={<Link href="/" />}
+          render={<Link href="/comunidad" />}
         >
           <XIcon aria-hidden />
         </Button>

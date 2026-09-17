@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { tienePerfilIncompleto } from "@/lib/perfil/perfil-incompleto";
 import { ApunteEditor } from "@/components/apuntes/apunte-editor";
 import { consultaColaboradores } from "@/lib/colaboradores/consultas";
 import { consultaCursos } from "@/lib/cursos/consultas";
@@ -15,6 +16,10 @@ export default async function EditarApuntePage(
 
   if (!user) {
     redirect("/?login=1");
+  }
+
+  if (await tienePerfilIncompleto(supabase, user.id, user.email)) {
+    redirect("/completar-perfil");
   }
 
   const { id } = await props.params;

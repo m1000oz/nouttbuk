@@ -285,7 +285,7 @@ export function ApunteCompartidoView({ apunte }: ApunteCompartidoViewProps) {
                   Crear mi cuenta gratis
                 </Button>
                 <Link
-                  href="/"
+                  href="/comunidad"
                   className={cn(
                     buttonVariants({ variant: "outline", size: "lg" }),
                     "w-full sm:w-auto",

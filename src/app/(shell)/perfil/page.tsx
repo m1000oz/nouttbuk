@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { NotePencilIcon } from "@phosphor-icons/react/dist/ssr";
 
 import { createClient } from "@/lib/supabase/server";
+import { esPerfilIncompleto } from "@/lib/perfil/usuario-autogenerado";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { SeccionVacia } from "@/components/shared/seccion-vacia";
@@ -18,14 +19,6 @@ import {
   mapearPublicacionFeed,
   type ConteosPublicacion,
 } from "@/lib/comunidad/consultas";
-
-// Un signup vía Google no pasa por nuestro formulario (que sí junta
-// nombre/usuario/carrera antes de crear la cuenta), así que handle_new_user()
-// cae en su respaldo automático: usuario = "user_" + los primeros 8
-// caracteres del id. Ese patrón es la única señal disponible para detectar
-// "esta cuenta nunca completó su perfil" sin agregar una columna nueva solo
-// para esto.
-const USUARIO_AUTOGENERADO = /^user_[0-9a-f]{8}$/;
 
 function iniciales(nombre: string | null | undefined): string {
   if (!nombre) return "?";
@@ -83,15 +76,16 @@ export default async function PerfilPage() {
 
   const tarjetas = filas.map((fila) => mapearPublicacionFeed(fila, conteosPorId));
 
-  const perfilIncompleto = Boolean(
-    perfil?.usuario && USUARIO_AUTOGENERADO.test(perfil.usuario),
+  const perfilIncompleto = esPerfilIncompleto(
+    { nombre: perfil?.nombre, usuario: perfil?.usuario },
+    user.email,
   );
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-4 md:px-6 py-6 md:py-10">
       {perfilIncompleto && (
         <p className="rounded-lg border border-dashed border-border bg-muted/50 px-3 py-2 text-center text-sm text-muted-foreground">
-          Te registraste con Google. Completa tu nombre de usuario y tu
+          Te registraste con Google. Revisa tu nombre, tu usuario y tu
           carrera en &quot;Editar perfil&quot;.
         </p>
       )}

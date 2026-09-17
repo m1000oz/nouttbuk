@@ -79,6 +79,13 @@ export function PerfilPublicoHeader({
         </Button>
       );
     }
+    if (estado === "rechazada") {
+      return (
+        <Button variant="secondary" disabled>
+          Solicitud rechazada
+        </Button>
+      );
+    }
     return null;
   }
 

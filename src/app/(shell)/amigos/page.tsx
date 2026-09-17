@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { tienePerfilIncompleto } from "@/lib/perfil/perfil-incompleto";
 import { AmigosView } from "@/components/amigos/amigos-view";
 import { SugerenciasCarrusel } from "@/components/amigos/sugerencias-carrusel";
 
@@ -11,6 +12,10 @@ export default async function AmigosPage() {
 
   if (!user) {
     redirect("/?login=1");
+  }
+
+  if (await tienePerfilIncompleto(supabase, user.id, user.email)) {
+    redirect("/completar-perfil");
   }
 
   const [{ data: amigos }, { data: solicitudes }] = await Promise.all([

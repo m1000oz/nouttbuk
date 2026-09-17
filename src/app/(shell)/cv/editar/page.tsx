@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { tienePerfilIncompleto } from "@/lib/perfil/perfil-incompleto";
 import { CvEditor } from "@/components/cv/cv-editor";
 import { PLANTILLA_CV_INICIAL } from "@/lib/cv/plantilla-cv";
 
@@ -16,6 +17,10 @@ export default async function CvEditarPage() {
 
   if (!user) {
     redirect("/?login=1");
+  }
+
+  if (await tienePerfilIncompleto(supabase, user.id, user.email)) {
+    redirect("/completar-perfil");
   }
 
   const { data: cv } = await supabase

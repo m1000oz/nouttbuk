@@ -2,6 +2,8 @@
 
 import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { toast } from "@/components/ui/toast";
+import type { Database } from "@/lib/types/database.types";
 
 export type ProToolType = "notas" | "tasks" | "pomodoro" | null;
 export type PomodoroTheme = "silent" | "rain" | "lofi" | "cafe" | "cat" | "synthwave" | "classical";
@@ -35,6 +37,41 @@ export type PomodoroSettings = {
   autoStart: boolean;
 };
 
+const POMODORO_SETTINGS_DEFAULT: PomodoroSettings = {
+  workDuration: 25,
+  breakDuration: 5,
+  longBreakDuration: 15,
+  longBreakInterval: 4,
+  autoStart: false,
+};
+
+type FilaNotaAdhesiva = Pick<
+  Database["public"]["Tables"]["notas_adhesivas"]["Row"],
+  "id" | "texto" | "color" | "carpeta_id"
+>;
+type FilaTareaRapida = Pick<
+  Database["public"]["Tables"]["tareas_rapidas"]["Row"],
+  "id" | "texto" | "completada" | "carpeta_id"
+>;
+
+function mapearPostIt(fila: FilaNotaAdhesiva): PostIt {
+  return {
+    id: fila.id,
+    text: fila.texto,
+    color: fila.color as PostIt["color"],
+    carpetaId: fila.carpeta_id,
+  };
+}
+
+function mapearTarea(fila: FilaTareaRapida): ProTask {
+  return {
+    id: fila.id,
+    text: fila.texto,
+    completed: fila.completada,
+    carpetaId: fila.carpeta_id,
+  };
+}
+
 type ProToolsState = {
   activeTool: ProToolType;
   setActiveTool: (tool: ProToolType) => void;
@@ -43,6 +80,10 @@ type ProToolsState = {
   activeCarpetaId: string | null;
   setActiveCarpetaId: (id: string | null) => void;
   carpetas: CarpetaMini[];
+
+  // Autenticación: post-its y tareas necesitan una cuenta para sincronizar
+  // entre dispositivos, así que la UI que los abre necesita saber esto.
+  autenticado: boolean;
 
   // Post-its (Notas Rápidas)
   postIts: PostIt[];
@@ -75,20 +116,17 @@ const ProToolsContext = createContext<ProToolsState | null>(null);
 
 export function ProToolsProvider({ children }: { children: ReactNode }) {
   const [activeTool, setActiveTool] = useState<ProToolType>(null);
-  
+
   const [activeCarpetaId, setActiveCarpetaId] = useState<string | null>(null);
   const [carpetas, setCarpetas] = useState<CarpetaMini[]>([]);
+  const [autenticado, setAutenticado] = useState(false);
 
   const [postIts, setPostIts] = useState<PostIt[]>([]);
   const [tasks, setTasks] = useState<ProTask[]>([]);
 
-  const [pomodoroSettings, setPomodoroSettings] = useState<PomodoroSettings>({
-    workDuration: 25,
-    breakDuration: 5,
-    longBreakDuration: 15,
-    longBreakInterval: 4,
-    autoStart: false
-  });
+  const [pomodoroSettings, setPomodoroSettingsState] = useState<PomodoroSettings>(
+    POMODORO_SETTINGS_DEFAULT,
+  );
 
   const [pomodoroTime, setPomodoroTime] = useState(25 * 60);
   const [pomodoroMode, setPomodoroMode] = useState<"work" | "break" | "long_break">("work");
@@ -152,34 +190,181 @@ export function ProToolsProvider({ children }: { children: ReactNode }) {
 
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Cargar datos al montar
+  // Id del usuario cuyos datos están cargados actualmente en postIts/tasks/
+  // pomodoroSettings, para que las escrituras (addPostIt, updatePostIt, etc.)
+  // sepan a quién pertenecen sin volver a preguntarle a Supabase, y para que
+  // el listener de auth no repita el fetch en cada TOKEN_REFRESHED.
+  const usuarioIdRef = useRef<string | null>(null);
+  const importadoRef = useRef(false);
+  const timerPostItRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const timerPomodoroSettingsRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Importa una sola vez, al primer login, los post-its/tareas que hayan
+  // quedado en localStorage de la época en que estas herramientas no
+  // requerían cuenta. Se descarta carpetaId (puede referenciar una carpeta
+  // de otro dispositivo/cuenta): se importa todo como "global".
+  async function importarDatosLocales(
+    supabase: ReturnType<typeof createClient>,
+    userId: string,
+  ) {
+    try {
+      const postItsLocales = window.localStorage.getItem("nouttbuk_pro_postits");
+      if (postItsLocales) {
+        const parsed: PostIt[] = JSON.parse(postItsLocales);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          await supabase.from("notas_adhesivas").insert(
+            parsed
+              .filter((p) => p.text.trim() !== "")
+              .map((p) => ({
+                id: crypto.randomUUID(),
+                autor_id: userId,
+                texto: p.text,
+                color: p.color,
+                carpeta_id: null,
+              })),
+          );
+        }
+        window.localStorage.removeItem("nouttbuk_pro_postits");
+      }
+    } catch {}
+
+    try {
+      const tasksLocales = window.localStorage.getItem("nouttbuk_pro_tasks");
+      if (tasksLocales) {
+        const parsed: ProTask[] = JSON.parse(tasksLocales);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          await supabase.from("tareas_rapidas").insert(
+            parsed.map((t) => ({
+              id: crypto.randomUUID(),
+              autor_id: userId,
+              texto: t.text,
+              completada: t.completed,
+              carpeta_id: null,
+            })),
+          );
+        }
+        window.localStorage.removeItem("nouttbuk_pro_tasks");
+      }
+    } catch {}
+  }
+
+  // Cargar/limpiar datos de Supabase según la sesión, y mantenerse
+  // sincronizado con otras pestañas/dispositivos vía Realtime.
   useEffect(() => {
-    const guardadoPostIts = localStorage.getItem("nouttbuk_pro_postits");
-    if (guardadoPostIts) {
-      try { setPostIts(JSON.parse(guardadoPostIts)); } catch (e) { }
+    const supabase = createClient();
+    let isMounted = true;
+    let canalCarpetas: ReturnType<typeof supabase.channel> | null = null;
+    let canalNotas: ReturnType<typeof supabase.channel> | null = null;
+    let canalTareas: ReturnType<typeof supabase.channel> | null = null;
+
+    function limpiarCanales() {
+      if (canalCarpetas) supabase.removeChannel(canalCarpetas);
+      if (canalNotas) supabase.removeChannel(canalNotas);
+      if (canalTareas) supabase.removeChannel(canalTareas);
+      canalCarpetas = null;
+      canalNotas = null;
+      canalTareas = null;
     }
 
-    const guardadoTasks = localStorage.getItem("nouttbuk_pro_tasks");
-    if (guardadoTasks) {
-      try { setTasks(JSON.parse(guardadoTasks)); } catch (e) { }
-    }
-    
-    const guardadoSettings = localStorage.getItem("nouttbuk_pro_pomodoro_settings");
-    let initialSettings = {
-      workDuration: 25,
-      breakDuration: 5,
-      longBreakDuration: 15,
-      longBreakInterval: 4,
-      autoStart: false
-    };
-    if (guardadoSettings) {
-      try { 
-        initialSettings = JSON.parse(guardadoSettings);
-        setPomodoroSettings(initialSettings);
-      } catch (e) { }
+    async function cargarDatosUsuario(userId: string) {
+      const fetchCarpetas = async () => {
+        const { data } = await supabase
+          .from("carpetas")
+          .select("id, nombre, icono, color")
+          .eq("propietario_id", userId)
+          .order("created_at", { ascending: false });
+        if (data && isMounted) setCarpetas(data);
+      };
+
+      const fetchNotas = async () => {
+        const { data } = await supabase
+          .from("notas_adhesivas")
+          .select("id, texto, color, carpeta_id")
+          .eq("autor_id", userId)
+          .order("created_at", { ascending: false });
+        if (data && isMounted) setPostIts(data.map(mapearPostIt));
+      };
+
+      const fetchTareas = async () => {
+        const { data } = await supabase
+          .from("tareas_rapidas")
+          .select("id, texto, completada, carpeta_id")
+          .eq("autor_id", userId)
+          .order("created_at", { ascending: false });
+        if (data && isMounted) setTasks(data.map(mapearTarea));
+      };
+
+      const { data: pomodoro } = await supabase
+        .from("pomodoro_configuracion")
+        .select("work_duration, break_duration, long_break_duration, long_break_interval, auto_start")
+        .eq("autor_id", userId)
+        .maybeSingle();
+
+      if (!isMounted) return;
+
+      if (pomodoro) {
+        setPomodoroSettingsState({
+          workDuration: pomodoro.work_duration,
+          breakDuration: pomodoro.break_duration,
+          longBreakDuration: pomodoro.long_break_duration,
+          longBreakInterval: pomodoro.long_break_interval,
+          autoStart: pomodoro.auto_start,
+        });
+      }
+
+      await Promise.all([fetchCarpetas(), fetchNotas(), fetchTareas()]);
+      if (!isMounted) return;
+
+      if (!importadoRef.current) {
+        importadoRef.current = true;
+        await importarDatosLocales(supabase, userId);
+        if (!isMounted) return;
+        await Promise.all([fetchNotas(), fetchTareas()]);
+        if (!isMounted) return;
+      }
+
+      limpiarCanales();
+      canalCarpetas = supabase
+        .channel("carpetas-pro-tools")
+        .on("postgres_changes", { event: "*", schema: "public", table: "carpetas" }, fetchCarpetas)
+        .subscribe();
+      canalNotas = supabase
+        .channel("notas-adhesivas-pro-tools")
+        .on("postgres_changes", { event: "*", schema: "public", table: "notas_adhesivas" }, fetchNotas)
+        .subscribe();
+      canalTareas = supabase
+        .channel("tareas-rapidas-pro-tools")
+        .on("postgres_changes", { event: "*", schema: "public", table: "tareas_rapidas" }, fetchTareas)
+        .subscribe();
     }
 
-    const guardadoState = localStorage.getItem("nouttbuk_pro_pomodoro_state");
+    function limpiarDatosUsuario() {
+      limpiarCanales();
+      setCarpetas([]);
+      setActiveCarpetaId(null);
+      setPostIts([]);
+      setTasks([]);
+      setPomodoroSettingsState(POMODORO_SETTINGS_DEFAULT);
+    }
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      const userId = session?.user?.id ?? null;
+      if (userId === usuarioIdRef.current) return;
+      usuarioIdRef.current = userId;
+
+      if (userId) {
+        setAutenticado(true);
+        cargarDatosUsuario(userId);
+      } else {
+        setAutenticado(false);
+        limpiarDatosUsuario();
+      }
+      setIsInitialized(true);
+    });
+
+    // Estado en vivo del pomodoro: sigue siendo exclusivamente local, sin
+    // depender de la sesión.
+    const guardadoState = window.localStorage.getItem("nouttbuk_pro_pomodoro_state");
     if (guardadoState) {
       try {
         const parsed = JSON.parse(guardadoState);
@@ -187,22 +372,18 @@ export function ProToolsProvider({ children }: { children: ReactNode }) {
         setPomodoroTheme(parsed.pomodoroTheme ?? "silent");
         setPomodoroGoal(parsed.pomodoroGoal ?? "");
         setPomodoroCycle(parsed.pomodoroCycle ?? 1);
-        
-        let timeLeft = parsed.pomodoroTime ?? (initialSettings.workDuration * 60);
+
+        let timeLeft = parsed.pomodoroTime ?? (POMODORO_SETTINGS_DEFAULT.workDuration * 60);
         const wasRunning = parsed.pomodoroIsRunning ?? false;
-        
+
         if (wasRunning && parsed.lastUpdated) {
-           const elapsed = Math.floor((Date.now() - parsed.lastUpdated) / 1000);
-           timeLeft = Math.max(0, timeLeft - elapsed);
+          const elapsed = Math.floor((Date.now() - parsed.lastUpdated) / 1000);
+          timeLeft = Math.max(0, timeLeft - elapsed);
         }
         setPomodoroTime(timeLeft);
         setPomodoroIsRunning(wasRunning && timeLeft > 0);
-      } catch (e) { }
-    } else {
-        setPomodoroTime(initialSettings.workDuration * 60);
+      } catch {}
     }
-
-    setIsInitialized(true);
 
     if (typeof window !== "undefined") {
       ambientAudio.current = new Audio();
@@ -215,41 +396,12 @@ export function ProToolsProvider({ children }: { children: ReactNode }) {
       });
     }
 
-    // Fetch y Realtime Carpetas para el contexto
-    let channel: any = null;
-    let isMounted = true;
-    
-    async function initCarpetas() {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user || !isMounted) return;
-      
-      const fetchCarpetas = async () => {
-        const { data } = await supabase
-          .from("carpetas")
-          .select("id, nombre, icono, color")
-          .eq("propietario_id", user.id)
-          .order("created_at", { ascending: false });
-          
-        if (data && isMounted) setCarpetas(data);
-      };
-
-      await fetchCarpetas();
-
-      if (!isMounted) return;
-
-      channel = supabase.channel('carpetas-pro-tools')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'carpetas' }, () => {
-          fetchCarpetas();
-        })
-        .subscribe();
-    }
-    initCarpetas();
-
     return () => {
       isMounted = false;
-      if (channel) createClient().removeChannel(channel);
+      authListener.subscription.unsubscribe();
+      limpiarCanales();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Refetch carpetas cuando se abre el panel
@@ -259,13 +411,13 @@ export function ProToolsProvider({ children }: { children: ReactNode }) {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
-        
+
         const { data } = await supabase
           .from("carpetas")
           .select("id, nombre, icono, color")
           .eq("propietario_id", user.id)
           .order("created_at", { ascending: false });
-          
+
         if (data) setCarpetas(data);
       };
       fetchCarpetas();
@@ -274,22 +426,7 @@ export function ProToolsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!isInitialized) return;
-    localStorage.setItem("nouttbuk_pro_postits", JSON.stringify(postIts));
-  }, [postIts, isInitialized]);
-
-  useEffect(() => {
-    if (!isInitialized) return;
-    localStorage.setItem("nouttbuk_pro_tasks", JSON.stringify(tasks));
-  }, [tasks, isInitialized]);
-
-  useEffect(() => {
-    if (!isInitialized) return;
-    localStorage.setItem("nouttbuk_pro_pomodoro_settings", JSON.stringify(pomodoroSettings));
-  }, [pomodoroSettings, isInitialized]);
-
-  useEffect(() => {
-    if (!isInitialized) return;
-    localStorage.setItem("nouttbuk_pro_pomodoro_state", JSON.stringify({
+    window.localStorage.setItem("nouttbuk_pro_pomodoro_state", JSON.stringify({
       pomodoroTime,
       pomodoroMode,
       pomodoroIsRunning,
@@ -303,14 +440,14 @@ export function ProToolsProvider({ children }: { children: ReactNode }) {
   // Manejo de audios Pomodoro
   useEffect(() => {
     if (!ambientAudio.current) return;
-    
+
     if (pomodoroTheme !== "silent") {
       const playlist = THEME_PLAYLISTS[pomodoroTheme] || [];
       if (playlist.length > 0) {
         // Enforce cyclic index
         const safeIndex = playlistIndex % playlist.length;
         const currentSrc = playlist[safeIndex];
-        
+
         if (ambientAudio.current.src !== currentSrc) {
           ambientAudio.current.src = currentSrc;
           if (pomodoroIsRunning) {
@@ -349,7 +486,7 @@ export function ProToolsProvider({ children }: { children: ReactNode }) {
       if (alarmAudio.current) {
         alarmAudio.current.play().catch(() => console.warn("Alarma bloqueada"));
       }
-      
+
       // Lógica de transición
       let nextMode: "work" | "break" | "long_break" = "work";
       let nextTime = pomodoroSettings.workDuration * 60;
@@ -372,7 +509,7 @@ export function ProToolsProvider({ children }: { children: ReactNode }) {
       setPomodoroMode(nextMode);
       setPomodoroTime(nextTime);
       setPomodoroCycle(nextCycle);
-      
+
       if (pomodoroSettings.autoStart) {
         setTimeout(() => setPomodoroIsRunning(true), 1500);
       }
@@ -389,27 +526,137 @@ export function ProToolsProvider({ children }: { children: ReactNode }) {
     else setPomodoroTime(pomodoroSettings.longBreakDuration * 60);
   };
 
-  // Funciones Tareas
+  // Config. de pomodoro: se actualiza local de inmediato, y se sincroniza a
+  // Supabase con debounce (los sliders de duración disparan muchos cambios
+  // seguidos). Sin sesión, se queda solo en memoria (no hay a quién
+  // guardarle la fila).
+  function setPomodoroSettings(settings: PomodoroSettings) {
+    setPomodoroSettingsState(settings);
+    const userId = usuarioIdRef.current;
+    if (!userId) return;
+
+    if (timerPomodoroSettingsRef.current) {
+      clearTimeout(timerPomodoroSettingsRef.current);
+    }
+    timerPomodoroSettingsRef.current = setTimeout(async () => {
+      const supabase = createClient();
+      const { error } = await supabase.from("pomodoro_configuracion").upsert(
+        {
+          autor_id: userId,
+          work_duration: settings.workDuration,
+          break_duration: settings.breakDuration,
+          long_break_duration: settings.longBreakDuration,
+          long_break_interval: settings.longBreakInterval,
+          auto_start: settings.autoStart,
+        },
+        { onConflict: "autor_id" },
+      );
+      if (error) {
+        toast.add({ title: "No se pudo guardar la configuración del pomodoro.", type: "error" });
+      }
+    }, 800);
+  }
+
+  // Funciones Tareas: acciones discretas e infrecuentes, se escriben de
+  // inmediato (sin debounce).
   const addTask = (text: string) => {
     if (!text.trim()) return;
-    setTasks(prev => [{ id: Date.now().toString(), text, completed: false, carpetaId: activeCarpetaId }, ...prev]);
+    const userId = usuarioIdRef.current;
+    if (!userId) return;
+
+    const nueva: ProTask = { id: crypto.randomUUID(), text, completed: false, carpetaId: activeCarpetaId };
+    setTasks(prev => [nueva, ...prev]);
+
+    const supabase = createClient();
+    supabase
+      .from("tareas_rapidas")
+      .insert({ id: nueva.id, autor_id: userId, texto: text, completada: false, carpeta_id: activeCarpetaId })
+      .then(({ error }) => {
+        if (error) {
+          toast.add({ title: "No se pudo guardar la tarea.", type: "error" });
+          setTasks(prev => prev.filter(t => t.id !== nueva.id));
+        }
+      });
   };
   const toggleTask = (id: string) => {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
+    let completedNuevo = false;
+    setTasks(prev => prev.map(t => {
+      if (t.id !== id) return t;
+      completedNuevo = !t.completed;
+      return { ...t, completed: completedNuevo };
+    }));
+
+    const supabase = createClient();
+    supabase
+      .from("tareas_rapidas")
+      .update({ completada: completedNuevo })
+      .eq("id", id)
+      .then(({ error }) => {
+        if (error) toast.add({ title: "No se pudo actualizar la tarea.", type: "error" });
+      });
   };
   const removeTask = (id: string) => {
     setTasks(prev => prev.filter(t => t.id !== id));
+    const supabase = createClient();
+    supabase
+      .from("tareas_rapidas")
+      .delete()
+      .eq("id", id)
+      .then(({ error }) => {
+        if (error) toast.add({ title: "No se pudo eliminar la tarea.", type: "error" });
+      });
   };
 
   // Funciones Post-its
   const addPostIt = (color: PostIt["color"] = "yellow") => {
-    setPostIts(prev => [{ id: Date.now().toString(), text: "", color, carpetaId: activeCarpetaId }, ...prev]);
+    const userId = usuarioIdRef.current;
+    if (!userId) return;
+
+    const nuevo: PostIt = { id: crypto.randomUUID(), text: "", color, carpetaId: activeCarpetaId };
+    setPostIts(prev => [nuevo, ...prev]);
+
+    const supabase = createClient();
+    supabase
+      .from("notas_adhesivas")
+      .insert({ id: nuevo.id, autor_id: userId, texto: "", color, carpeta_id: activeCarpetaId })
+      .then(({ error }) => {
+        if (error) {
+          toast.add({ title: "No se pudo crear el post-it.", type: "error" });
+          setPostIts(prev => prev.filter(p => p.id !== nuevo.id));
+        }
+      });
   };
   const updatePostIt = (id: string, text: string) => {
     setPostIts(prev => prev.map(p => p.id === id ? { ...p, text } : p));
+
+    const timers = timerPostItRef.current;
+    const timerPrevio = timers.get(id);
+    if (timerPrevio) clearTimeout(timerPrevio);
+
+    timers.set(id, setTimeout(async () => {
+      timers.delete(id);
+      const supabase = createClient();
+      const { error } = await supabase.from("notas_adhesivas").update({ texto: text }).eq("id", id);
+      if (error) toast.add({ title: "No se pudo guardar el post-it.", type: "error" });
+    }, 800));
   };
   const removePostIt = (id: string) => {
     setPostIts(prev => prev.filter(p => p.id !== id));
+    const timers = timerPostItRef.current;
+    const timerPrevio = timers.get(id);
+    if (timerPrevio) {
+      clearTimeout(timerPrevio);
+      timers.delete(id);
+    }
+
+    const supabase = createClient();
+    supabase
+      .from("notas_adhesivas")
+      .delete()
+      .eq("id", id)
+      .then(({ error }) => {
+        if (error) toast.add({ title: "No se pudo eliminar el post-it.", type: "error" });
+      });
   };
 
   return (
@@ -417,6 +664,7 @@ export function ProToolsProvider({ children }: { children: ReactNode }) {
       value={{
         activeTool, setActiveTool,
         activeCarpetaId, setActiveCarpetaId, carpetas,
+        autenticado,
         postIts, addPostIt, updatePostIt, removePostIt,
         pomodoroTime, pomodoroMode, pomodoroIsRunning, pomodoroTheme, pomodoroGoal,
         pomodoroSettings, setPomodoroSettings, pomodoroCycle,

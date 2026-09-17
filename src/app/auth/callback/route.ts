@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { createClient } from "@/lib/supabase/server";
+import { esPerfilIncompleto } from "@/lib/perfil/usuario-autogenerado";
 
 // Destino del "Authorized redirect URI" que se configura en Google Cloud
 // Console (a través de Supabase Auth, no directo a este dominio) y también
@@ -54,7 +55,7 @@ export async function GET(request: Request) {
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  const { error, data } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
     return NextResponse.redirect(
@@ -65,9 +66,31 @@ export async function GET(request: Request) {
   // A diferencia del login con correo/contraseña (que ya trae usuario/
   // carrera desde el formulario de registro), una cuenta creada vía Google
   // cae en los valores de respaldo de handle_new_user() (usuario
-  // autogenerado, sin carrera). /perfil muestra el aviso de "completa tu
-  // perfil" cuando detecta ese patrón, ver perfilIncompleto en esa página.
-  // destinoSeguro es /perfil salvo que el llamador haya pedido otro destino
-  // relativo propio (recuperar-form.tsx pide /actualizar-contrasena).
+  // autogenerado, sin carrera). Bug real reportado: como destinoSeguro por
+  // defecto es /perfil, y /perfil es la única página protegida que a
+  // propósito queda exenta del bloqueo forzado de /completar-perfil (para no
+  // generar un loop cuando ese mismo /completar-perfil te devuelve ahí), una
+  // cuenta de Google podía "pasar de largo" el chequeo entero mientras nunca
+  // navegara a Inicio/Mis apuntes/Amigos por su cuenta: aterrizaba en
+  // /perfil, veía como mucho el aviso suave, y podía seguir usando el resto
+  // de la app (Comunidad, perfiles públicos) sin completar nunca sus datos.
+  // Forzamos el chequeo acá mismo, en el instante justo en que termina el
+  // login con Google, en vez de depender de que la persona visite después
+  // alguna de las otras páginas protegidas. `next` (usado solo por el enlace
+  // de recuperación de contraseña por correo, nunca por Google) nunca
+  // convive con un perfil incompleto, así que sobreescribirlo acá no rompe
+  // ese flujo.
+  if (data.user) {
+    const { data: perfil } = await supabase
+      .from("profiles")
+      .select("nombre, usuario")
+      .eq("id", data.user.id)
+      .single();
+
+    if (esPerfilIncompleto({ nombre: perfil?.nombre, usuario: perfil?.usuario }, data.user.email)) {
+      return NextResponse.redirect(`${origin}/completar-perfil`);
+    }
+  }
+
   return NextResponse.redirect(`${origin}${destinoSeguro}`);
 }

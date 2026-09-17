@@ -1,5 +1,7 @@
 import { MENSAJE_DOMINIO_INVALIDO } from "@/lib/auth/dominio-institucional";
 
+export const MENSAJE_CUENTA_DUPLICADA = "Ya existe una cuenta con este correo.";
+
 export type ResultadoErrorAuth = {
   tipo: "dominio" | "credenciales" | "duplicado" | "codigo" | "red";
   mensaje: string;
@@ -30,7 +32,7 @@ export function mapearErrorAuth(error: unknown): ResultadoErrorAuth {
   ) {
     return {
       tipo: "duplicado",
-      mensaje: "Ya existe una cuenta con este correo.",
+      mensaje: MENSAJE_CUENTA_DUPLICADA,
     };
   }
 

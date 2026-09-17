@@ -126,7 +126,9 @@ export function AmigosView({
     const solicitud = solicitudes.find((s) => s.id === solicitanteId);
     setSolicitudes((prev) => prev.filter((s) => s.id !== solicitanteId));
     if (aceptar && solicitud) {
-      setAmigos((prev) => [...prev, solicitud]);
+      setAmigos((prev) =>
+        [...prev, solicitud].sort((a, b) => a.nombre.localeCompare(b.nombre)),
+      );
     }
 
     const { error } = await supabase
@@ -212,6 +214,13 @@ export function AmigosView({
       return (
         <span className="text-xs font-medium text-green-600 bg-green-500/10 px-2 py-1 rounded-md flex items-center gap-1">
           <CheckIcon /> Amigos
+        </span>
+      );
+    }
+    if (user.estado_amistad === "rechazada") {
+      return (
+        <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-md">
+          Solicitud rechazada
         </span>
       );
     }
@@ -371,7 +380,7 @@ export function AmigosView({
                     <Button
                       size="icon-sm"
                       variant="ghost"
-                      className="text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-red-600 transition-opacity shrink-0"
+                      className="text-muted-foreground opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:text-red-600 transition-opacity shrink-0"
                       onClick={() => eliminarAmigo(a.id)}
                       title="Eliminar amigo"
                     >

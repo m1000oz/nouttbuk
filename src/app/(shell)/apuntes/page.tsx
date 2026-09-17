@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeftIcon, FolderIcon, FolderSimpleIcon } from "@phosphor-icons/react/dist/ssr";
 
 import { createClient } from "@/lib/supabase/server";
+import { tienePerfilIncompleto } from "@/lib/perfil/perfil-incompleto";
 import { SeccionVacia } from "@/components/shared/seccion-vacia";
 import { MateriaRecienteCard } from "@/components/inicio/materia-reciente-card";
 import { CarpetaSheet } from "@/components/apuntes/carpeta-sheet";
@@ -21,6 +22,10 @@ export default async function MisApuntesPage(props: PageProps<"/apuntes">) {
 
   if (!user) {
     redirect("/?login=1");
+  }
+
+  if (await tienePerfilIncompleto(supabase, user.id, user.email)) {
+    redirect("/completar-perfil");
   }
 
   const searchParams = await props.searchParams;

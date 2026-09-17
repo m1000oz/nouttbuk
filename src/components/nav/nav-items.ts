@@ -20,6 +20,6 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/apuntes", label: "Mis apuntes", icon: NotebookIcon, requiresAuth: true },
   { href: "/calendario", label: "Calendario", icon: CalendarIcon, requiresAuth: true },
   { href: "/amigos", label: "Amigos", icon: UserListIcon, requiresAuth: true },
-  { href: "/", label: "Comunidad", icon: UsersThreeIcon, requiresAuth: false },
+  { href: "/comunidad", label: "Comunidad", icon: UsersThreeIcon, requiresAuth: false },
   { href: "/perfil", label: "Perfil", icon: UserIcon, requiresAuth: true },
 ]
