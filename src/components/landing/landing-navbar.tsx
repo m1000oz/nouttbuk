@@ -6,6 +6,7 @@ import { ListIcon, XIcon } from "@phosphor-icons/react";
 
 import { NouttbukLogo } from "@/components/brand";
 import { Button } from "@/components/ui/button";
+import { GooeyNav } from "@/components/landing/gooey-nav";
 import { useLandingAuth } from "@/components/landing/landing-auth-context";
 import { cn } from "@/lib/utils";
 
@@ -27,9 +28,6 @@ export function LandingNavbar({ usuarioAutenticado = false }: LandingNavbarProps
   }, []);
 
   const navLinks = [
-    { label: "Por qué Nouttbuk", href: "#problema" },
-    { label: "Para estudiar", href: "#estudiantes" },
-    { label: "Para tu grupo", href: "#equipos" },
     { label: "Comunidad", href: "/comunidad" },
     { label: "Preguntas frecuentes", href: "#faq" },
   ];
@@ -44,38 +42,20 @@ export function LandingNavbar({ usuarioAutenticado = false }: LandingNavbarProps
       )}
     >
       <div className="mx-auto flex h-20 sm:h-24 w-full max-w-7xl items-center justify-between px-6 sm:px-10 lg:px-12">
-        {/* Brand Logo & Campus Indicator */}
-        <div className="flex items-center gap-4 lg:gap-6">
-          <NouttbukLogo
-            href="/"
-            variant="horizontal"
-            size="md"
-            withSlogan={true}
-            sloganText="Tus apuntes, tu comunidad"
-            className="scale-100 sm:scale-105 origin-left"
-          />
-
-          <div className="hidden xl:flex items-center gap-2 rounded-full border border-teal-500/20 bg-teal-500/10 px-3 py-1 text-xs font-semibold text-teal-700 dark:text-teal-300">
-            <span className="relative flex size-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full size-2 bg-teal-500"></span>
-            </span>
-            <span>Comunidad PUCP</span>
-          </div>
-        </div>
+        {/* Brand Logo */}
+        <NouttbukLogo
+          href="/"
+          variant="horizontal"
+          size="md"
+          withSlogan={true}
+          sloganText="Tus apuntes, tu comunidad"
+          className="scale-100 sm:scale-105 origin-left"
+        />
 
         {/* Desktop Navigation Links */}
-        <nav className="hidden items-center gap-1 xl:gap-2 lg:flex" aria-label="Navegación principal">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="rounded-xl px-3.5 py-2 text-sm font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground"
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
+        <div className="hidden lg:block">
+          <GooeyNav items={navLinks} />
+        </div>
 
         {/* Right Actions */}
         <div className="hidden items-center gap-3 sm:flex">

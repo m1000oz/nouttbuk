@@ -8,7 +8,7 @@ const FAQS = [
   {
     pregunta: "¿Nouttbuk es realmente gratis?",
     respuesta:
-      "Sí, Nouttbuk es completamente gratuito para todos los estudiantes y miembros de la comunidad universitaria. No hay límites en la cantidad de apuntes, carpetas de materias o sesiones de estudio que puedes crear.",
+      "Sí, Nouttbuk es completamente gratuito para todos los estudiantes y miembros de la comunidad universitaria. No hay límites en la cantidad de apuntes, carpetas de cursos o sesiones de estudio que puedes crear.",
   },
   {
     pregunta: "¿Por qué el registro requiere un correo institucional de la universidad?",

@@ -8,7 +8,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { tienePerfilIncompleto } from "@/lib/perfil/perfil-incompleto";
 import { SeccionVacia } from "@/components/shared/seccion-vacia";
-import { MateriaRecienteCard } from "@/components/inicio/materia-reciente-card";
+import { CursoRecienteCard } from "@/components/inicio/curso-reciente-card";
 import { HorarioHoy } from "@/components/inicio/horario-hoy";
 import {
   AccesosRapidos,
@@ -55,7 +55,7 @@ export default async function InicioPage() {
     // Sin .limit: a diferencia de la versión anterior, el mapa carpeta→color
     // necesita cubrir el 100% de las carpetas del usuario (lo usan
     // ApunteTarjeta/ApunteOpcionesMenu), no solo las 4 más recientes que se
-    // muestran en "Materias recientes".
+    // muestran en "Cursos recientes".
     supabase
       .from("carpetas")
       .select("id, nombre, color, icono")
@@ -79,8 +79,8 @@ export default async function InicioPage() {
   ]);
 
   const primerNombre = perfil?.nombre?.split(" ")[0] ?? "";
-  const materias = carpetas ?? [];
-  const materiasRecientes = materias.slice(0, 4);
+  const cursos = carpetas ?? [];
+  const cursosRecientes = cursos.slice(0, 4);
   const notas = apuntes ?? [];
   const [destacada, ...restoNotas] = notas;
   const favoritos = favoritosData ?? [];
@@ -113,13 +113,13 @@ export default async function InicioPage() {
 
   const carpetaPorId: Record<string, { nombre: string; color: string }> =
     Object.fromEntries(
-      materias.map((materia) => [
-        materia.id,
-        { nombre: materia.nombre, color: materia.color },
+      cursos.map((curso) => [
+        curso.id,
+        { nombre: curso.nombre, color: curso.color },
       ]),
     );
 
-  const sinNada = materias.length === 0 && notas.length === 0;
+  const sinNada = cursos.length === 0 && notas.length === 0;
 
   return (
     <div className="flex flex-1 flex-col gap-8 px-6 py-8">
@@ -134,31 +134,31 @@ export default async function InicioPage() {
         <SeccionVacia
           icon={NotePencilIcon}
           titulo="Todavía no tienes nada por aquí"
-          descripcion="Crea tu primera materia y tu primer apunte para empezar a organizar tus notas."
+          descripcion="Crea tu primer curso y tu primer apunte para empezar a organizar tus notas."
           accion={<AccionVerApuntes />}
         />
       ) : (
         <>
           <section className="flex flex-col gap-3">
             <h2 className="text-sm font-semibold text-muted-foreground">
-              Materias recientes
+              Cursos recientes
             </h2>
-            {materiasRecientes.length === 0 ? (
+            {cursosRecientes.length === 0 ? (
               <SeccionVacia
                 icon={FolderSimpleIcon}
-                titulo="Todavía no tienes materias"
+                titulo="Todavía no tienes cursos"
                 descripcion="Cuando crees una carpeta para organizar tus apuntes, aparece aquí."
                 accion={<AccionVerApuntes />}
               />
             ) : (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                {materiasRecientes.map((materia, index) => (
-                  <MateriaRecienteCard
-                    key={materia.id}
-                    id={materia.id}
-                    nombre={materia.nombre}
-                    color={materia.color}
-                    icono={materia.icono}
+                {cursosRecientes.map((curso, index) => (
+                  <CursoRecienteCard
+                    key={curso.id}
+                    id={curso.id}
+                    nombre={curso.nombre}
+                    color={curso.color}
+                    icono={curso.icono}
                     index={index}
                   />
                 ))}
@@ -193,7 +193,7 @@ export default async function InicioPage() {
                       }
                       favorito={destacada.favorito}
                       visibilidad={destacada.visibilidad}
-                      carpetas={materias}
+                      carpetas={cursos}
                       index={0}
                       destacado
                     />
@@ -214,7 +214,7 @@ export default async function InicioPage() {
                     }
                     favorito={apunte.favorito}
                     visibilidad={apunte.visibilidad}
-                    carpetas={materias}
+                    carpetas={cursos}
                     index={index + 1}
                   />
                 ))}
@@ -243,7 +243,7 @@ export default async function InicioPage() {
                     }
                     favorito={apunte.favorito}
                     visibilidad={apunte.visibilidad}
-                    carpetas={materias}
+                    carpetas={cursos}
                     index={index}
                   />
                 ))}

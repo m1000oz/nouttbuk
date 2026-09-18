@@ -5,7 +5,7 @@ import { ArrowLeftIcon, FolderIcon, FolderSimpleIcon } from "@phosphor-icons/rea
 import { createClient } from "@/lib/supabase/server";
 import { tienePerfilIncompleto } from "@/lib/perfil/perfil-incompleto";
 import { SeccionVacia } from "@/components/shared/seccion-vacia";
-import { MateriaRecienteCard } from "@/components/inicio/materia-reciente-card";
+import { CursoRecienteCard } from "@/components/inicio/curso-reciente-card";
 import { CarpetaSheet } from "@/components/apuntes/carpeta-sheet";
 import { ApuntesExplorer } from "@/components/apuntes/apuntes-explorer";
 import { resolverColorCarpeta } from "@/lib/carpetas/colores";
@@ -48,7 +48,7 @@ export default async function MisApuntesPage(props: PageProps<"/apuntes">) {
       supabase.from("colaboradores").select("apunte_id").eq("perfil_id", user.id),
     ]);
 
-  const materias = carpetas ?? [];
+  const cursos = carpetas ?? [];
   const notas = apuntes ?? [];
 
   const apunteIdsCompartidos = (colaboraciones ?? []).map((c) => c.apunte_id);
@@ -65,7 +65,7 @@ export default async function MisApuntesPage(props: PageProps<"/apuntes">) {
   // link viejo a una carpeta ya borrada), se ignora el filtro en vez de
   // mostrar un error, y la página se comporta como si no tuviera ?carpeta=.
   const carpetaActiva = carpetaIdParam
-    ? materias.find((materia) => materia.id === carpetaIdParam)
+    ? cursos.find((curso) => curso.id === carpetaIdParam)
     : undefined;
 
   const notasVisibles = carpetaActiva
@@ -79,9 +79,9 @@ export default async function MisApuntesPage(props: PageProps<"/apuntes">) {
   // Server → Client Component como prop de ApuntesExplorer.
   const nombreCarpetaPorId: Record<string, { nombre: string; color: string }> =
     Object.fromEntries(
-      materias.map((materia) => [
-        materia.id,
-        { nombre: materia.nombre, color: materia.color },
+      cursos.map((curso) => [
+        curso.id,
+        { nombre: curso.nombre, color: curso.color },
       ]),
     );
 
@@ -125,22 +125,22 @@ export default async function MisApuntesPage(props: PageProps<"/apuntes">) {
           <h2 className="text-sm font-semibold text-muted-foreground">
             Carpetas
           </h2>
-          {materias.length === 0 ? (
+          {cursos.length === 0 ? (
             <SeccionVacia
               icon={FolderSimpleIcon}
               titulo="Todavía no tienes carpetas"
-              descripcion="Crea una carpeta para organizar tus apuntes por materia."
+              descripcion="Crea una carpeta para organizar tus apuntes por curso."
               accion={<CarpetaSheet />}
             />
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-              {materias.map((materia, index) => (
-                <MateriaRecienteCard
-                  key={materia.id}
-                  id={materia.id}
-                  nombre={materia.nombre}
-                  color={materia.color}
-                  icono={materia.icono}
+              {cursos.map((curso, index) => (
+                <CursoRecienteCard
+                  key={curso.id}
+                  id={curso.id}
+                  nombre={curso.nombre}
+                  color={curso.color}
+                  icono={curso.icono}
                   index={index}
                 />
               ))}
@@ -176,7 +176,7 @@ export default async function MisApuntesPage(props: PageProps<"/apuntes">) {
             propietario: apunte.autor?.nombre,
           }))}
           carpetaPorId={nombreCarpetaPorId}
-          carpetas={materias}
+          carpetas={cursos}
           carpetaActivaId={carpetaActiva?.id}
         />
       </section>

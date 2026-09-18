@@ -11,7 +11,7 @@ const APUNTES_DESTACADOS = [
     titulo: "Ecuaciones de Maxwell y Ondas Electromagnéticas",
     carrera: "Telecomunicaciones",
     curso: "Campos Electromagnéticos",
-    colorMateria: "border-folder-blue/40 bg-folder-blue/10 text-folder-blue",
+    colorCurso: "border-folder-blue/40 bg-folder-blue/10 text-folder-blue",
     autor: "Mateo S.",
     avatar: "MS",
     reacciones: 34,
@@ -24,7 +24,7 @@ const APUNTES_DESTACADOS = [
     titulo: "Control Difuso vs. Control Concentrado en el Perú",
     carrera: "Derecho",
     curso: "Derecho Constitucional",
-    colorMateria: "border-folder-violet/40 bg-folder-violet/10 text-folder-violet",
+    colorCurso: "border-folder-violet/40 bg-folder-violet/10 text-folder-violet",
     autor: "Camila V.",
     avatar: "CV",
     reacciones: 48,
@@ -37,7 +37,7 @@ const APUNTES_DESTACADOS = [
     titulo: "Equilibrio en el Mercado de Bienes y Dinero: Modelo IS-LM",
     carrera: "Economía y Gestión",
     curso: "Macroeconomía",
-    colorMateria: "border-folder-amber/40 bg-folder-amber/10 text-folder-amber",
+    colorCurso: "border-folder-amber/40 bg-folder-amber/10 text-folder-amber",
     autor: "Rodrigo A.",
     avatar: "RA",
     reacciones: 29,
@@ -86,7 +86,7 @@ export function LandingCommunityPreview() {
             >
               <div>
                 <div className="flex items-center justify-between gap-2 mb-3.5">
-                  <span className={`rounded-xl border px-3 py-1 text-xs font-semibold ${item.colorMateria}`}>
+                  <span className={`rounded-xl border px-3 py-1 text-xs font-semibold ${item.colorCurso}`}>
                     {item.curso}
                   </span>
                   <span className="text-xs text-muted-foreground">{item.tiempo}</span>

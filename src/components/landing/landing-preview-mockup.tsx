@@ -915,7 +915,7 @@ export function LandingPreviewMockup() {
 
                       {/* Párrafo del mensaje humano y directo */}
                       <p className="text-xs sm:text-sm leading-relaxed text-foreground/90">
-                        Hice Nouttbuk porque estaba cansado de perder apuntes entre grupos de WhatsApp y carpetas desordenadas de Drive. Quería que tuviéramos un cuaderno limpio, organizado por materias, donde estudiar juntos en los exámenes sea simple y podamos compartir resúmenes en la{" "}
+                        Hice Nouttbuk porque estaba cansado de perder apuntes entre grupos de WhatsApp y carpetas desordenadas de Drive. Quería que tuviéramos un cuaderno limpio, organizado por cursos, donde estudiar juntos en los exámenes sea simple y podamos compartir resúmenes en la{" "}
                         <span
                           onMouseEnter={() => setHipertextoActivo(true)}
                           onMouseLeave={() => setHipertextoActivo(false)}

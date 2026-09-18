@@ -23,7 +23,7 @@ export function LandingCTA({ usuarioAutenticado = false }: LandingCTAProps) {
 
           {/* Main heading (Widescreen scale) */}
           <h2 className="relative mx-auto max-w-3xl text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-foreground leading-[1.12]">
-            Llega a tus exámenes con tus materias en orden.
+            Llega a tus exámenes con tus cursos en orden.
           </h2>
 
           <p className="relative mx-auto mt-6 max-w-2xl text-base sm:text-xl text-muted-foreground leading-relaxed">

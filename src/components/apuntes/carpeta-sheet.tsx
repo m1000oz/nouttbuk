@@ -138,7 +138,7 @@ export function CarpetaSheet({ carpeta, trigger }: CarpetaSheetProps) {
           </SheetTitle>
           <SheetDescription>
             Elige un nombre y un color para organizar tus apuntes por
-            materia.
+            curso.
           </SheetDescription>
         </SheetHeader>
 
@@ -156,7 +156,7 @@ export function CarpetaSheet({ carpeta, trigger }: CarpetaSheetProps) {
           )}
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="carpeta-nombre">Nombre de la materia</Label>
+            <Label htmlFor="carpeta-nombre">Nombre del curso</Label>
             <Input
               id="carpeta-nombre"
               required

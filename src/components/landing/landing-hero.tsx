@@ -22,7 +22,7 @@ export function LandingHero({ usuarioAutenticado = false }: LandingHeroProps) {
 
         {/* Subtitle (Clear, focused, human) */}
         <p className="mx-auto mt-6 max-w-2xl text-base sm:text-xl text-muted-foreground leading-relaxed">
-          Tus apuntes organizados por materia, redacción en vivo con tu grupo de estudio y una comunidad académica sin costo.
+          Tus apuntes organizados por curso, redacción en vivo con tu grupo de estudio y una comunidad académica sin costo.
         </p>
 
         {/* Dual Primary Call-to-Actions (No arrows in buttons, no container overflow) */}

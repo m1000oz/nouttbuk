@@ -410,15 +410,15 @@ function DesktopSidebar({
           })}
         </div>
 
-        {/* Materias del ciclo con carpetas de color */}
+        {/* Cursos del ciclo con carpetas de color */}
         <div className="pt-2">
           <div className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-            Materias del ciclo
+            Cursos del ciclo
           </div>
           <div className="space-y-1 text-xs font-medium">
             {carpetas.length > 0 ? (
               carpetas.map((carpeta) => {
-                const isMateriaActiva =
+                const isCursoActivo =
                   pathname === "/apuntes" && carpetaIdActual === carpeta.id;
                 const colorHex = resolverColorCarpeta(carpeta.color);
 
@@ -428,7 +428,7 @@ function DesktopSidebar({
                     href={`/apuntes?carpeta=${carpeta.id}`}
                     className={cn(
                       "flex items-center justify-between rounded-xl px-3 py-1.5 transition-all",
-                      isMateriaActiva
+                      isCursoActivo
                         ? "bg-card text-foreground font-bold shadow-xs border border-border/80"
                         : "text-muted-foreground hover:bg-card/50 hover:text-foreground border border-transparent",
                     )}
@@ -448,8 +448,8 @@ function DesktopSidebar({
             ) : (
               <p className="px-3 py-1.5 text-xs text-muted-foreground/70 italic">
                 {autenticado
-                  ? "Sin materias creadas"
-                  : "Inicia sesión para ver tus materias"}
+                  ? "Sin cursos creadas"
+                  : "Inicia sesión para ver tus cursos"}
               </p>
             )}
           </div>

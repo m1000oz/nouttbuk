@@ -1,59 +1,90 @@
+"use client";
+
 import Link from "next/link";
-import { NouttbukLogo } from "@/components/brand";
+import { NouttbukIsotipo } from "@/components/brand";
+import { PandatomicLogo } from "@/components/shared/pandatomic-logo";
+import { RingSeam } from "@/components/landing/ring-seam";
+import { useLandingAuth } from "@/components/landing/landing-auth-context";
 
 export function LandingFooter() {
-  return (
-    <footer className="border-t border-border/70 bg-card py-16">
-      <div className="mx-auto w-full max-w-7xl px-6 sm:px-10 lg:px-12">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
-          {/* Brand & Slogan */}
-          <div className="space-y-2">
-            <NouttbukLogo
-              variant="horizontal"
-              size="md"
-              withSlogan={true}
-              sloganText="Tus apuntes, tu comunidad"
-            />
-            <p className="text-xs text-muted-foreground max-w-md pt-1">
-              Plataforma académica para estudiantes universitarios. Apuntes organizados por materia, coedición en vivo y comunidad abierta.
-            </p>
-          </div>
+  const { abrirAuth } = useLandingAuth();
 
-          {/* Links */}
-          <div className="flex flex-wrap gap-x-8 gap-y-3 text-xs sm:text-sm font-medium text-muted-foreground">
-            <Link href="#problema" className="hover:text-foreground transition-colors">
-              Por qué Nouttbuk
-            </Link>
-            <Link href="#estudiantes" className="hover:text-foreground transition-colors">
-              Para estudiar
-            </Link>
-            <Link href="#equipos" className="hover:text-foreground transition-colors">
-              Para tu grupo
-            </Link>
-            <Link href="/comunidad" className="hover:text-foreground transition-colors">
-              Comunidad
-            </Link>
-            <Link href="/feedback" className="hover:text-foreground transition-colors">
-              Sugerencias
-            </Link>
-            <Link href="/terminos" className="hover:text-foreground transition-colors">
-              Términos
-            </Link>
-            <Link href="/privacidad" className="hover:text-foreground transition-colors">
-              Privacidad
-            </Link>
-            <Link href="/creditos" className="hover:text-foreground transition-colors">
-              Créditos
-            </Link>
-          </div>
+  const columnas = [
+    {
+      titulo: "Producto",
+      enlaces: [
+        { label: "Comunidad", href: "/comunidad" },
+        { label: "Preguntas frecuentes", href: "#faq" },
+      ],
+    },
+    {
+      titulo: "Empieza",
+      enlaces: [
+        { label: "Crear cuenta", onClick: () => abrirAuth("signup") },
+        { label: "Iniciar sesión", onClick: () => abrirAuth("login") },
+      ],
+    },
+    {
+      titulo: "Legal",
+      enlaces: [
+        { label: "Términos de uso", href: "/terminos" },
+        { label: "Privacidad", href: "/privacidad" },
+        { label: "Créditos", href: "/creditos" },
+      ],
+    },
+  ];
+
+  return (
+    <footer className="relative bg-slate-900 text-slate-100">
+      <RingSeam className="top-0 -translate-y-1/2" dotClassName="border-slate-500 bg-slate-900" />
+
+      <div className="mx-auto w-full max-w-7xl px-6 pt-16 pb-10 sm:px-10 sm:pt-20 lg:px-12">
+        <p className="max-w-2xl font-serif text-3xl italic leading-[1.2] text-slate-100 sm:text-5xl" style={{ fontFamily: "var(--font-manuscrito), Georgia, serif" }}>
+          Tus apuntes, tu comunidad.
+        </p>
+
+        <div className="mt-14 grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-3">
+          {columnas.map((columna) => (
+            <div key={columna.titulo}>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-teal-400">
+                {columna.titulo}
+              </h3>
+              <ul className="mt-4 space-y-3">
+                {columna.enlaces.map((enlace) => (
+                  <li key={enlace.label}>
+                    {"href" in enlace ? (
+                      <Link
+                        href={enlace.href}
+                        className="text-sm font-medium text-slate-300 transition-colors hover:text-white"
+                      >
+                        {enlace.label}
+                      </Link>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={enlace.onClick}
+                        className="text-sm font-medium text-slate-300 transition-colors hover:text-white"
+                      >
+                        {enlace.label}
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
 
-        {/* Copyright */}
-        <div className="mt-12 pt-8 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
-          <p>© {new Date().getFullYear()} Nouttbuk. Pensado para la comunidad de la Pontificia Universidad Católica del Perú.</p>
-          <div className="flex items-center gap-4 text-muted-foreground">
-            <span>Hecho con rigor académico</span>
+        {/* Colofón: la marca baja de tamaño y se vuelve un sello, no repite
+            el lockup grande del navbar. */}
+        <div className="mt-16 flex flex-col gap-4 border-t border-slate-800 pt-8 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2.5">
+            <NouttbukIsotipo size="xs" />
+            <span>© {new Date().getFullYear()} Nouttbuk, un producto de Pandatomic.</span>
           </div>
+          <span className="inline-flex items-center gap-1.5">
+            Hecho por <PandatomicLogo textClassName="text-slate-300" />
+          </span>
         </div>
       </div>
     </footer>

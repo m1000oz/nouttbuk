@@ -4,9 +4,17 @@ import { cn } from "@/lib/utils";
 // verde reemplazando la "O" de "ATOMIC"), extraído en vivo de su página para
 // mantener su identidad de marca intacta en vez de aproximarla a mano.
 // El verde (#39ff97) y el SVG del átomo son exactamente los suyos, "Pand"
-// usa `text-foreground` para seguir el tema claro/oscuro de esta app en vez
-// del texto casi blanco fijo que usan ellos sobre su propio fondo oscuro.
-export function PandatomicLogo({ className }: { className?: string }) {
+// usa `text-foreground` por defecto para seguir el tema claro/oscuro de esta
+// app, con un `textClassName` opcional para superficies con fondo fijo (como
+// el footer, siempre oscuro sin importar el tema ambiente) donde depender de
+// `text-foreground` mostraría texto oscuro sobre oscuro.
+export function PandatomicLogo({
+  className,
+  textClassName = "text-foreground",
+}: {
+  className?: string;
+  textClassName?: string;
+}) {
   return (
     <a
       href="https://pandatomic.com"
@@ -22,7 +30,7 @@ export function PandatomicLogo({ className }: { className?: string }) {
         alt="PandAtomic"
         className="h-4 w-4 rounded-full"
       />
-      <span className="inline-flex items-center text-foreground">
+      <span className={cn("inline-flex items-center", textClassName)}>
         Pand
         <span className="inline-flex items-center text-[#39ff97]">
           AT

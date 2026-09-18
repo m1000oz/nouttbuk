@@ -1,4 +1,4 @@
-// Paleta de colores de carpeta/materia, según DESIGN-SYSTEM.md (sin variante
+// Paleta de colores de carpeta/curso, según DESIGN-SYSTEM.md (sin variante
 // por tema). `carpetas.color` en la base de datos guarda estas claves cortas.
 export const COLORES_CARPETA = {
   coral: "var(--color-folder-coral)",

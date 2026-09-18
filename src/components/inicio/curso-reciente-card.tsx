@@ -6,7 +6,7 @@ import { FolderIcon } from "@phosphor-icons/react";
 
 import { resolverColorCarpeta } from "@/lib/carpetas/colores";
 
-type MateriaRecienteCardProps = {
+type CursoRecienteCardProps = {
   id: string;
   nombre: string;
   color: string | null;
@@ -17,12 +17,12 @@ type MateriaRecienteCardProps = {
 // Tile vertical centrado en el ícono, al estilo de un explorador de archivos
 // de escritorio (ícono de carpeta grande arriba, nombre abajo) en vez del
 // cuadrado de color con un ícono chico adentro que se usaba antes.
-export function MateriaRecienteCard({
+export function CursoRecienteCard({
   id,
   nombre,
   color,
   index,
-}: MateriaRecienteCardProps) {
+}: CursoRecienteCardProps) {
   const prefiereMenosMovimiento = useReducedMotion();
   const colorResuelto = resolverColorCarpeta(color);
 

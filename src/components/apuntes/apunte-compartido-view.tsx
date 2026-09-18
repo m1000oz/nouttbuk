@@ -268,7 +268,7 @@ export function ApunteCompartidoView({ apunte }: ApunteCompartidoViewProps) {
 
               <div className="space-y-1 max-w-md mx-auto">
                 <h4 className="text-lg font-bold text-foreground">
-                  Empieza a organizar tus materias hoy mismo
+                  Empieza a organizar tus cursos hoy mismo
                 </h4>
                 <p className="text-xs text-muted-foreground">
                   Regístrate gratis en menos de 30 segundos con Google o tu correo universitario.

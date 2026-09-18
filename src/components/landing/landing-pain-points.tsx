@@ -1,25 +1,24 @@
+import { CheckCircleIcon } from "@phosphor-icons/react/dist/ssr";
+
 export function LandingPainPoints() {
   const situaciones = [
     {
-      titulo: "El desorden antes del examen parcial",
+      titulo: "El desorden antes de un parcial",
       problema:
-        "Notas en el teléfono, resúmenes en Word, fotos de pizarra en WhatsApp y diapositivas dispersas. Cuando llega la semana de parciales, pasas más tiempo buscando los temas que repasando.",
-      solucion:
-        "En Nouttbuk cada materia tiene su carpeta con color e icono propio. Tus apuntes quedan ordenados por curso para que encuentres cualquier concepto en tres segundos.",
+        "Apuntes en el chat, resúmenes en Word, fotos de la pizarra. Llega el parcial y pierdes media hora buscando antes de repasar.",
+      cura: "Una carpeta por curso, con color. Todo en su lugar, siempre.",
     },
     {
-      titulo: "El caos en los informes grupales",
+      titulo: "El caos de los informes en grupo",
       problema:
-        "Pasarse archivos por correo produce versiones duplicadas y desactualizadas. En herramientas de oficina genéricas, los permisos son engorrosos o alguien borra párrafos por descuido.",
-      solucion:
-        "Agregas a tus compañeros con su usuario de la universidad. Todos redactan en la misma hoja al mismo tiempo viendo quién escribe cada parte, con permisos claros.",
+        "Alguien edita la versión vieja, otro pierde el archivo. Terminan con tres “informe_final” distintos.",
+      cura: "Un solo documento. Todos escriben a la vez, viendo quién hace qué.",
     },
     {
-      titulo: "El conocimiento que se queda olvidado",
+      titulo: "El conocimiento que nadie más ve",
       problema:
-        "Cada ciclo cientos de estudiantes cursan las mismas materias. Muchos tienen resúmenes excelentes que se quedan archivados en su computadora sin que nadie más los pueda aprovechar.",
-      solucion:
-        "Una comunidad universitaria abierta donde puedes publicar tus mejores apuntes para apoyar a tus compañeros y consultar guías preparadas por estudiantes de ciclos superiores.",
+        "Cientos de compañeros cursan lo mismo que tú, cada ciclo. Sus mejores resúmenes se quedan guardados en su laptop.",
+      cura: "Publica el tuyo, encuentra los de otros. Una comunidad, no una carpeta perdida.",
     },
   ];
 
@@ -32,7 +31,7 @@ export function LandingPainPoints() {
             El problema no es tomar notas. Es lo que pasa cuando intentas estudiar o trabajar con otros.
           </h2>
           <p className="mt-5 text-base sm:text-lg text-muted-foreground leading-relaxed">
-            Las herramientas genéricas fueron hechas para oficinas y corporaciones, no para semanas de exámenes ni para redactar informes con compañeros de ciclo.
+            WhatsApp, Word y una carpeta de Drive no fueron pensados para esto.
           </p>
         </div>
 
@@ -54,12 +53,14 @@ export function LandingPainPoints() {
                 </p>
               </div>
 
-              <div className="mt-8 pt-5 border-t border-border/60">
-                <span className="text-xs font-bold uppercase tracking-wider text-foreground">
-                  La solución en Nouttbuk:
-                </span>
-                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                  {item.solucion}
+              <div className="mt-6 flex items-start gap-2.5">
+                <CheckCircleIcon
+                  weight="fill"
+                  className="size-5 shrink-0 text-teal-600 dark:text-teal-400 mt-0.5"
+                  aria-hidden
+                />
+                <p className="text-sm font-semibold text-foreground leading-relaxed">
+                  {item.cura}
                 </p>
               </div>
             </div>
