@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { colorParaUsuario } from "@/lib/liveblocks/color-usuario";
+import { asegurarSalaSembrada } from "@/lib/liveblocks/sembrar-sala";
+import type { Json } from "@/lib/types/database.types";
 
 const PREFIJO_SALA = "apunte-";
 
@@ -67,6 +69,28 @@ export async function POST(request: Request) {
   const liveblocks = new Liveblocks({
     secret: process.env.LIVEBLOCKS_SECRET_KEY!,
   });
+
+  // La sala se siembra aquí, en el servidor y antes de emitir el token, para
+  // que ningún cliente tenga que decidir (y pueda competir) sobre quién
+  // importa el contenido de Postgres. Si falla, se rechaza la conexión en vez
+  // de dejar entrar a alguien a una sala vacía que luego se guardaría encima
+  // del contenido real.
+  try {
+    await asegurarSalaSembrada(liveblocks, room, async () => {
+      const { data } = await supabase
+        .from("apuntes")
+        .select("contenido, titulo")
+        .eq("id", apunteId)
+        .single();
+      return {
+        contenido: (data?.contenido as Json | undefined) ?? null,
+        titulo: data?.titulo ?? "",
+      };
+    });
+  } catch (error) {
+    console.error("[liveblocks-auth] no se pudo preparar la sala", room, error);
+    return NextResponse.json({ error: "No se pudo preparar la sala" }, { status: 503 });
+  }
 
   const session = liveblocks.prepareSession(user.id, {
     userInfo: {

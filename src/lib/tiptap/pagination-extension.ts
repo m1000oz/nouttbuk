@@ -32,7 +32,22 @@ export type OpcionesPaginacion = {
   // un cambio posterior. Se re-lee en cada medirYDecorar(), que ya se
   // re-ejecuta solo vía ResizeObserver.
   obtenerGeometria: () => GeometriaPaginacion;
+  // Si es false, la paginación NUNCA modifica `doc`: un párrafo más alto que
+  // una hoja se deja fluir de corrido en vez de partirlo con `tr.split`.
+  // El editor colaborativo la desactiva: ahí `y-prosemirror` sincroniza toda
+  // transacción que cambie `doc` como si fuera una edición humana, y un corte
+  // que depende de la fuente, el zoom y el ancho del navegador de UNA persona
+  // terminaría replicándose a todas las demás. Los saltos de página en sí
+  // (decoraciones) siguen siendo locales en ambos modos.
+  permitirDivisionDeDocumento: boolean;
 };
+
+// Espera antes de re-medir tras un cambio real del documento. Medir recorre
+// todos los nodos de nivel superior y fuerza layout, así que una ráfaga de
+// pulsaciones (o de transacciones remotas de Yjs) se agrupa en una sola
+// medición en vez de una por transacción. Los disparos por ResizeObserver o
+// cambio de geometría no esperan: no vienen de una ráfaga de edición.
+const RETARDO_RECALCULO_EDICION_MS = 80;
 
 const paginacionPluginKey = new PluginKey<DecorationSet>("paginacion");
 
@@ -139,11 +154,12 @@ export const Paginacion = Extension.create<OpcionesPaginacion>({
         margenPagina: MARGEN_PAGINA_PX,
         separacionPaginas: SEPARACION_PAGINAS_PX,
       }),
+      permitirDivisionDeDocumento: true,
     };
   },
 
   addProseMirrorPlugins() {
-    const { obtenerGeometria } = this.options;
+    const { obtenerGeometria, permitirDivisionDeDocumento } = this.options;
 
     return [
       new Plugin({
@@ -320,6 +336,7 @@ export const Paginacion = Extension.create<OpcionesPaginacion>({
 
                   if (
                     esDivisible &&
+                    permitirDivisionDeDocumento &&
                     editorView.editable &&
                     divisionesEncadenadas < MAX_DIVISIONES_ENCADENADAS
                   ) {
@@ -354,7 +371,18 @@ export const Paginacion = Extension.create<OpcionesPaginacion>({
                         }
                       }
                       
-                      if (exito) return;
+                      if (exito) {
+                        // El dispatch de arriba ya disparó `update()` del
+                        // plugin, que llamó a `programarRecalculo()` con el
+                        // flag todavía en `true` (no se resetea hasta el
+                        // final de esta función) y por eso no programó nada:
+                        // sin este reinicio explícito, la paginación se
+                        // quedaba congelada tras la primera división en vez
+                        // de seguir convergiendo pasada tras pasada.
+                        recalculoProgramado = false;
+                        programarRecalculo();
+                        return;
+                      }
                     }
                   }
                 } catch {
@@ -523,7 +551,7 @@ export const Paginacion = Extension.create<OpcionesPaginacion>({
             recalculoProgramado = false;
           }
 
-          function programarRecalculo() {
+          function programarRecalculo(retardoMs = 0) {
             if (recalculoProgramado) return;
             recalculoProgramado = true;
             // setTimeout, no requestAnimationFrame: esto no es una animación
@@ -533,7 +561,7 @@ export const Paginacion = Extension.create<OpcionesPaginacion>({
             // disparado por contenido. setTimeout(0) corre de todos modos,
             // incluso en pestañas en segundo plano, así que la paginación
             // nunca se queda "congelada" esperando un frame que no llega.
-            setTimeout(medirYDecorar, 0);
+            setTimeout(medirYDecorar, retardoMs);
           }
 
           if (editorView.dom.parentElement) {
@@ -556,13 +584,19 @@ export const Paginacion = Extension.create<OpcionesPaginacion>({
 
           return {
             update: (view, prevState) => {
+              // Solo un cambio del documento altera el layout desde aquí:
+              // mover el cursor, seleccionar o que otro plugin redecore no
+              // cambian ninguna altura, y re-medir todos los nodos en cada
+              // una de esas actualizaciones era trabajo tirado (lo demás,
+              // imágenes que terminan de cargar, fuentes, cambio de ancho,
+              // ya lo cubre el ResizeObserver de arriba).
               if (prevState && prevState.doc !== view.state.doc) {
                 cortesAnteriores = null;
                 firmaAnterior = "";
                 historialFirmas.clear();
                 pasadasEncadenadas = 0;
+                programarRecalculo(RETARDO_RECALCULO_EDICION_MS);
               }
-              programarRecalculo();
             },
             destroy: () => {
               observador.disconnect();

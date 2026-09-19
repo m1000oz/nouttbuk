@@ -43,7 +43,11 @@ import { toast } from "@/components/ui/toast";
 import { NouttbukLogo } from "@/components/brand";
 import { DialogoCompartirApunte } from "@/components/apuntes/dialogo-compartir-apunte";
 import { EditorEstatico } from "@/components/apuntes/editor-estatico";
-import { EditorColaborativo } from "@/components/apuntes/editor-colaborativo";
+import {
+  EditorColaborativo,
+  type ControlTitulo,
+  type EstadoColaboracion,
+} from "@/components/apuntes/editor-colaborativo";
 import { HojasEditor } from "@/components/apuntes/hojas-editor";
 import { EditorEsquema } from "@/components/apuntes/editor-esquema";
 import { EditorGuia } from "@/components/apuntes/editor-guia";
@@ -111,6 +115,11 @@ const VISIBILIDAD_LABEL: Record<ApunteVisibilidad, string> = {
   group: "Grupo",
   community: "Comunidad",
 };
+
+// Autoguardado: espera de calma tras la última pulsación, y tope desde el
+// primer cambio pendiente (escribiendo sin pausas también se guarda).
+const ESPERA_AUTOGUARDADO_MS = 1500;
+const MAX_ESPERA_AUTOGUARDADO_MS = 8000;
 
 // Overlay de pantalla completa (position: fixed), no una ruta con su propio
 // layout: cubre visualmente el nav lateral del shell sin duplicar el árbol
@@ -283,6 +292,49 @@ export function ApunteEditor({
   );
   const montadoRef = useRef(false);
 
+  // Estado de la sala de coedición (solo tiene sentido en modo colaborativo),
+  // reportado por EditorColaborativo. Va también en un ref para que los
+  // callbacks de guardado lean siempre el valor vigente sin recrearse.
+  const [estadoColab, setEstadoColab] = useState<EstadoColaboracion>({
+    esLider: false,
+    sincronizado: false,
+    conectado: false,
+  });
+  const estadoColabRef = useRef(estadoColab);
+  const handleEstadoColaboracion = useCallback((nuevo: EstadoColaboracion) => {
+    estadoColabRef.current = nuevo;
+    setEstadoColab(nuevo);
+  }, []);
+  const tituloRef = useRef(titulo);
+  useEffect(() => {
+    tituloRef.current = titulo;
+  }, [titulo]);
+
+  // Canal hacia el título compartido de la sala (solo en coedición): ahí el
+  // título vive en Yjs y converge como el texto, no como un campo que cada
+  // persona reescribe en Postgres.
+  const controlTituloRef = useRef<ControlTitulo | null>(null);
+  const handleControlTitulo = useCallback((control: ControlTitulo | null) => {
+    controlTituloRef.current = control;
+  }, []);
+  const dispararAutoguardadoRef = useRef<((titulo?: string) => void) | null>(null);
+  const handleTituloRemoto = useCallback((nuevo: string, inicial: boolean) => {
+    tituloRef.current = nuevo;
+    setTitulo(nuevo);
+    // El título con el que arranca la sala no es una edición: no se guarda.
+    if (!inicial) dispararAutoguardadoRef.current?.(nuevo);
+  }, []);
+  // Hubo cambios del documento mientras esta conexión no era la líder: si
+  // pasa a serlo (la líder anterior se fue) debe persistirlos.
+  const contenidoSinPersistirRef = useRef(false);
+  // Un guardado a la vez por navegador: si llega otro mientras hay uno en
+  // vuelo se encadena al terminar, en vez de lanzar dos UPDATE en paralelo
+  // cuya respuesta podría llegar en desorden.
+  const guardadoEnCursoRef = useRef<Promise<string | null> | null>(null);
+  const guardadoRepetidoRef = useRef<{ titulo?: string } | null>(null);
+  const timerBorradorRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const primerCambioPendienteRef = useRef<number | null>(null);
+
   useEffect(() => {
     function manejarAtajoGlobal(event: globalThis.KeyboardEvent) {
       const modificador = event.metaKey || event.ctrlKey;
@@ -385,11 +437,24 @@ export function ApunteEditor({
     setEtiquetas((actual) => actual.filter((etiqueta) => etiqueta !== valor));
   }
 
-  // Guardar en base de datos (tanto manual como autoguardado en background)
-  const guardarCambiosServidor = useCallback(
+  // Guardar en base de datos (tanto manual como autoguardado en background).
+  // No se llama directo: pasa por `guardarCambiosServidor` (más abajo), que
+  // serializa los guardados.
+  const persistirEnServidor = useCallback(
     async (silencioso = false, tituloCustom?: string): Promise<string | null> => {
       const editor = editorInstancia;
       if (!editor) return null;
+
+      // En coedición el contenido lo persiste solo la conexión líder (ver
+      // EstadoColaboracion) y nunca antes de sincronizar con la sala: un
+      // editor todavía vacío por carga en curso sobrescribiría el contenido
+      // real. Los metadatos (título, carpeta, etiquetas...) sí los guarda
+      // cualquiera, no dependen del documento Yjs. Un guardado manual
+      // (botón Guardar) es una acción explícita, así que no exige ser líder,
+      // solo estar sincronizado.
+      const colab = modoColaborativo ? estadoColabRef.current : null;
+      const omitirContenido =
+        colab !== null && (!colab.sincronizado || (silencioso && !colab.esLider));
 
       if (!silencioso) setGuardando(true);
       setEstadoAutoguardado("guardando");
@@ -404,12 +469,9 @@ export function ApunteEditor({
       }
 
       const supabase = createClient();
-      const titFinal = (tituloCustom ?? titulo).trim() || "Sin título";
-      const contenidoActual = editor.getJSON();
-      const campos = {
+      const titFinal = (tituloCustom ?? tituloRef.current).trim() || "Sin título";
+      const camposMetadatos = {
         titulo: titFinal,
-        contenido: contenidoActual,
-        extracto: extraerTextoPlano(contenidoActual),
         carpeta_id: carpetaId,
         curso_id: cursoId,
         visibilidad,
@@ -417,6 +479,40 @@ export function ApunteEditor({
         favorito,
         updated_at: new Date().toISOString(),
       };
+      // getJSON() + extraerTextoPlano recorren todo el documento: solo se
+      // pagan cuando de verdad se va a escribir el contenido.
+      const contenidoActual = omitirContenido ? null : editor.getJSON();
+      // En coedición cada dato tiene UN solo escritor, para que nadie
+      // sobrescriba lo de otra persona con su copia local ya vieja:
+      // - contenido y título (ambos viven en la sala Yjs): quien persiste la
+      //   copia, es decir la conexión líder (ver omitirContenido);
+      // - carpeta, curso, etiquetas, visibilidad y favorito: solo el dueño.
+      // Fuera de coedición se guarda todo junto, como siempre.
+      const campos = colab
+        ? {
+            updated_at: camposMetadatos.updated_at,
+            ...(esOwner
+              ? {
+                  carpeta_id: carpetaId,
+                  curso_id: cursoId,
+                  visibilidad,
+                  etiquetas: etiquetasFinales,
+                  favorito,
+                }
+              : {}),
+            ...(contenidoActual
+              ? {
+                  titulo: titFinal,
+                  contenido: contenidoActual,
+                  extracto: extraerTextoPlano(contenidoActual),
+                }
+              : {}),
+          }
+        : {
+            ...camposMetadatos,
+            contenido: contenidoActual ?? editor.getJSON(),
+            extracto: extraerTextoPlano(contenidoActual ?? editor.getJSON()),
+          };
 
       if (idApunteActual) {
         const { error: dbError } = await supabase
@@ -461,7 +557,12 @@ export function ApunteEditor({
 
         const { data: insertData, error: dbError } = await supabase
           .from("apuntes")
-          .insert({ ...campos, autor_id: user.id })
+          .insert({
+            ...camposMetadatos,
+            contenido: contenidoActual ?? editor.getJSON(),
+            extracto: extraerTextoPlano(contenidoActual ?? editor.getJSON()),
+            autor_id: user.id,
+          })
           .select("id")
           .single();
 
@@ -493,6 +594,8 @@ export function ApunteEditor({
     },
     [
       editorInstancia,
+      modoColaborativo,
+      esOwner,
       etiquetaInput,
       etiquetas,
       titulo,
@@ -505,6 +608,68 @@ export function ApunteEditor({
     ],
   );
 
+  const guardarRef = useRef<
+    ((silencioso?: boolean, tituloCustom?: string) => Promise<string | null>) | null
+  >(null);
+  const guardarCambiosServidor = useCallback(
+    async (silencioso = false, tituloCustom?: string): Promise<string | null> => {
+      if (guardadoEnCursoRef.current) {
+        if (silencioso) {
+          guardadoRepetidoRef.current = { titulo: tituloCustom };
+          return idApunteActual;
+        }
+        await guardadoEnCursoRef.current.catch(() => null);
+      }
+      const guardado = persistirEnServidor(silencioso, tituloCustom);
+      guardadoEnCursoRef.current = guardado;
+      try {
+        return await guardado;
+      } finally {
+        if (guardadoEnCursoRef.current === guardado) {
+          guardadoEnCursoRef.current = null;
+        }
+        const repetido = guardadoRepetidoRef.current;
+        if (repetido) {
+          guardadoRepetidoRef.current = null;
+          // Fuera de este mismo turno: la función vigente de guardado vive en
+          // un ref (más abajo) para no capturar el estado de hace un guardado.
+          setTimeout(() => guardarRef.current?.(true, repetido.titulo), 0);
+        }
+      }
+    },
+    [persistirEnServidor, idApunteActual],
+  );
+  useEffect(() => {
+    guardarRef.current = guardarCambiosServidor;
+  }, [guardarCambiosServidor]);
+
+  // Borrador local ante un F5/cierre imprevisto. Serializar todo el documento
+  // (getJSON) y escribirlo en localStorage en CADA pulsación era, en notas
+  // largas, el mayor costo por tecla del editor: ahora se agrupa tras una
+  // pausa corta y se fuerza al ocultar la pestaña (ver más abajo).
+  const escribirBorrador = useCallback(() => {
+    if (timerBorradorRef.current) {
+      clearTimeout(timerBorradorRef.current);
+      timerBorradorRef.current = null;
+    }
+    const editor = editorInstancia;
+    if (!editor || editor.isDestroyed) return;
+    try {
+      const clave = idApunteActual ?? "nuevo";
+      window.localStorage.setItem(
+        `nouttbuk:borrador:${clave}`,
+        JSON.stringify({
+          titulo: tituloRef.current,
+          contenido: editor.getJSON(),
+          timestamp: Date.now(),
+        }),
+      );
+    } catch {}
+  }, [editorInstancia, idApunteActual]);
+  const escribirBorradorRef = useRef(escribirBorrador);
+  useEffect(() => {
+    escribirBorradorRef.current = escribirBorrador;
+  }, [escribirBorrador]);
   // Planificador y disparador de autoguardado continuo
   const dispararAutoguardado = useCallback(
     (tituloOverride?: string) => {
@@ -512,37 +677,61 @@ export function ApunteEditor({
       const editor = editorInstancia;
       if (!editor) return;
 
-      const tit = tituloOverride !== undefined ? tituloOverride : titulo;
+      const tit = tituloOverride ?? tituloRef.current;
+      tituloRef.current = tit;
+
+      const colab = modoColaborativo ? estadoColabRef.current : null;
+      if (colab) {
+        // Cambio del documento o del título en coedición (ambos viven en la
+        // sala): lo escribe solo la líder, ya sincronizada. Las demás lo
+        // recuerdan por si pasan a serlo.
+        if (!colab.sincronizado) return;
+        if (!colab.esLider) {
+          contenidoSinPersistirRef.current = true;
+          return;
+        }
+      }
+
       setEstadoAutoguardado("modificado");
       contadorCambiosRef.current += 1;
+      if (primerCambioPendienteRef.current === null) {
+        primerCambioPendienteRef.current = Date.now();
+      }
 
-      // Respaldo de seguridad inmediato en localStorage ante un F5 imprevisto
-      try {
-        const clave = idApunteActual ?? "nuevo";
-        window.localStorage.setItem(
-          `nouttbuk:borrador:${clave}`,
-          JSON.stringify({
-            titulo: tit,
-            contenido: editor.getJSON(),
-            timestamp: Date.now(),
-          }),
-        );
-      } catch {}
+      // En coedición el documento vive en la sala (Yjs), un borrador local
+      // solo podría contradecirla al restaurarse.
+      if (!colab) {
+        if (timerBorradorRef.current) clearTimeout(timerBorradorRef.current);
+        timerBorradorRef.current = setTimeout(escribirBorrador, 1000);
+      }
 
       if (timerAutoguardadoRef.current) {
         clearTimeout(timerAutoguardadoRef.current);
       }
 
-      // Si ya hay 8 o más cambios seguidos, autoguardamos en 500ms; si no, en 2000ms de calma
-      const espera = contadorCambiosRef.current >= 8 ? 500 : 2000;
+      // Espera tras la última pulsación, con un tope: escribiendo sin pausas
+      // el guardado igual sale cada MAX_ESPERA_AUTOGUARDADO_MS, en vez de
+      // acelerarse (500 ms) cuanto más se escribe como antes.
+      const esperado = Math.min(
+        ESPERA_AUTOGUARDADO_MS,
+        Math.max(
+          0,
+          MAX_ESPERA_AUTOGUARDADO_MS - (Date.now() - primerCambioPendienteRef.current),
+        ),
+      );
       timerAutoguardadoRef.current = setTimeout(() => {
+        timerAutoguardadoRef.current = null;
+        primerCambioPendienteRef.current = null;
         if (idApunteActual) {
-          guardarCambiosServidor(true, tit);
+          guardarRef.current?.(true, tit);
         }
-      }, espera);
+      }, esperado);
     },
-    [soloLectura, editorInstancia, titulo, idApunteActual, guardarCambiosServidor],
+    [soloLectura, editorInstancia, modoColaborativo, idApunteActual, escribirBorrador],
   );
+  useEffect(() => {
+    dispararAutoguardadoRef.current = dispararAutoguardado;
+  }, [dispararAutoguardado]);
 
   // Escuchar cambios de edición en Tiptap para disparar autoguardado
   useEffect(() => {
@@ -550,6 +739,9 @@ export function ApunteEditor({
 
     function handleEditorUpdate() {
       if (!montadoRef.current) return;
+      // Sea un cambio local o uno remoto de Yjs: quién lo escribe en
+      // Postgres (nadie, esta conexión, o solo la líder) lo decide
+      // dispararAutoguardado, no el origen de la transacción.
       dispararAutoguardado();
     }
 
@@ -558,6 +750,44 @@ export function ApunteEditor({
       editorInstancia.off("update", handleEditorUpdate);
     };
   }, [editorInstancia, soloLectura, dispararAutoguardado]);
+
+  // Una conexión pasa a ser líder (la anterior se fue) con cambios que nadie
+  // persistió: los escribe ahora.
+  useEffect(() => {
+    if (
+      modoColaborativo &&
+      estadoColab.esLider &&
+      estadoColab.sincronizado &&
+      contenidoSinPersistirRef.current
+    ) {
+      contenidoSinPersistirRef.current = false;
+      dispararAutoguardado();
+    }
+  }, [modoColaborativo, estadoColab, dispararAutoguardado]);
+
+  // Al ocultar la pestaña o cerrarla, lo pendiente sale de inmediato en vez
+  // de esperar el temporizador (en móvil una pestaña en segundo plano puede
+  // congelarse antes de que dispare).
+  useEffect(() => {
+    function vaciarPendiente() {
+      if (timerBorradorRef.current) escribirBorradorRef.current?.();
+      if (timerAutoguardadoRef.current) {
+        clearTimeout(timerAutoguardadoRef.current);
+        timerAutoguardadoRef.current = null;
+        primerCambioPendienteRef.current = null;
+        guardarRef.current?.(true, tituloRef.current);
+      }
+    }
+    function alCambiarVisibilidad() {
+      if (document.visibilityState === "hidden") vaciarPendiente();
+    }
+    document.addEventListener("visibilitychange", alCambiarVisibilidad);
+    window.addEventListener("pagehide", vaciarPendiente);
+    return () => {
+      document.removeEventListener("visibilitychange", alCambiarVisibilidad);
+      window.removeEventListener("pagehide", vaciarPendiente);
+    };
+  }, []);
 
   // Recuperar borrador de localStorage si se refrescó en /apuntes/nuevo
   useEffect(() => {
@@ -589,9 +819,12 @@ export function ApunteEditor({
   // Advertencia antes de cerrar/recargar si hay cambios pendientes
   useEffect(() => {
     function manejarBeforeUnload(event: BeforeUnloadEvent) {
+      // En coedición no se advierte: lo que escribes ya está en la sala y la
+      // copia en Postgres la sale a guardar la conexión líder al cerrar.
       if (
-        estadoAutoguardado === "modificado" ||
-        estadoAutoguardado === "guardando"
+        !modoColaborativo &&
+        (estadoAutoguardado === "modificado" ||
+          estadoAutoguardado === "guardando")
       ) {
         event.preventDefault();
         event.returnValue = "";
@@ -599,7 +832,7 @@ export function ApunteEditor({
     }
     window.addEventListener("beforeunload", manejarBeforeUnload);
     return () => window.removeEventListener("beforeunload", manejarBeforeUnload);
-  }, [estadoAutoguardado]);
+  }, [estadoAutoguardado, modoColaborativo]);
 
   // Abrir compartir estilo Google Docs
   async function handleAbrirCompartir() {
@@ -646,6 +879,8 @@ export function ApunteEditor({
               onChange={(event) => {
                 const nuevo = event.target.value;
                 setTitulo(nuevo);
+                // En coedición el título es un texto compartido de la sala.
+                controlTituloRef.current?.establecer(nuevo);
                 dispararAutoguardado(nuevo);
               }}
               placeholder="Título del apunte"
@@ -657,8 +892,12 @@ export function ApunteEditor({
               <div
                 className="hidden sm:flex items-center gap-1.5 rounded-full bg-muted/40 px-2.5 py-1 text-xs text-muted-foreground select-none"
                 title={
-                  estadoAutoguardado === "guardado"
-                    ? "Cambios guardados en Nouttbuk"
+                  modoColaborativo && !estadoColab.conectado
+                    ? "Sin conexión con la coedición: tus cambios se enviarán al reconectar"
+                    : estadoAutoguardado === "guardado"
+                      ? modoColaborativo
+                        ? "Cambios sincronizados con quienes coeditan"
+                        : "Cambios guardados en Nouttbuk"
                     : estadoAutoguardado === "guardando"
                       ? "Guardando cambios en Nouttbuk..."
                       : estadoAutoguardado === "modificado"
@@ -666,19 +905,34 @@ export function ApunteEditor({
                         : "Error al guardar. Reintentando..."
                 }
               >
-                {estadoAutoguardado === "guardado" && (
+                {modoColaborativo && !estadoColab.conectado && (
                   <>
-                    <CloudCheckIcon weight="fill" className="size-3.5 text-teal-500" aria-hidden />
-                    <span className="text-[11px] font-medium">Guardado</span>
+                    <CloudIcon className="size-3.5 text-amber-500" aria-hidden />
+                    <span className="text-[11px] font-medium">Sin conexión</span>
                   </>
                 )}
-                {estadoAutoguardado === "guardando" && (
+                {!(modoColaborativo && !estadoColab.conectado) &&
+                  estadoAutoguardado === "guardado" && (
+                    <>
+                      <CloudCheckIcon
+                        weight="fill"
+                        className="size-3.5 text-teal-500"
+                        aria-hidden
+                      />
+                      <span className="text-[11px] font-medium">
+                        {modoColaborativo ? "Sincronizado" : "Guardado"}
+                      </span>
+                    </>
+                  )}
+                {!(modoColaborativo && !estadoColab.conectado) &&
+                  estadoAutoguardado === "guardando" && (
                   <>
                     <CircleNotchIcon className="size-3.5 animate-spin text-primary" aria-hidden />
                     <span className="text-[11px] font-medium">Guardando...</span>
                   </>
                 )}
-                {estadoAutoguardado === "modificado" && (
+                {!(modoColaborativo && !estadoColab.conectado) &&
+                  estadoAutoguardado === "modificado" && (
                   <>
                     <CloudIcon className="size-3.5 text-amber-500" aria-hidden />
                     <span className="text-[11px] font-medium">Editando...</span>
@@ -1039,8 +1293,10 @@ export function ApunteEditor({
                 {modoColaborativo && apunte ? (
                   <EditorColaborativo
                     apunteId={apunte.id}
-                    contenidoInicial={apunte.contenido}
                     onEditorListo={handleEditorListo}
+                    onEstadoColaboracion={handleEstadoColaboracion}
+                    onTituloRemoto={handleTituloRemoto}
+                    onControlTitulo={handleControlTitulo}
                   />
                 ) : (
                   <EditorEstatico

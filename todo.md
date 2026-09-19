@@ -66,6 +66,16 @@
 - [x] **Prefiltro para `sugerir_amigos()` (2026-09-18).** Nueva CTE `candidatos` (`20260918110000_sugerir_amigos_prefiltro.sql`) que aplica `order by random() limit greatest(limite * 20, 200)` **antes** de calcular `amigos_en_comun`, así la subconsulta correlacionada contra `amistades` (la parte cara) corre sobre un número acotado de filas sin importar cuánto crezca `profiles`, en vez de sobre toda la tabla. A la escala de hoy es un no-op real (el tope de 200 está muy por encima de la cantidad de perfiles que existen), verificado con una llamada real a la función que sigue devolviendo resultados correctos. Deliberadamente sin filtro por `universidad`/`carrera_id` todavía: hoy esa columna es idéntica para todos los perfiles (una sola universidad), filtrar por ella sería un no-op sin beneficio, revisar cuando exista soporte multi-universidad (v2.0). **Ya en producción.**
 - [x] **Monitoreo con datos reales de producción, corrido por primera vez (2026-09-18).** `npx supabase inspect db calls/outliers --linked` contra `wgulelqqrvtsbpwohdum`: el consumo dominante de `pg_stat_statements` hoy es tráfico interno de la plataforma (polling WAL de `realtime.list_changes`, ~56% del tiempo total medido, y sesiones/MFA de GoTrue), no consultas de la app. Ninguna consulta real sobre `apuntes`/`publicaciones`/`comentarios`/`reacciones`/`amistades` aparece todavía entre las más pesadas, porque el proyecto casi no tiene tráfico de usuarios reales aún (confirmado, no solo asumido: se buscó explícitamente por esas tablas en el resultado completo y no aparece ninguna). No hay nada que optimizar con datos reales todavía porque no hay datos reales todavía. **Repetir este mismo comando una vez exista uso real** para que la próxima revisión de rendimiento tenga señal de verdad en vez de solo inspección de esquema.
 
+## Estabilización del editor y la coedición (2026-09-19)
+
+- [x] Paginación que no muta el documento en coedición, re-medición solo ante cambios del documento, arreglo del flag que congelaba la paginación tras un `tr.split`.
+- [x] Siembra de la sala Yjs desde el servidor, idempotente (`clientID` fijo), en `/api/liveblocks-auth`; esquema de Tiptap sin React para servidor con prueba de paridad cliente/servidor.
+- [x] Una sola conexión (la líder) persiste `contenido` en Postgres durante la coedición; guardados serializados, borrador y autoguardado agrupados, presencia sin re-render por cursor, indicador "Sincronizado"/"Sin conexión".
+- [x] Verificación de convergencia contra el Liveblocks real con dos clientes (siembra concurrente, edición simultánea, desconexión y reconexión), 2026-09-19.
+- [x] Título de la nota compartido por Yjs; metadatos (carpeta, curso, etiquetas, visibilidad, favorito) solo los guarda el dueño.
+- [ ] **Verificar a mano en el navegador** (nota `group` en dos pestañas: líder e indicador de estado, pegar un párrafo de más de una hoja, cortar y recuperar la red) y luego hacer push/deploy. Hay commit local, sin push.
+- [ ] Cuando haya salas activas reales: snapshot desde el servidor con webhooks de Liveblocks (confirmar que el plan los incluye), métricas base, IndexedDB para borradores, versión de esquema por sala. Ver `PLAN-ESTABILIZACION-EDITOR.md`.
+
 ## Diferido a v2.0 (no construir en el MVP)
 
 - Admitir dominios de correo institucional de otras universidades además de `@pucp.edu.pe`.
