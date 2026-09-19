@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nouttbuk — Animación de Libreta Realista con Anime.js y Anillado 3D</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..800;1,9..40,400..800&display=swap" rel="stylesheet">
+  <!-- Anime.js v4 UMD -->
+  <script src="https://cdn.jsdelivr.net/npm/animejs@4.5.0/dist/bundles/anime.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --primary: #4f46e5;
+      --primary-dark: #3730a3;
+      --teal: #14b8a6;
+      --teal-glow: rgba(20, 184, 166, 0.4);
+      --page-bg: #f8fafc;
+      --page-line: #e2e8f0;
+      --hole-color: rgba(15, 23, 42, 0.85);
+      --wire-color: #ffffff;
+      --wire-shadow: rgba(15, 23, 42, 0.45);
+      --border: #334155;
+      --bar-bg: rgba(255, 255, 255, 0.08);
+      --font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --scale-factor: 1.5; /* Escala protagónica (~170px) */
+    }
+
+    [data-theme="light"] {
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --primary: #4f46e5;
+      --primary-dark: #3730a3;
+      --teal: #0d9488;
+      --teal-glow: rgba(20, 184, 166, 0.25);
+      --page-bg: #ffffff;
+      --page-line: #f1f5f9;
+      --hole-color: rgba(15, 23, 42, 0.7);
+      --border: #e2e8f0;
+      --bar-bg: rgba(15, 23, 42, 0.06);
+    }
+
+    [data-theme="atelier"] {
+      --bg: #1c1712;
+      --card-bg: #251f18;
+      --text: #f2ece0;
+      --text-muted: #ab9c86;
+      --primary: #caa15a;
+      --primary-dark: #8c6b30;
+      --teal: #caa15a;
+      --teal-glow: rgba(202, 161, 90, 0.35);
+      --page-bg: #fdfbf7;
+      --page-line: #ece7db;
+      --hole-color: rgba(28, 23, 18, 0.85);
+      --border: #3c3327;
+      --bar-bg: rgba(255, 255, 255, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.4s ease, color 0.4s ease;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Ambient background glow */
+    .ambient-glow {
+      position: absolute;
+      top: 45%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 580px;
+      height: 580px;
+      background: radial-gradient(circle, var(--teal-glow) 0%, transparent 68%);
+      opacity: 0.5;
+      filter: blur(60px);
+      pointer-events: none;
+      transition: all 0.5s ease;
+      animation: ambient-pulse 4.5s ease-in-out infinite alternate;
+    }
+
+    @keyframes ambient-pulse {
+      0% { transform: translate(-50%, -50%) scale(0.85); opacity: 0.35; }
+      100% { transform: translate(-50%, -50%) scale(1.15); opacity: 0.65; }
+    }
+
+    /* Main Container */
+    .loader-stage {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      z-index: 10;
+      user-select: none;
+    }
+
+    /* Book Stage */
+    .book-scene {
+      width: calc(220px * var(--scale-factor));
+      height: calc(165px * var(--scale-factor));
+      perspective: 1500px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+      animation: gentle-levitation 4s ease-in-out infinite alternate;
+    }
+
+    @keyframes gentle-levitation {
+      0% { transform: translateY(0px) rotate(-0.5deg); }
+      100% { transform: translateY(-8px) rotate(0.8deg); }
+    }
+
+    /* Isometric Rig */
+    .book-rig {
+      width: 160px;
+      height: 120px;
+      position: relative;
+      transform-style: preserve-3d;
+      transform: rotateX(54deg) rotateZ(-36deg);
+    }
+
+    /* Base Teal Accent Layer (Nouttbuk signature offset) */
+    .book-teal-base {
+      position: absolute;
+      width: 164px;
+      height: 124px;
+      left: 8px;
+      top: 8px;
+      border-radius: 16px;
+      background: var(--teal);
+      opacity: 0.95;
+      box-shadow: 0 0 28px var(--teal-glow), 0 20px 40px rgba(15, 23, 42, 0.45);
+      transform: translateZ(-20px);
+      transition: background 0.3s;
+    }
+
+    /* Solid Back Cover */
+    .book-back-cover {
+      position: absolute;
+      width: 160px;
+      height: 120px;
+      border-radius: 14px;
+      background: var(--primary-dark);
+      transform: translateZ(-16px);
+      box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.35);
+    }
+
+    /* Left static page stack - Inicia oculto cuando el cuaderno está cerrado */
+    .page-stack-left {
+      position: absolute;
+      left: -130px;
+      top: 5px;
+      width: 138px;
+      height: 110px;
+      background: var(--page-bg);
+      border-radius: 10px 0 0 10px;
+      transform: translateZ(-10px);
+      box-shadow: -2px 2px 6px rgba(0, 0, 0, 0.12);
+      overflow: hidden;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Right static page stack */
+    .page-stack-right {
+      position: absolute;
+      left: 17px;
+      top: 5px;
+      width: 135px;
+      height: 110px;
+      background: var(--page-bg);
+      border-radius: 0 10px 10px 0;
+      transform: translateZ(-10px);
+      box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.14);
+      overflow: hidden;
+    }
+
+    /* Faint ruling lines for student notes */
+    .page-ruled-lines {
+      width: 100%;
+      height: 100%;
+      padding: 12px 14px 12px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .p-line {
+      height: 2px;
+      background: var(--page-line);
+      border-radius: 2px;
+      width: 100%;
+    }
+    .p-line.w-short { width: 55%; }
+    .p-line.w-mid { width: 78%; }
+
+    /* Moving Dynamic Under-page Shadow */
+    .under-page-shadow {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, rgba(0, 0, 0, 0.25) 0%, transparent 60%);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Anime.js Articulated Flipping Leaf */
+    .paper-leaf {
+      position: absolute;
+      left: 16px;
+      top: 5px;
+      width: 135px;
+      height: 110px;
+      transform-origin: left center;
+      transform-style: preserve-3d;
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    /* The flexible curved paper surface */
+    .paper-body {
+      width: 100%;
+      height: 100%;
+      background: var(--page-bg);
+      border-radius: 0 10px 10px 0;
+      transform-origin: left center;
+      transform-style: preserve-3d;
+      position: relative;
+      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+
+    /* Dynamic Paper Curvature Shadow */
+    .paper-curl-shadow {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent 0%, rgba(15, 23, 42, 0.18) 40%, rgba(255, 255, 255, 0.3) 65%, transparent 100%);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.1s;
+    }
+
+    /* Backface of turning paper */
+    .paper-backface {
+      position: absolute;
+      inset: 0;
+      background: var(--page-bg);
+      border-radius: 10px 0 0 10px;
+      transform: rotateY(180deg);
+      backface-visibility: hidden;
+      overflow: hidden;
+      box-shadow: -2px 0 10px rgba(0, 0, 0, 0.12);
+    }
+
+    /* Front Cover with "tt" cutout - Sits on top when closed */
+    .book-front-cover {
+      position: absolute;
+      left: 12px;
+      top: 0;
+      width: 144px;
+      height: 120px;
+      background: var(--primary);
+      border-radius: 0 14px 14px 0;
+      transform-origin: left center;
+      transform-style: preserve-3d;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+      z-index: 30;
+      transform: translateZ(6px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cover-backface {
+      position: absolute;
+      inset: 0;
+      background: var(--primary-dark);
+      border-radius: 14px 0 0 14px;
+      transform: rotateY(180deg);
+      backface-visibility: hidden;
+    }
+
+    .cover-frontface {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backface-visibility: hidden;
+    }
+
+    /* --- ANILLADO 3D REALISTA DE COSTADO (Wire Coil Binding) --- */
+
+    /* Punch Holes Track (Perforaciones del papel y cubierta) */
+    .punch-holes-track {
+      position: absolute;
+      left: 12px;
+      top: 6px;
+      width: 6px;
+      height: 108px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 25;
+      transform: translateZ(2px);
+      pointer-events: none;
+    }
+
+    .punch-hole {
+      width: 5px;
+      height: 7px;
+      border-radius: 3px;
+      background: var(--hole-color);
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+    }
+
+    /* 3D Binder Spine Container (Anillas metálicas curvadas de costado) */
+    .binder-spine-3d {
+      position: absolute;
+      left: 5px;
+      top: 2px;
+      width: 22px;
+      height: 116px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transform-style: preserve-3d;
+      z-index: 45;
+      pointer-events: none;
+    }
+
+    /* Cada anilla es un arco de alambre perpendicular al papel (rotado en el plano X-Z) */
+    .wire-coil-unit {
+      width: 18px;
+      height: 18px;
+      position: relative;
+      transform-style: preserve-3d;
+      /* CLAVE DE REALISMO: rotateX(86deg) + rotateY(18deg) levanta el aro de costado fuera del papel */
+      transform: rotateX(86deg) rotateY(18deg) translateZ(6px);
+    }
+
+    /* Arco superior visible del alambre metálico */
+    .wire-arch {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 2.8px solid #ffffff;
+      /* Gradiente metálico con brillo cilíndrico */
+      border-color: #ffffff #cbd5e1 #64748b #ffffff;
+      background: transparent;
+      box-shadow:
+        0 0 2px rgba(255, 255, 255, 0.8),
+        0 4px 6px rgba(15, 23, 42, 0.45);
+      transition: filter 0.25s, border-color 0.25s;
+    }
+
+    /* Pequeña sombra proyectada de la anilla sobre el papel */
+    .wire-shadow {
+      position: absolute;
+      left: 6px;
+      top: 6px;
+      width: 14px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(15, 23, 42, 0.35);
+      filter: blur(1.5px);
+      transform: rotateX(-86deg) translateZ(-4px);
+    }
+
+    /* Swiss Progress Bar */
+    .progress-bar-container {
+      width: 230px;
+      height: 3px;
+      background: var(--bar-bg);
+      border-radius: 9999px;
+      margin-top: 16px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .progress-bar-indicator {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: 45%;
+      border-radius: 9999px;
+      background: linear-gradient(90deg, transparent, var(--primary), var(--teal), transparent);
+      animation: progress-slide 2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+
+    @keyframes progress-slide {
+      0% { left: -50%; width: 30%; }
+      50% { width: 60%; }
+      100% { left: 120%; width: 30%; }
+    }
+
+    /* Message Rotator */
+    .message-container {
+      margin-top: 20px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .status-text {
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: -0.015em;
+      color: var(--text);
+      opacity: 0;
+      transform: translateY(4px);
+      transition: opacity 0.35s ease, transform 0.35s ease;
+      white-space: nowrap;
+    }
+
+    .status-text.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .sub-brand {
+      margin-top: 22px;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      opacity: 0.6;
+    }
+
+    /* Toolbar for Testing */
+    .toolbar-container {
+      position: fixed;
+      bottom: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      z-index: 50;
+    }
+
+    .theme-toolbar {
+      display: flex;
+      gap: 6px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      border-radius: 9999px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+      backdrop-filter: blur(12px);
+    }
+
+    .control-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .control-btn:hover {
+      color: var(--text);
+    }
+
+    .control-btn.active {
+      background: var(--primary);
+      color: #ffffff;
+    }
+  </style>
+</head>
+<body data-theme="dark">
+
+  <div class="ambient-glow"></div>
+
+  <div class="loader-stage">
+    <!-- 3D Book Scene Orchestrated by Anime.js -->
+    <div class="book-scene" id="book-scene">
+      <div class="book-rig">
+        <!-- Offset Teal Base Glow -->
+        <div class="book-teal-base" id="teal-base"></div>
+
+        <!-- Back cover solid -->
+        <div class="book-back-cover"></div>
+
+        <!-- Left static page stack (inicia oculto al 100%) -->
+        <div class="page-stack-left" id="page-stack-left">
+          <div class="page-ruled-lines">
+            <div class="p-line w-mid"></div>
+            <div class="p-line"></div>
+            <div class="p-line w-short"></div>
+            <div class="p-line"></div>
+            <div class="p-line w-mid"></div>
+          </div>
+        </div>
+
+        <!-- Right static page stack -->
+        <div class="page-stack-right">
+          <div class="page-ruled-lines">
+            <div class="p-line w-short"></div>
+            <div class="p-line"></div>
+            <div class="p-line w-mid"></div>
+            <div class="p-line"></div>
+            <div class="p-line w-mid"></div>
+            <div class="p-line w-short"></div>
+          </div>
+          <div class="under-page-shadow" id="under-shadow"></div>
+        </div>
+
+        <!-- Perforaciones troqueladas de la libreta (Punch holes) -->
+        <div class="punch-holes-track">
+          <div class="punch-hole"></div>
+          <div class="punch-hole"></div>
+          <div class="punch-hole"></div>
+          <div class="punch-hole"></div>
+          <div class="punch-hole"></div>
+          <div class="punch-hole"></div>
+        </div>
+
+        <!-- Articulated Leaf 3 (Anime.js Target) -->
+        <div class="paper-leaf" id="leaf-3">
+          <div class="paper-body" id="leaf-body-3">
+            <div class="paper-ruled-lines">
+              <div class="p-line"></div>
+              <div class="p-line w-short"></div>
+              <div class="p-line w-mid"></div>
+              <div class="p-line"></div>
+            </div>
+            <div class="paper-curl-shadow" id="curl-shadow-3"></div>
+            <div class="paper-backface">
+              <div class="page-ruled-lines">
+                <div class="p-line w-mid"></div>
+                <div class="p-line"></div>
+                <div class="p-line w-short"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Articulated Leaf 2 (Anime.js Target) -->
+        <div class="paper-leaf" id="leaf-2">
+          <div class="paper-body" id="leaf-body-2">
+            <div class="paper-ruled-lines">
+              <div class="p-line w-mid"></div>
+              <div class="p-line"></div>
+              <div class="p-line w-short"></div>
+              <div class="p-line"></div>
+            </div>
+            <div class="paper-curl-shadow" id="curl-shadow-2"></div>
+            <div class="paper-backface">
+              <div class="page-ruled-lines">
+                <div class="p-line"></div>
+                <div class="p-line w-mid"></div>
+                <div class="p-line w-short"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Articulated Leaf 1 (Anime.js Target) -->
+        <div class="paper-leaf" id="leaf-1">
+          <div class="paper-body" id="leaf-body-1">
+            <div class="paper-ruled-lines">
+              <div class="p-line"></div>
+              <div class="p-line w-mid"></div>
+              <div class="p-line"></div>
+              <div class="p-line w-short"></div>
+            </div>
+            <div class="paper-curl-shadow" id="curl-shadow-1"></div>
+            <div class="paper-backface">
+              <div class="page-ruled-lines">
+                <div class="p-line w-short"></div>
+                <div class="p-line"></div>
+                <div class="p-line w-mid"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Front Cover with "tt" Stencil and Logo Opening & Closing -->
+        <div class="book-front-cover" id="front-cover">
+          <div class="cover-frontface">
+            <svg viewBox="0 0 120 120" width="58" height="58" fill="#FFFFFF">
+              <g transform="translate(60, 60) rotate(45)">
+                <path d="
+                  M -21 -20.5 C -23.5 -20.5 -25.5 -18.5 -25.5 -16 C -25.5 -13.5 -23.5 -11.5 -21 -11.5 L -12.5 -11.5 L -12.5 -5 C -12.5 -2.5 -10.5 -0.5 -8 -0.5 C -5.5 -0.5 -3.5 -2.5 -3.5 -5 L -3.5 -11.5 L 7.5 -11.5 C 14.5 -11.5 18.5 -15.5 18.5 -21.5 C 18.5 -24 17.5 -26 16 -27.5 C 14 -29.5 14 -32.5 16.5 -34 C 19 -35.5 22 -34.5 23.5 -32 C 26 -28.5 27 -24.5 27 -20.5 C 27 -9.5 20 -3 7.5 -3 L -3.5 -3 L -3.5 3 C -3.5 5.5 -5.5 7.5 -8 7.5 C -10.5 7.5 -12.5 5.5 -12.5 3 L -12.5 -3 L -21 -3 C -23.5 -3 -25.5 -5 -25.5 -7.5 C -25.5 -10 -23.5 -12 -21 -12 L -12.5 -12 L -12.5 -20.5 Z
+                " />
+                <path d="
+                  M -21 11.5 C -23.5 11.5 -25.5 13.5 -25.5 16 C -25.5 18.5 -23.5 20.5 -21 20.5 L -12.5 20.5 L -12.5 27 C -12.5 29.5 -10.5 31.5 -8 31.5 C -5.5 31.5 -3.5 29.5 -3.5 27 L -3.5 20.5 L 7.5 20.5 C 14.5 20.5 18.5 16.5 18.5 10.5 C 18.5 8 17.5 6 16 4.5 C 14 2.5 14 -0.5 16.5 -2 C 19 -3.5 22 -2.5 23.5 0 C 26 3.5 27 7.5 27 11.5 C 27 22.5 20 29 7.5 29 L -3.5 29 L -3.5 35 C -3.5 37.5 -5.5 39.5 -8 39.5 C -10.5 39.5 -12.5 37.5 -12.5 35 L -12.5 29 L -21 29 C -23.5 29 -25.5 27 -25.5 24.5 C -25.5 22 -23.5 20 -21 20 L -12.5 20 L -12.5 11.5 Z
+                " />
+              </g>
+            </svg>
+          </div>
+          <div class="cover-backface"></div>
+        </div>
+
+        <!-- 6 ANILLAS 3D REALISTAS DE COSTADO (Standing 3D Wire Coils) -->
+        <div class="binder-spine-3d">
+          <div class="wire-coil-unit"><div class="wire-arch"></div><div class="wire-shadow"></div></div>
+          <div class="wire-coil-unit"><div class="wire-arch"></div><div class="wire-shadow"></div></div>
+          <div class="wire-coil-unit"><div class="wire-arch"></div><div class="wire-shadow"></div></div>
+          <div class="wire-coil-unit"><div class="wire-arch"></div><div class="wire-shadow"></div></div>
+          <div class="wire-coil-unit"><div class="wire-arch"></div><div class="wire-shadow"></div></div>
+          <div class="wire-coil-unit"><div class="wire-arch"></div><div class="wire-shadow"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Swiss Progress Bar -->
+    <div class="progress-bar-container">
+      <div class="progress-bar-indicator"></div>
+    </div>
+
+    <!-- Micro-Message Rotator -->
+    <div class="message-container">
+      <div class="status-text active" id="status-text">Organizando tus apuntes...</div>
+    </div>
+
+    <div class="sub-brand">Tus apuntes, tu comunidad</div>
+  </div>
+
+  <!-- Testing Controls Toolbar -->
+  <div class="toolbar-container">
+    <div class="theme-toolbar">
+      <button class="control-btn active" onclick="setTheme('dark')">Modo Oscuro</button>
+      <button class="control-btn" onclick="setTheme('light')">Modo Claro</button>
+      <button class="control-btn" onclick="setTheme('atelier')">Atelier (Editor)</button>
+    </div>
+
+    <div class="theme-toolbar">
+      <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); align-self: center; margin-right: 4px;">ESCALA:</span>
+      <button class="control-btn" onclick="setScale(1.0)">Mediano (1x)</button>
+      <button class="control-btn active" onclick="setScale(1.5)">Grande (1.5x)</button>
+      <button class="control-btn" onclick="setScale(1.85)">XL (1.85x)</button>
+    </div>
+  </div>
+
+  <script>
+    // --- Message Rotator ---
+    const messages = [
+      "Organizando tus apuntes...",
+      "Pasando a la siguiente página...",
+      "Sincronizando con tu ciclo...",
+      "Preparando tu espacio de estudio...",
+      "Conectando con la comunidad...",
+      "Afilando ideas..."
+    ];
+
+    let currentMsgIdx = 0;
+    const textEl = document.getElementById("status-text");
+
+    setInterval(() => {
+      textEl.classList.remove("active");
+      setTimeout(() => {
+        currentMsgIdx = (currentMsgIdx + 1) % messages.length;
+        textEl.textContent = messages[currentMsgIdx];
+        textEl.classList.add("active");
+      }, 350);
+    }, 2800);
+
+    function setTheme(theme) {
+      document.body.setAttribute('data-theme', theme);
+      document.querySelectorAll('.control-btn').forEach(btn => {
+        if (['Modo Oscuro', 'Modo Claro', 'Atelier (Editor)'].includes(btn.textContent)) {
+          btn.classList.remove('active');
+        }
+      });
+      event.target.classList.add('active');
+    }
+
+    function setScale(scale) {
+      document.documentElement.style.setProperty('--scale-factor', scale);
+      document.querySelectorAll('.control-btn').forEach(btn => {
+        if (btn.textContent.includes('x')) {
+          btn.classList.remove('active');
+        }
+      });
+      event.target.classList.add('active');
+    }
+
+    // --- Realistic Paper Physics with Anime.js v4 ---
+    window.addEventListener('DOMContentLoaded', () => {
+      if (typeof anime === 'undefined') {
+        console.warn('Anime.js UMD not loaded, checking window');
+        return;
+      }
+
+      const { createTimeline, animate, stagger } = anime;
+
+      function startAnimeLoop() {
+        const tl = createTimeline({
+          loop: true,
+          defaults: {
+            ease: 'inOutCubic'
+          }
+        });
+
+        // 0. ESTADO INICIAL CERRADO (0ms - 450ms)
+        tl.add('#page-stack-left', {
+          opacity: 0,
+          duration: 1
+        }, 0);
+
+        // 1. APERTURA DE LA CUBIERTA (450ms - 1200ms)
+        tl.add('#front-cover', {
+          rotateY: [0, -180],
+          duration: 750,
+          ease: 'outExpo'
+        }, 450);
+
+        // Pulso suave en la base turquesa al abrir
+        tl.add('#teal-base', {
+          opacity: [0.75, 1],
+          boxShadow: [
+            '0 0 16px rgba(20, 184, 166, 0.3)',
+            '0 0 32px rgba(20, 184, 166, 0.65)'
+          ],
+          duration: 750,
+          ease: 'outQuad'
+        }, 450);
+
+        // Destello secuencial en las anillas de alambre metálico 3D
+        tl.add('.wire-arch', {
+          borderColor: ['#ffffff #cbd5e1 #64748b #ffffff', '#2dd4bf #ffffff #14b8a6 #2dd4bf', '#ffffff #cbd5e1 #64748b #ffffff'],
+          filter: ['drop-shadow(0 0 1px #fff)', 'drop-shadow(0 0 5px #2dd4bf)', 'drop-shadow(0 0 1px #fff)'],
+          delay: stagger(50),
+          duration: 350
+        }, 650);
+
+        // Helper para volteo realista con flexión de papel
+        function addRealisticPageFlip(leafId, bodyId, curlShadowId, startTime) {
+          // A. Rotación de bisagra a través del espiral
+          tl.add(leafId, {
+            rotateY: [0, -180],
+            duration: 850,
+            ease: 'inOutCubic'
+          }, startTime);
+
+          // B. Flexibilidad elástica del papel (comba y curvatura)
+          tl.add(bodyId, {
+            keyframes: [
+              { rotateZ: -6, skewY: 7, scaleX: 0.92, duration: 380, ease: 'outQuad' },
+              { rotateZ: 3, skewY: -6, scaleX: 0.94, duration: 320, ease: 'inQuad' },
+              { rotateZ: 0, skewY: 0, scaleX: 1, duration: 150, ease: 'outBack' }
+            ]
+          }, startTime);
+
+          // C. Sombra dinámica de relieve que viaja por la cresta de la hoja
+          tl.add(curlShadowId, {
+            keyframes: [
+              { opacity: 0, duration: 50 },
+              { opacity: 0.45, duration: 350, ease: 'outQuad' },
+              { opacity: 0, duration: 400, ease: 'inQuad' }
+            ]
+          }, startTime);
+
+          // D. Sombra sobre la pila inferior
+          tl.add('#under-shadow', {
+            keyframes: [
+              { opacity: 0.35, duration: 350 },
+              { opacity: 0, duration: 400 }
+            ]
+          }, startTime);
+
+          // Micro-destello en las anillas al cruzar la hoja
+          tl.add('.wire-arch', {
+            filter: ['drop-shadow(0 0 1px #fff)', 'drop-shadow(0 0 4px #fff)', 'drop-shadow(0 0 1px #fff)'],
+            delay: stagger(25),
+            duration: 220
+          }, startTime + 250);
+        }
+
+        // Hoja 1 pasa (1200ms - 2050ms)
+        addRealisticPageFlip('#leaf-1', '#leaf-body-1', '#curl-shadow-1', 1200);
+
+        // La pila izquierda aparece solo cuando la Hoja 1 aterriza en la izquierda (~1900ms)
+        tl.add('#page-stack-left', {
+          opacity: [0, 1],
+          duration: 250,
+          ease: 'outQuad'
+        }, 1900);
+
+        // Hoja 2 pasa (2000ms - 2850ms)
+        addRealisticPageFlip('#leaf-2', '#leaf-body-2', '#curl-shadow-2', 2000);
+
+        // Hoja 3 pasa (2800ms - 3650ms)
+        addRealisticPageFlip('#leaf-3', '#leaf-body-3', '#curl-shadow-3', 2800);
+
+        // 3. CIERRE DE LA CUBIERTA (3750ms - 4500ms)
+        tl.add('#front-cover', {
+          rotateY: [-180, 0],
+          duration: 750,
+          ease: 'inOutExpo'
+        }, 3750);
+
+        // La pila izquierda se desvanece suavemente bajo la cubierta que va cerrando
+        tl.add('#page-stack-left', {
+          opacity: [1, 0],
+          duration: 350,
+          ease: 'outQuad'
+        }, 3900);
+
+        // Reset silencioso de las hojas debajo de la carátula ya cerrada
+        tl.add(['#leaf-1', '#leaf-2', '#leaf-3'], {
+          rotateY: 0,
+          duration: 1
+        }, 4550);
+
+        // 4. REPOSO EN EL LOGO CERRADO (4500ms - 5200ms)
+        tl.add('#teal-base', {
+          opacity: [1, 0.8],
+          boxShadow: [
+            '0 0 32px rgba(20, 184, 166, 0.65)',
+            '0 0 18px rgba(20, 184, 166, 0.35)'
+          ],
+          duration: 700,
+          ease: 'outQuad'
+        }, 4500);
+
+        // Pausa de reposo antes de reiniciar el ciclo
+        tl.add({}, { duration: 400 });
+      }
+
+      startAnimeLoop();
+    });
+  </script>
+</body>
+</html>

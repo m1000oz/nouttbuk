@@ -11,7 +11,7 @@ import { ApuntesExplorer } from "@/components/apuntes/apuntes-explorer";
 import { resolverColorCarpeta } from "@/lib/carpetas/colores";
 
 const SELECT_APUNTE =
-  "id, titulo, contenido, carpeta_id, favorito, visibilidad, updated_at, enlace_token, enlace_permiso";
+  "id, titulo, extracto, carpeta_id, favorito, visibilidad, updated_at, enlace_token, enlace_permiso";
 const SELECT_APUNTE_COMPARTIDO = `${SELECT_APUNTE}, autor:profiles!apuntes_autor_id_fkey(nombre)`;
 
 export default async function MisApuntesPage(props: PageProps<"/apuntes">) {
@@ -157,7 +157,7 @@ export default async function MisApuntesPage(props: PageProps<"/apuntes">) {
           notas={notasVisibles.map((apunte) => ({
             id: apunte.id,
             titulo: apunte.titulo,
-            contenido: apunte.contenido,
+            extracto: apunte.extracto,
             updatedAt: apunte.updated_at,
             carpetaId: apunte.carpeta_id,
             favorito: apunte.favorito,
@@ -168,7 +168,7 @@ export default async function MisApuntesPage(props: PageProps<"/apuntes">) {
           compartidos={compartidos.map((apunte) => ({
             id: apunte.id,
             titulo: apunte.titulo,
-            contenido: apunte.contenido,
+            extracto: apunte.extracto,
             updatedAt: apunte.updated_at,
             carpetaId: apunte.carpeta_id,
             favorito: apunte.favorito,

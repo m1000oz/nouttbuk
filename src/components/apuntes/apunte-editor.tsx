@@ -56,6 +56,7 @@ import { DialogoBuscarReemplazar } from "@/components/apuntes/dialogo-buscar-ree
 import { DialogoContarPalabras } from "@/components/apuntes/dialogo-contar-palabras";
 import { EVENTO_INSERTAR_IMAGEN } from "@/components/apuntes/menu-comandos";
 import { useSubirImagenApunte } from "@/lib/tiptap/usar-subir-imagen-apunte";
+import { extraerTextoPlano } from "@/lib/tiptap/extraer-texto-plano";
 import { resolverColorCarpeta } from "@/lib/carpetas/colores";
 import {
   actualizarEncabezadoPie,
@@ -404,9 +405,11 @@ export function ApunteEditor({
 
       const supabase = createClient();
       const titFinal = (tituloCustom ?? titulo).trim() || "Sin título";
+      const contenidoActual = editor.getJSON();
       const campos = {
         titulo: titFinal,
-        contenido: editor.getJSON(),
+        contenido: contenidoActual,
+        extracto: extraerTextoPlano(contenidoActual),
         carpeta_id: carpetaId,
         curso_id: cursoId,
         visibilidad,

@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/lib/types/database.types";
-import { extraerTextoPlano } from "@/lib/tiptap/extraer-texto-plano";
+import { recortarTexto } from "@/lib/tiptap/extraer-texto-plano";
 
 export const TAMANIO_PAGINA = 12;
 
@@ -31,7 +31,7 @@ export function consultaFeedComunidad(
       apunte:apuntes!inner(
         id,
         titulo,
-        contenido,
+        extracto,
         created_at,
         curso:cursos(nombre),
         autor:profiles!apuntes_autor_id_fkey!inner(id, nombre, usuario, avatar_url, carrera_id)
@@ -68,7 +68,7 @@ export function consultaPublicacionesDeUsuario(
       apunte:apuntes!inner(
         id,
         titulo,
-        contenido,
+        extracto,
         created_at,
         curso:cursos(nombre),
         autor:profiles!apuntes_autor_id_fkey!inner(id, nombre, usuario, avatar_url, carrera_id)
@@ -101,7 +101,7 @@ export async function consultaFeedAmigos(
       .select(`
         id, created_at,
         apunte:apuntes!inner(
-          id, titulo, contenido, created_at, curso:cursos(nombre),
+          id, titulo, extracto, created_at, curso:cursos(nombre),
           autor:profiles!apuntes_autor_id_fkey!inner(id, nombre, usuario, avatar_url, carrera_id)
         )
       `)
@@ -117,7 +117,7 @@ export async function consultaFeedAmigos(
       apunte:apuntes!inner(
         id,
         titulo,
-        contenido,
+        extracto,
         created_at,
         curso:cursos(nombre),
         autor:profiles!apuntes_autor_id_fkey!inner(id, nombre, usuario, avatar_url, carrera_id)
@@ -160,7 +160,7 @@ export function mapearPublicacionFeed(
   return {
     id: fila.id,
     titulo: fila.apunte.titulo,
-    extracto: extraerTextoPlano(fila.apunte.contenido),
+    extracto: recortarTexto(fila.apunte.extracto, 160),
     createdAt: fila.apunte.created_at,
     autor: {
       nombre: fila.apunte.autor?.nombre ?? "Alguien de la comunidad",

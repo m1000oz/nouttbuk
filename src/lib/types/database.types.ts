@@ -86,6 +86,7 @@ export type Database = {
           enlace_permiso: Database["public"]["Enums"]["permiso_colaborador"]
           enlace_token: string | null
           etiquetas: string[]
+          extracto: string
           favorito: boolean
           id: string
           titulo: string
@@ -101,6 +102,7 @@ export type Database = {
           enlace_permiso?: Database["public"]["Enums"]["permiso_colaborador"]
           enlace_token?: string | null
           etiquetas?: string[]
+          extracto?: string
           favorito?: boolean
           id?: string
           titulo: string
@@ -116,6 +118,7 @@ export type Database = {
           enlace_permiso?: Database["public"]["Enums"]["permiso_colaborador"]
           enlace_token?: string | null
           etiquetas?: string[]
+          extracto?: string
           favorito?: boolean
           id?: string
           titulo?: string

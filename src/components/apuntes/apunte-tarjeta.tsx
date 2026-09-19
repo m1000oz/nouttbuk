@@ -7,9 +7,8 @@ import { FolderIcon, StarIcon } from "@phosphor-icons/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { ApunteOpcionesMenu } from "@/components/apuntes/apunte-opciones-menu";
 import { fechaRelativa } from "@/lib/fecha/relativa";
-import { extraerTextoPlano } from "@/lib/tiptap/extraer-texto-plano";
+import { recortarTexto } from "@/lib/tiptap/extraer-texto-plano";
 import { resolverColorCarpeta } from "@/lib/carpetas/colores";
-import type { Json } from "@/lib/types/database.types";
 import type { ApunteVisibilidad, PermisoColaborador } from "@/lib/types/enums";
 
 type CarpetaOpcion = { id: string; nombre: string; color: string };
@@ -17,7 +16,7 @@ type CarpetaOpcion = { id: string; nombre: string; color: string };
 type ApunteTarjetaProps = {
   id: string;
   titulo: string;
-  contenido: Json;
+  extracto: string;
   updatedAt: string;
   carpetaId: string | null;
   carpeta?: { nombre: string; color: string } | null;
@@ -44,7 +43,7 @@ type ApunteTarjetaProps = {
 export function ApunteTarjeta({
   id,
   titulo,
-  contenido,
+  extracto: extractoGuardado,
   updatedAt,
   carpetaId,
   carpeta,
@@ -59,7 +58,7 @@ export function ApunteTarjeta({
 }: ApunteTarjetaProps) {
   const prefiereMenosMovimiento = useReducedMotion();
   const esPropio = !propietario;
-  const extracto = extraerTextoPlano(contenido, destacado ? 220 : 120);
+  const extracto = recortarTexto(extractoGuardado, destacado ? 220 : 120);
 
   return (
     <div className="relative">

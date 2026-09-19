@@ -27,7 +27,7 @@ import { obtenerDiaSemanaActual } from "@/lib/calendario/dia-semana-actual";
 import { saludoPorHora } from "@/lib/fecha/saludo";
 
 const SELECT_APUNTE =
-  "id, titulo, contenido, carpeta_id, favorito, visibilidad, updated_at";
+  "id, titulo, extracto, carpeta_id, favorito, visibilidad, updated_at";
 
 export default async function InicioPage() {
   const supabase = await createClient();
@@ -183,7 +183,7 @@ export default async function InicioPage() {
                     <ApunteTarjeta
                       id={destacada.id}
                       titulo={destacada.titulo}
-                      contenido={destacada.contenido}
+                      extracto={destacada.extracto}
                       updatedAt={destacada.updated_at}
                       carpetaId={destacada.carpeta_id}
                       carpeta={
@@ -204,7 +204,7 @@ export default async function InicioPage() {
                     key={apunte.id}
                     id={apunte.id}
                     titulo={apunte.titulo}
-                    contenido={apunte.contenido}
+                    extracto={apunte.extracto}
                     updatedAt={apunte.updated_at}
                     carpetaId={apunte.carpeta_id}
                     carpeta={
@@ -233,7 +233,7 @@ export default async function InicioPage() {
                     key={apunte.id}
                     id={apunte.id}
                     titulo={apunte.titulo}
-                    contenido={apunte.contenido}
+                    extracto={apunte.extracto}
                     updatedAt={apunte.updated_at}
                     carpetaId={apunte.carpeta_id}
                     carpeta={

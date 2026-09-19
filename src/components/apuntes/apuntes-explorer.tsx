@@ -13,13 +13,12 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { SeccionVacia } from "@/components/shared/seccion-vacia";
 import { ApunteTarjeta } from "@/components/apuntes/apunte-tarjeta";
 import { NuevoApunteButton } from "@/components/nav/fab-nuevo-apunte";
-import type { Json } from "@/lib/types/database.types";
 import type { ApunteVisibilidad, PermisoColaborador } from "@/lib/types/enums";
 
 type ApunteItem = {
   id: string;
   titulo: string;
-  contenido: Json;
+  extracto: string;
   updatedAt: string;
   carpetaId: string | null;
   favorito: boolean;
@@ -88,7 +87,7 @@ function ListaApuntes({
           key={apunte.id}
           id={apunte.id}
           titulo={apunte.titulo}
-          contenido={apunte.contenido}
+          extracto={apunte.extracto}
           updatedAt={apunte.updatedAt}
           carpetaId={apunte.carpetaId}
           carpeta={

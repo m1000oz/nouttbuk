@@ -1,0 +1,11 @@
+-- apuntes.extracto: extracto de texto plano denormalizado, calculado y
+-- guardado por la app al guardar un apunte (apunte-editor.tsx, reusando la
+-- misma extraerTextoPlano que ya existía), no recalculado en SQL. Antes,
+-- cada listado (Mis apuntes, Inicio, los feeds de Comunidad/Amigos) traía
+-- el `contenido` jsonb completo de cada apunte, el documento Tiptap
+-- paginado entero, imágenes incluidas, solo para sacar 120-220 caracteres
+-- de texto en el cliente. `not null default ''` para que las filas ya
+-- existentes queden en un estado válido antes del backfill aparte (fuera
+-- de esta migración, corrido una sola vez contra los pocos apuntes reales
+-- que ya existían al momento de este cambio).
+alter table public.apuntes add column extracto text not null default '';
