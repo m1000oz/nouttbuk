@@ -166,26 +166,15 @@
       box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.35);
     }
 
-    /* Left static page stack - Inicia oculto cuando el cuaderno está cerrado */
+    /* Left static page stack - Oculto permanentemente para evitar que aparezca una hoja debajo de la carátula */
     .page-stack-left {
-      position: absolute;
-      left: -130px;
-      top: 5px;
-      width: 138px;
-      height: 110px;
-      background: var(--page-bg);
-      border-radius: 10px 0 0 10px;
-      transform: translateZ(-10px);
-      box-shadow: -2px 2px 6px rgba(0, 0, 0, 0.12);
-      overflow: hidden;
-      opacity: 0;
-      pointer-events: none;
+      display: none !important;
     }
 
     /* Right static page stack */
     .page-stack-right {
       position: absolute;
-      left: 17px;
+      left: 16px;
       top: 5px;
       width: 135px;
       height: 110px;
@@ -197,13 +186,34 @@
     }
 
     /* Faint ruling lines for student notes */
-    .page-ruled-lines {
+    .page-ruled-lines,
+    .paper-ruled-lines {
       width: 100%;
       height: 100%;
       padding: 12px 14px 12px 18px;
       display: flex;
       flex-direction: column;
       gap: 8px;
+      position: relative;
+    }
+
+    /* Soft margin line for authentic university notebook feel */
+    .page-ruled-lines::before,
+    .paper-ruled-lines::before {
+      content: '';
+      position: absolute;
+      left: 24px;
+      top: 0;
+      bottom: 0;
+      width: 1.5px;
+      background: rgba(20, 184, 166, 0.28);
+      pointer-events: none;
+    }
+
+    .paper-backface .page-ruled-lines::before,
+    .page-stack-left .page-ruled-lines::before {
+      left: auto;
+      right: 24px;
     }
 
     .p-line {
@@ -212,14 +222,26 @@
       border-radius: 2px;
       width: 100%;
     }
-    .p-line.w-short { width: 55%; }
-    .p-line.w-mid { width: 78%; }
+    .p-line.w-short { width: 52%; }
+    .p-line.w-mid { width: 75%; }
+    .p-line.accent {
+      background: linear-gradient(90deg, var(--teal), var(--page-line));
+      opacity: 0.85;
+    }
 
-    /* Moving Dynamic Under-page Shadow */
-    .under-page-shadow {
+    /* Moving Dynamic Under-page Shadows */
+    .under-page-shadow-right {
       position: absolute;
       inset: 0;
-      background: linear-gradient(90deg, rgba(0, 0, 0, 0.25) 0%, transparent 60%);
+      background: linear-gradient(90deg, rgba(0, 0, 0, 0.25) 0%, transparent 65%);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .under-page-shadow-left {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(-90deg, rgba(0, 0, 0, 0.25) 0%, transparent 65%);
       opacity: 0;
       pointer-events: none;
     }
@@ -248,16 +270,18 @@
       position: relative;
       box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
       overflow: hidden;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
     }
 
     /* Dynamic Paper Curvature Shadow */
     .paper-curl-shadow {
       position: absolute;
       inset: 0;
-      background: linear-gradient(90deg, transparent 0%, rgba(15, 23, 42, 0.18) 40%, rgba(255, 255, 255, 0.3) 65%, transparent 100%);
+      background: linear-gradient(90deg, transparent 0%, rgba(15, 23, 42, 0.12) 28%, rgba(255, 255, 255, 0.45) 50%, rgba(15, 23, 42, 0.16) 72%, transparent 100%);
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.1s;
+      z-index: 5;
     }
 
     /* Backface of turning paper */
@@ -268,24 +292,25 @@
       border-radius: 10px 0 0 10px;
       transform: rotateY(180deg);
       backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
       overflow: hidden;
       box-shadow: -2px 0 10px rgba(0, 0, 0, 0.12);
     }
 
-    /* Front Cover with "tt" cutout - Sits on top when closed */
+    /* Front Cover with "tt" cutout - Sits on top of pages when closed (Z: 8px) */
     .book-front-cover {
       position: absolute;
-      left: 12px;
+      left: 14px;
       top: 0;
-      width: 144px;
+      width: 142px;
       height: 120px;
       background: var(--primary);
       border-radius: 0 14px 14px 0;
-      transform-origin: left center;
+      transform-origin: 2px center;
       transform-style: preserve-3d;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
-      z-index: 30;
-      transform: translateZ(6px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.38);
+      z-index: 40;
+      transform: translateZ(8px);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -298,6 +323,8 @@
       border-radius: 14px 0 0 14px;
       transform: rotateY(180deg);
       backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .cover-frontface {
@@ -307,85 +334,44 @@
       align-items: center;
       justify-content: center;
       backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      border-radius: 0 14px 14px 0;
+      border: 1px solid rgba(255, 255, 255, 0.12);
     }
 
-    /* --- ANILLADO 3D REALISTA DE COSTADO (Wire Coil Binding) --- */
+    /* --- ANILLADO REALISTA DE CUADERNO (Authentic Wire-O Binding) --- */
 
-    /* Punch Holes Track (Perforaciones del papel y cubierta) */
-    .punch-holes-track {
-      position: absolute;
-      left: 12px;
-      top: 6px;
-      width: 6px;
-      height: 108px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      align-items: center;
-      z-index: 25;
-      transform: translateZ(2px);
-      pointer-events: none;
-    }
-
-    .punch-hole {
-      width: 5px;
-      height: 7px;
-      border-radius: 3px;
-      background: var(--hole-color);
-      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
-    }
-
-    /* 3D Binder Spine Container (Anillas metálicas curvadas de costado) */
+    /* 3D Binder Spine Container (Anillado Metálico Realista de Cuaderno) */
     .binder-spine-3d {
       position: absolute;
-      left: 5px;
+      left: 3px;
       top: 2px;
-      width: 22px;
+      width: 26px;
       height: 116px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
       transform-style: preserve-3d;
-      z-index: 45;
+      transform: translateZ(14px);
+      z-index: 100;
       pointer-events: none;
     }
 
-    /* Cada anilla es un arco de alambre perpendicular al papel (rotado en el plano X-Z) */
-    .wire-coil-unit {
-      width: 18px;
-      height: 18px;
-      position: relative;
-      transform-style: preserve-3d;
-      /* CLAVE DE REALISMO: rotateX(86deg) + rotateY(18deg) levanta el aro de costado fuera del papel */
-      transform: rotateX(86deg) rotateY(18deg) translateZ(6px);
+    .binder-spine-svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+      overflow: visible;
     }
 
-    /* Arco superior visible del alambre metálico */
-    .wire-arch {
-      position: absolute;
-      inset: 0;
-      border-radius: 50%;
-      border: 2.8px solid #ffffff;
-      /* Gradiente metálico con brillo cilíndrico */
-      border-color: #ffffff #cbd5e1 #64748b #ffffff;
-      background: transparent;
-      box-shadow:
-        0 0 2px rgba(255, 255, 255, 0.8),
-        0 4px 6px rgba(15, 23, 42, 0.45);
-      transition: filter 0.25s, border-color 0.25s;
+    .wire-arch-path {
+      transition: stroke 0.25s ease, filter 0.25s ease;
     }
 
-    /* Pequeña sombra proyectada de la anilla sobre el papel */
-    .wire-shadow {
-      position: absolute;
-      left: 6px;
-      top: 6px;
-      width: 14px;
-      height: 6px;
-      border-radius: 50%;
-      background: rgba(15, 23, 42, 0.35);
-      filter: blur(1.5px);
-      transform: rotateX(-86deg) translateZ(-4px);
+    .wire-ring-group {
+      transform-origin: center;
+      transition: transform 0.2s ease;
+    }
+
+    .punch-hole-left {
+      transition: opacity 0.3s ease;
     }
 
     /* Swiss Progress Bar */
@@ -511,47 +497,26 @@
         <!-- Back cover solid -->
         <div class="book-back-cover"></div>
 
-        <!-- Left static page stack (inicia oculto al 100%) -->
-        <div class="page-stack-left" id="page-stack-left">
-          <div class="page-ruled-lines">
-            <div class="p-line w-mid"></div>
-            <div class="p-line"></div>
-            <div class="p-line w-short"></div>
-            <div class="p-line"></div>
-            <div class="p-line w-mid"></div>
-          </div>
-        </div>
-
-        <!-- Right static page stack -->
+        <!-- Right static page stack (hojas de fondo del cuaderno) -->
         <div class="page-stack-right">
           <div class="page-ruled-lines">
             <div class="p-line w-short"></div>
             <div class="p-line"></div>
-            <div class="p-line w-mid"></div>
+            <div class="p-line w-mid accent"></div>
             <div class="p-line"></div>
             <div class="p-line w-mid"></div>
             <div class="p-line w-short"></div>
           </div>
-          <div class="under-page-shadow" id="under-shadow"></div>
+          <div class="under-page-shadow-right" id="under-shadow-right"></div>
         </div>
 
-        <!-- Perforaciones troqueladas de la libreta (Punch holes) -->
-        <div class="punch-holes-track">
-          <div class="punch-hole"></div>
-          <div class="punch-hole"></div>
-          <div class="punch-hole"></div>
-          <div class="punch-hole"></div>
-          <div class="punch-hole"></div>
-          <div class="punch-hole"></div>
-        </div>
-
-        <!-- Articulated Leaf 3 (Anime.js Target) -->
-        <div class="paper-leaf" id="leaf-3">
+        <!-- Articulated Leaf 3 (Base de las 3 hojas móviles) -->
+        <div class="paper-leaf" id="leaf-3" style="z-index: 21;">
           <div class="paper-body" id="leaf-body-3">
             <div class="paper-ruled-lines">
+              <div class="p-line w-mid"></div>
               <div class="p-line"></div>
               <div class="p-line w-short"></div>
-              <div class="p-line w-mid"></div>
               <div class="p-line"></div>
             </div>
             <div class="paper-curl-shadow" id="curl-shadow-3"></div>
@@ -559,54 +524,54 @@
               <div class="page-ruled-lines">
                 <div class="p-line w-mid"></div>
                 <div class="p-line"></div>
-                <div class="p-line w-short"></div>
+                <div class="p-line w-short accent"></div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Articulated Leaf 2 (Anime.js Target) -->
-        <div class="paper-leaf" id="leaf-2">
+        <!-- Articulated Leaf 2 (Hoja intermedia) -->
+        <div class="paper-leaf" id="leaf-2" style="z-index: 32;">
           <div class="paper-body" id="leaf-body-2">
             <div class="paper-ruled-lines">
-              <div class="p-line w-mid"></div>
               <div class="p-line"></div>
+              <div class="p-line w-mid accent"></div>
               <div class="p-line w-short"></div>
               <div class="p-line"></div>
             </div>
             <div class="paper-curl-shadow" id="curl-shadow-2"></div>
             <div class="paper-backface">
               <div class="page-ruled-lines">
+                <div class="p-line w-short"></div>
                 <div class="p-line"></div>
                 <div class="p-line w-mid"></div>
-                <div class="p-line w-short"></div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Articulated Leaf 1 (Anime.js Target) -->
-        <div class="paper-leaf" id="leaf-1">
+        <!-- Articulated Leaf 1 (Hoja superior de las 3) -->
+        <div class="paper-leaf" id="leaf-1" style="z-index: 33;">
           <div class="paper-body" id="leaf-body-1">
             <div class="paper-ruled-lines">
-              <div class="p-line"></div>
               <div class="p-line w-mid"></div>
               <div class="p-line"></div>
+              <div class="p-line w-mid"></div>
               <div class="p-line w-short"></div>
             </div>
             <div class="paper-curl-shadow" id="curl-shadow-1"></div>
             <div class="paper-backface">
               <div class="page-ruled-lines">
-                <div class="p-line w-short"></div>
                 <div class="p-line"></div>
                 <div class="p-line w-mid"></div>
+                <div class="p-line w-short"></div>
               </div>
             </div>
           </div>
         </div>
 
         <!-- Front Cover with "tt" Stencil and Logo Opening & Closing -->
-        <div class="book-front-cover" id="front-cover">
+        <div class="book-front-cover" id="front-cover" style="z-index: 40;">
           <div class="cover-frontface">
             <svg viewBox="0 0 120 120" width="58" height="58" fill="#FFFFFF">
               <g transform="translate(60, 60) rotate(45)">
@@ -622,14 +587,88 @@
           <div class="cover-backface"></div>
         </div>
 
-        <!-- 6 ANILLAS 3D REALISTAS DE COSTADO (Standing 3D Wire Coils) -->
-        <div class="binder-spine-3d">
-          <div class="wire-coil-unit"><div class="wire-arch"></div><div class="wire-shadow"></div></div>
-          <div class="wire-coil-unit"><div class="wire-arch"></div><div class="wire-shadow"></div></div>
-          <div class="wire-coil-unit"><div class="wire-arch"></div><div class="wire-shadow"></div></div>
-          <div class="wire-coil-unit"><div class="wire-arch"></div><div class="wire-shadow"></div></div>
-          <div class="wire-coil-unit"><div class="wire-arch"></div><div class="wire-shadow"></div></div>
-          <div class="wire-coil-unit"><div class="wire-arch"></div><div class="wire-shadow"></div></div>
+        <!-- 6 ANILLAS REALISTAS METÁLICAS DEL LOMO (Authentic Wire-O Notebook Binding) -->
+        <div class="binder-spine-3d" id="binder-spine" style="z-index: 100;">
+          <svg class="binder-spine-svg" viewBox="0 0 26 116" width="26" height="116" style="overflow: visible;">
+            <defs>
+              <!-- Metallic Chrome / White Steel Gradient with Cylindrical Shading -->
+              <linearGradient id="wireCylinder" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#ffffff" />
+                <stop offset="25%" stop-color="#f8fafc" />
+                <stop offset="60%" stop-color="#cbd5e1" />
+                <stop offset="85%" stop-color="#94a3b8" />
+                <stop offset="100%" stop-color="#64748b" />
+              </linearGradient>
+
+              <!-- Signature Nouttbuk Teal Glow on page interaction -->
+              <linearGradient id="wireTealGlow" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#ffffff" />
+                <stop offset="35%" stop-color="#5eead4" />
+                <stop offset="70%" stop-color="#14b8a6" />
+                <stop offset="100%" stop-color="#0f766e" />
+              </linearGradient>
+
+              <!-- Ambient Drop Shadow Filter -->
+              <filter id="ringShadow" x="-30%" y="-30%" width="160%" height="160%">
+                <feDropShadow dx="0.5" dy="1.5" stdDeviation="0.8" flood-color="#0f172a" flood-opacity="0.45" />
+              </filter>
+            </defs>
+
+            <!-- 6 Solid Wire Clamping Arches with Integrated Geometric Punch Holes -->
+            <!-- Ring 0 (y = 8) -->
+            <g class="wire-ring-group" id="ring-0">
+              <rect class="punch-hole-left" x="2" y="5" width="4.5" height="7" rx="2.2" fill="#090d16" opacity="0" />
+              <rect class="punch-hole-right" x="19.5" y="6.5" width="4.5" height="7" rx="2.2" fill="#090d16" />
+              <path class="wire-shadow-path" d="M 4.25 8 C 7 3.5, 19 5, 21.75 10" stroke="rgba(15,23,42,0.4)" stroke-width="3" stroke-linecap="round" fill="none" />
+              <path class="wire-arch-path" d="M 4.25 8 C 7 2.8, 19 4.3, 21.75 9.5" stroke="url(#wireCylinder)" stroke-width="2.8" stroke-linecap="round" fill="none" filter="url(#ringShadow)" />
+              <path class="wire-gleam-path" d="M 5 7 C 7.5 3.2, 17.5 4.5, 20.5 8.5" stroke="#ffffff" stroke-width="0.8" stroke-linecap="round" opacity="0.9" fill="none" />
+            </g>
+
+            <!-- Ring 1 (y = 26) -->
+            <g class="wire-ring-group" id="ring-1">
+              <rect class="punch-hole-left" x="2" y="23" width="4.5" height="7" rx="2.2" fill="#090d16" opacity="0" />
+              <rect class="punch-hole-right" x="19.5" y="24.5" width="4.5" height="7" rx="2.2" fill="#090d16" />
+              <path class="wire-shadow-path" d="M 4.25 26 C 7 21.5, 19 23, 21.75 28" stroke="rgba(15,23,42,0.4)" stroke-width="3" stroke-linecap="round" fill="none" />
+              <path class="wire-arch-path" d="M 4.25 26 C 7 20.8, 19 22.3, 21.75 27.5" stroke="url(#wireCylinder)" stroke-width="2.8" stroke-linecap="round" fill="none" filter="url(#ringShadow)" />
+              <path class="wire-gleam-path" d="M 5 25 C 7.5 21.2, 17.5 22.5, 20.5 26.5" stroke="#ffffff" stroke-width="0.8" stroke-linecap="round" opacity="0.9" fill="none" />
+            </g>
+
+            <!-- Ring 2 (y = 44) -->
+            <g class="wire-ring-group" id="ring-2">
+              <rect class="punch-hole-left" x="2" y="41" width="4.5" height="7" rx="2.2" fill="#090d16" opacity="0" />
+              <rect class="punch-hole-right" x="19.5" y="42.5" width="4.5" height="7" rx="2.2" fill="#090d16" />
+              <path class="wire-shadow-path" d="M 4.25 44 C 7 39.5, 19 41, 21.75 46" stroke="rgba(15,23,42,0.4)" stroke-width="3" stroke-linecap="round" fill="none" />
+              <path class="wire-arch-path" d="M 4.25 44 C 7 38.8, 19 40.3, 21.75 45.5" stroke="url(#wireCylinder)" stroke-width="2.8" stroke-linecap="round" fill="none" filter="url(#ringShadow)" />
+              <path class="wire-gleam-path" d="M 5 43 C 7.5 39.2, 17.5 40.5, 20.5 44.5" stroke="#ffffff" stroke-width="0.8" stroke-linecap="round" opacity="0.9" fill="none" />
+            </g>
+
+            <!-- Ring 3 (y = 62) -->
+            <g class="wire-ring-group" id="ring-3">
+              <rect class="punch-hole-left" x="2" y="59" width="4.5" height="7" rx="2.2" fill="#090d16" opacity="0" />
+              <rect class="punch-hole-right" x="19.5" y="60.5" width="4.5" height="7" rx="2.2" fill="#090d16" />
+              <path class="wire-shadow-path" d="M 4.25 62 C 7 57.5, 19 59, 21.75 64" stroke="rgba(15,23,42,0.4)" stroke-width="3" stroke-linecap="round" fill="none" />
+              <path class="wire-arch-path" d="M 4.25 62 C 7 56.8, 19 58.3, 21.75 63.5" stroke="url(#wireCylinder)" stroke-width="2.8" stroke-linecap="round" fill="none" filter="url(#ringShadow)" />
+              <path class="wire-gleam-path" d="M 5 61 C 7.5 57.2, 17.5 58.5, 20.5 62.5" stroke="#ffffff" stroke-width="0.8" stroke-linecap="round" opacity="0.9" fill="none" />
+            </g>
+
+            <!-- Ring 4 (y = 80) -->
+            <g class="wire-ring-group" id="ring-4">
+              <rect class="punch-hole-left" x="2" y="77" width="4.5" height="7" rx="2.2" fill="#090d16" opacity="0" />
+              <rect class="punch-hole-right" x="19.5" y="78.5" width="4.5" height="7" rx="2.2" fill="#090d16" />
+              <path class="wire-shadow-path" d="M 4.25 80 C 7 75.5, 19 77, 21.75 82" stroke="rgba(15,23,42,0.4)" stroke-width="3" stroke-linecap="round" fill="none" />
+              <path class="wire-arch-path" d="M 4.25 80 C 7 74.8, 19 76.3, 21.75 81.5" stroke="url(#wireCylinder)" stroke-width="2.8" stroke-linecap="round" fill="none" filter="url(#ringShadow)" />
+              <path class="wire-gleam-path" d="M 5 79 C 7.5 75.2, 17.5 76.5, 20.5 80.5" stroke="#ffffff" stroke-width="0.8" stroke-linecap="round" opacity="0.9" fill="none" />
+            </g>
+
+            <!-- Ring 5 (y = 98) -->
+            <g class="wire-ring-group" id="ring-5">
+              <rect class="punch-hole-left" x="2" y="95" width="4.5" height="7" rx="2.2" fill="#090d16" opacity="0" />
+              <rect class="punch-hole-right" x="19.5" y="96.5" width="4.5" height="7" rx="2.2" fill="#090d16" />
+              <path class="wire-shadow-path" d="M 4.25 98 C 7 93.5, 19 95, 21.75 100" stroke="rgba(15,23,42,0.4)" stroke-width="3" stroke-linecap="round" fill="none" />
+              <path class="wire-arch-path" d="M 4.25 98 C 7 92.8, 19 94.3, 21.75 99.5" stroke="url(#wireCylinder)" stroke-width="2.8" stroke-linecap="round" fill="none" filter="url(#ringShadow)" />
+              <path class="wire-gleam-path" d="M 5 97 C 7.5 93.2, 17.5 94.5, 20.5 98.5" stroke="#ffffff" stroke-width="0.8" stroke-linecap="round" opacity="0.9" fill="none" />
+            </g>
+          </svg>
         </div>
       </div>
     </div>
@@ -660,6 +699,12 @@
       <button class="control-btn" onclick="setScale(1.0)">Mediano (1x)</button>
       <button class="control-btn active" onclick="setScale(1.5)">Grande (1.5x)</button>
       <button class="control-btn" onclick="setScale(1.85)">XL (1.85x)</button>
+    </div>
+
+    <div class="theme-toolbar">
+      <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); align-self: center; margin-right: 4px;">MODO:</span>
+      <button class="control-btn active" id="btn-mode-cycle" onclick="setAnimationMode('cycle')">Ciclo Completo</button>
+      <button class="control-btn" id="btn-mode-infinite" onclick="setAnimationMode('infinite')">Hojeo Continuo</button>
     </div>
   </div>
 
@@ -706,150 +751,349 @@
       event.target.classList.add('active');
     }
 
-    // --- Realistic Paper Physics with Anime.js v4 ---
-    window.addEventListener('DOMContentLoaded', () => {
-      if (typeof anime === 'undefined') {
-        console.warn('Anime.js UMD not loaded, checking window');
-        return;
+    let currentTimeline = null;
+    let currentMode = 'cycle';
+
+    function setAnimationMode(mode) {
+      if (currentMode === mode && currentTimeline) return;
+      currentMode = mode;
+
+      document.getElementById('btn-mode-cycle').classList.toggle('active', mode === 'cycle');
+      document.getElementById('btn-mode-infinite').classList.toggle('active', mode === 'infinite');
+
+      if (mode === 'cycle') {
+        buildCycleTimeline();
+      } else {
+        buildInfiniteTimeline();
+      }
+    }
+
+    // --- Ciclo Completo (Apertura con Portada Liderando -> Hojas Acompañando en Cascada -> Reposo Completo) ---
+    function buildCycleTimeline() {
+      if (currentTimeline) {
+        currentTimeline.cancel();
       }
 
-      const { createTimeline, animate, stagger } = anime;
+      const { createTimeline, stagger, set } = anime;
 
-      function startAnimeLoop() {
-        const tl = createTimeline({
-          loop: true,
-          defaults: {
-            ease: 'inOutCubic'
-          }
-        });
+      // 1. ESTADO INICIAL ESTRICTO:
+      // La portada está en la cima (Z=8, z-index=40).
+      // Las hojas están debajo de la portada (Z=6, 4, 2, z-index=33, 32, 31).
+      // Las anillas metálicas reales del lomo están elevadas (Z=14, z-index=100) y visibles en todo momento.
+      set('#front-cover', { rotateY: 0, translateZ: 8, opacity: 1 });
+      set('#leaf-1', { rotateY: 0, translateZ: 6, opacity: 1 });
+      set('#leaf-2', { rotateY: 0, translateZ: 4, opacity: 1 });
+      set('#leaf-3', { rotateY: 0, translateZ: 2, opacity: 1 });
+      set(['#leaf-body-1', '#leaf-body-2', '#leaf-body-3'], { rotateY: 0, rotateZ: 0 });
+      set(['#curl-shadow-1', '#curl-shadow-2', '#curl-shadow-3'], { opacity: 0 });
+      set('.punch-hole-left', { opacity: 0 });
+      set('#under-shadow-right', { opacity: 0 });
+      set('#under-shadow-left', { opacity: 0 });
+      set('.wire-arch-path', { stroke: 'url(#wireCylinder)' });
 
-        // 0. ESTADO INICIAL CERRADO (0ms - 450ms)
-        tl.add('#page-stack-left', {
-          opacity: 0,
-          duration: 1
-        }, 0);
+      const tl = createTimeline({
+        loop: true,
+        defaults: { ease: 'inOutCubic' }
+      });
 
-        // 1. APERTURA DE LA CUBIERTA (450ms - 1200ms)
-        tl.add('#front-cover', {
+      // 1. REPOSO INICIAL CERRADO (0ms - 450ms)
+      // Cuaderno cerrado con logo y base turquesa brillante
+      tl.add('#teal-base', {
+        opacity: [0.85, 1],
+        boxShadow: [
+          '0 0 18px rgba(20, 184, 166, 0.35)',
+          '0 0 28px rgba(20, 184, 166, 0.6)'
+        ],
+        duration: 450,
+        ease: 'outQuad'
+      }, 0);
+
+      // 2. LA PORTADA PASA PRIMERO Y 100% SOLA (450ms - 1250ms)
+      // Resuelve Detalle 1: Cero hojas aparecen a la izquierda ni debajo de la portada
+      tl.add('#front-cover', {
+        rotateY: [0, -180],
+        translateZ: [
+          { value: 18, duration: 400, ease: 'outQuad' },
+          { value: -8, duration: 400, ease: 'inQuad' }
+        ],
+        duration: 800,
+        ease: 'inOutCubic'
+      }, 450);
+
+      // Reacción de destello metálico de las anillas cilíndricas al abrir la portada
+      tl.add('.wire-arch-path', {
+        stroke: [
+          'url(#wireCylinder)',
+          'url(#wireTealGlow)',
+          'url(#wireCylinder)'
+        ],
+        delay: stagger(15),
+        duration: 340
+      }, 750);
+
+      tl.add('.wire-ring-group', {
+        keyframes: [
+          { translateY: -0.6, duration: 140, ease: 'outQuad' },
+          { translateY: 0, duration: 160, ease: 'inOutQuad' }
+        ],
+        delay: stagger(12)
+      }, 750);
+
+      // Los orificios troquelados del lado izquierdo se revelan al pasar la portada
+      tl.add('.punch-hole-left', {
+        opacity: [0, 1],
+        duration: 320,
+        ease: 'outQuad'
+      }, 850);
+
+      // 3. HOJAS INTERIORES EN CASCADA (1450ms - 2850ms)
+      // Inician con holgura SOLO DESPUÉS de que la portada ya esté 100% abierta en la izquierda
+      function addPageCascade(leafId, bodyId, shadowId, landingZ, startTime) {
+        // Giro completo de 0° a -180° que acompaña a la portada hasta el otro lado
+        tl.add(leafId, {
           rotateY: [0, -180],
-          duration: 750,
-          ease: 'outExpo'
-        }, 450);
-
-        // Pulso suave en la base turquesa al abrir
-        tl.add('#teal-base', {
-          opacity: [0.75, 1],
-          boxShadow: [
-            '0 0 16px rgba(20, 184, 166, 0.3)',
-            '0 0 32px rgba(20, 184, 166, 0.65)'
-          ],
-          duration: 750,
-          ease: 'outQuad'
-        }, 450);
-
-        // Destello secuencial en las anillas de alambre metálico 3D
-        tl.add('.wire-arch', {
-          borderColor: ['#ffffff #cbd5e1 #64748b #ffffff', '#2dd4bf #ffffff #14b8a6 #2dd4bf', '#ffffff #cbd5e1 #64748b #ffffff'],
-          filter: ['drop-shadow(0 0 1px #fff)', 'drop-shadow(0 0 5px #2dd4bf)', 'drop-shadow(0 0 1px #fff)'],
-          delay: stagger(50),
-          duration: 350
-        }, 650);
-
-        // Helper para volteo realista con flexión de papel
-        function addRealisticPageFlip(leafId, bodyId, curlShadowId, startTime) {
-          // A. Rotación de bisagra a través del espiral
-          tl.add(leafId, {
-            rotateY: [0, -180],
-            duration: 850,
-            ease: 'inOutCubic'
-          }, startTime);
-
-          // B. Flexibilidad elástica del papel (comba y curvatura)
-          tl.add(bodyId, {
-            keyframes: [
-              { rotateZ: -6, skewY: 7, scaleX: 0.92, duration: 380, ease: 'outQuad' },
-              { rotateZ: 3, skewY: -6, scaleX: 0.94, duration: 320, ease: 'inQuad' },
-              { rotateZ: 0, skewY: 0, scaleX: 1, duration: 150, ease: 'outBack' }
-            ]
-          }, startTime);
-
-          // C. Sombra dinámica de relieve que viaja por la cresta de la hoja
-          tl.add(curlShadowId, {
-            keyframes: [
-              { opacity: 0, duration: 50 },
-              { opacity: 0.45, duration: 350, ease: 'outQuad' },
-              { opacity: 0, duration: 400, ease: 'inQuad' }
-            ]
-          }, startTime);
-
-          // D. Sombra sobre la pila inferior
-          tl.add('#under-shadow', {
-            keyframes: [
-              { opacity: 0.35, duration: 350 },
-              { opacity: 0, duration: 400 }
-            ]
-          }, startTime);
-
-          // Micro-destello en las anillas al cruzar la hoja
-          tl.add('.wire-arch', {
-            filter: ['drop-shadow(0 0 1px #fff)', 'drop-shadow(0 0 4px #fff)', 'drop-shadow(0 0 1px #fff)'],
-            delay: stagger(25),
-            duration: 220
-          }, startTime + 250);
-        }
-
-        // Hoja 1 pasa (1200ms - 2050ms)
-        addRealisticPageFlip('#leaf-1', '#leaf-body-1', '#curl-shadow-1', 1200);
-
-        // La pila izquierda aparece solo cuando la Hoja 1 aterriza en la izquierda (~1900ms)
-        tl.add('#page-stack-left', {
-          opacity: [0, 1],
-          duration: 250,
-          ease: 'outQuad'
-        }, 1900);
-
-        // Hoja 2 pasa (2000ms - 2850ms)
-        addRealisticPageFlip('#leaf-2', '#leaf-body-2', '#curl-shadow-2', 2000);
-
-        // Hoja 3 pasa (2800ms - 3650ms)
-        addRealisticPageFlip('#leaf-3', '#leaf-body-3', '#curl-shadow-3', 2800);
-
-        // 3. CIERRE DE LA CUBIERTA (3750ms - 4500ms)
-        tl.add('#front-cover', {
-          rotateY: [-180, 0],
-          duration: 750,
-          ease: 'inOutExpo'
-        }, 3750);
-
-        // La pila izquierda se desvanece suavemente bajo la cubierta que va cerrando
-        tl.add('#page-stack-left', {
-          opacity: [1, 0],
-          duration: 350,
-          ease: 'outQuad'
-        }, 3900);
-
-        // Reset silencioso de las hojas debajo de la carátula ya cerrada
-        tl.add(['#leaf-1', '#leaf-2', '#leaf-3'], {
-          rotateY: 0,
-          duration: 1
-        }, 4550);
-
-        // 4. REPOSO EN EL LOGO CERRADO (4500ms - 5200ms)
-        tl.add('#teal-base', {
-          opacity: [1, 0.8],
-          boxShadow: [
-            '0 0 32px rgba(20, 184, 166, 0.65)',
-            '0 0 18px rgba(20, 184, 166, 0.35)'
+          translateZ: [
+            { value: 14, duration: 350, ease: 'outQuad' },
+            { value: landingZ, duration: 350, ease: 'inQuad' }
           ],
           duration: 700,
-          ease: 'outQuad'
-        }, 4500);
+          ease: 'inOutCubic'
+        }, startTime);
 
-        // Pausa de reposo antes de reiniciar el ciclo
-        tl.add({}, { duration: 400 });
+        // Flexión cilíndrica elástica natural del papel
+        tl.add(bodyId, {
+          keyframes: [
+            { rotateY: 18, rotateZ: -2, duration: 290, ease: 'outQuad' },
+            { rotateY: -10, rotateZ: 1.5, duration: 260, ease: 'inQuad' },
+            { rotateY: 0, rotateZ: 0, duration: 150, ease: 'outQuad' }
+          ]
+        }, startTime);
+
+        // Sombra dinámica en la cresta de la curvatura
+        tl.add(shadowId, {
+          keyframes: [
+            { opacity: 0, duration: 40 },
+            { opacity: 0.5, duration: 280, ease: 'outQuad' },
+            { opacity: 0, duration: 340, ease: 'inQuad' }
+          ]
+        }, startTime);
+
+        // Destello táctil en el alambre de las anillas al cruzar cada hoja
+        tl.add('.wire-arch-path', {
+          stroke: [
+            'url(#wireCylinder)',
+            'url(#wireTealGlow)',
+            'url(#wireCylinder)'
+          ],
+          delay: stagger(12),
+          duration: 200
+        }, startTime + 220);
+
+        tl.add('.wire-ring-group', {
+          keyframes: [
+            { translateY: -0.5, duration: 110, ease: 'outQuad' },
+            { translateY: 0, duration: 130, ease: 'outQuad' }
+          ],
+          delay: stagger(12)
+        }, startTime + 220);
       }
 
-      startAnimeLoop();
+      // Cascada de hojas: Hoja 1 aterriza sobre la portada (-5px), luego Hoja 2 (-2px) y Hoja 3 (+1px)
+      addPageCascade('#leaf-1', '#leaf-body-1', '#curl-shadow-1', -5, 1450);
+      addPageCascade('#leaf-2', '#leaf-body-2', '#curl-shadow-2', -2, 1800);
+      addPageCascade('#leaf-3', '#leaf-body-3', '#curl-shadow-3', 1, 2150);
+
+      // Sombras dinámicas sobre el papel de base
+      tl.add('#under-shadow-right', {
+        keyframes: [
+          { opacity: 0.35, duration: 300, ease: 'outQuad' },
+          { opacity: 0, duration: 400, ease: 'inQuad' }
+        ]
+      }, 1500);
+
+      // 4. REPOSO CON TRANSICIÓN COMPLETADA AL 100% (2850ms - 3700ms)
+      // La portada (-8px) y las 3 hojas (-5px, -2px, 1px) reposan juntas a la izquierda
+      tl.add({}, { duration: 850 });
+
+      // 5. RETORNO ORDENADO: HOJAS VUELVEN PRIMERO A LA DERECHA (3700ms - 4650ms)
+      function addPageReturn(leafId, bodyId, finalZ, startTime) {
+        tl.add(leafId, {
+          rotateY: [-180, 0],
+          translateZ: [
+            { value: 14, duration: 280, ease: 'outQuad' },
+            { value: finalZ, duration: 260, ease: 'inQuad' }
+          ],
+          duration: 540,
+          ease: 'inOutCubic'
+        }, startTime);
+
+        tl.add(bodyId, {
+          keyframes: [
+            { rotateY: -16, rotateZ: 2, duration: 220, ease: 'outQuad' },
+            { rotateY: 10, rotateZ: -1, duration: 200, ease: 'inQuad' },
+            { rotateY: 0, rotateZ: 0, duration: 120, ease: 'outQuad' }
+          ]
+        }, startTime);
+      }
+
+      // Regresan en orden inverso a la pila derecha
+      addPageReturn('#leaf-3', '#leaf-body-3', 2, 3700);
+      addPageReturn('#leaf-2', '#leaf-body-2', 4, 3900);
+      addPageReturn('#leaf-1', '#leaf-body-1', 6, 4100);
+
+      // Los orificios troquelados izquierdos se ocultan al cerrarse las hojas
+      tl.add('.punch-hole-left', {
+        opacity: [1, 0],
+        duration: 300,
+        ease: 'outQuad'
+      }, 4300);
+
+      // 6. LA PORTADA CIERRA SOBRE TODAS LAS HOJAS (4750ms - 5450ms)
+      // Inicia cuando TODAS las hojas ya están quietas y reposando en Z=2, 4, 6
+      tl.add('#front-cover', {
+        rotateY: [-180, 0],
+        translateZ: [
+          { value: 18, duration: 360, ease: 'outQuad' },
+          { value: 8, duration: 340, ease: 'inQuad' }
+        ],
+        duration: 700,
+        ease: 'inOutCubic'
+      }, 4750);
+
+      // Reacción de los anillos al cierre del cuaderno
+      tl.add('.wire-ring-group', {
+        keyframes: [
+          { translateY: -0.6, duration: 140, ease: 'outQuad' },
+          { translateY: 0, duration: 160, ease: 'outQuad' }
+        ],
+        delay: stagger(15)
+      }, 5050);
+
+      tl.add('.wire-arch-path', {
+        stroke: [
+          'url(#wireCylinder)',
+          'url(#wireTealGlow)',
+          'url(#wireCylinder)'
+        ],
+        delay: stagger(15),
+        duration: 260
+      }, 5050);
+
+      // 7. REPOSO CON LIBRETA CERRADA Y LOGO ILUMINADO (5450ms - 6200ms)
+      tl.add('#teal-base', {
+        opacity: [1, 0.85],
+        boxShadow: [
+          '0 0 28px rgba(20, 184, 166, 0.65)',
+          '0 0 16px rgba(20, 184, 166, 0.35)'
+        ],
+        duration: 750,
+        ease: 'outQuad'
+      }, 5450);
+
+      tl.add({}, { duration: 400 });
+
+      currentTimeline = tl;
+    }
+
+    // --- Modo 2: Hojeo Continuo Infinito (Libreta abierta en ángulo isométrico) ---
+    function buildInfiniteTimeline() {
+      if (currentTimeline) {
+        currentTimeline.cancel();
+      }
+
+      const { createTimeline, stagger, set } = anime;
+
+      // Estado base: libreta ya abierta
+      set('#front-cover', { rotateY: -180, translateZ: -8, opacity: 1 });
+      set('.punch-hole-left', { opacity: 1 });
+      set(['#leaf-1', '#leaf-2', '#leaf-3'], { rotateY: 0, translateZ: 0, opacity: 1 });
+      set(['#leaf-body-1', '#leaf-body-2', '#leaf-body-3'], { rotateY: 0, rotateZ: 0 });
+      set(['#curl-shadow-1', '#curl-shadow-2', '#curl-shadow-3'], { opacity: 0 });
+      set('.wire-arch-path', { stroke: 'url(#wireCylinder)' });
+
+      const tl = createTimeline({
+        loop: true,
+        defaults: { ease: 'inOutCubic' }
+      });
+
+      function addContinuousFlip(leafId, bodyId, shadowId, landingZ, startTime) {
+        tl.add(leafId, {
+          rotateY: [0, -180],
+          translateZ: [
+            { value: 15, duration: 380, ease: 'outQuad' },
+            { value: landingZ, duration: 380, ease: 'inQuad' }
+          ],
+          duration: 760,
+          ease: 'inOutCubic'
+        }, startTime);
+
+        tl.add(bodyId, {
+          keyframes: [
+            { rotateY: 18, rotateZ: -2, duration: 320, ease: 'outQuad' },
+            { rotateY: -10, rotateZ: 1.5, duration: 280, ease: 'inQuad' },
+            { rotateY: 0, rotateZ: 0, duration: 160, ease: 'outQuad' }
+          ]
+        }, startTime);
+
+        tl.add(shadowId, {
+          keyframes: [
+            { opacity: 0, duration: 40 },
+            { opacity: 0.5, duration: 300, ease: 'outQuad' },
+            { opacity: 0, duration: 380, ease: 'inQuad' }
+          ]
+        }, startTime);
+
+        tl.add('.wire-arch-path', {
+          stroke: [
+            'url(#wireCylinder)',
+            'url(#wireTealGlow)',
+            'url(#wireCylinder)'
+          ],
+          delay: stagger(12),
+          duration: 180
+        }, startTime + 220);
+
+        tl.add('.wire-ring-group', {
+          keyframes: [
+            { translateY: -0.5, duration: 110, ease: 'outQuad' },
+            { translateY: 0, duration: 140, ease: 'outQuad' }
+          ],
+          delay: stagger(12)
+        }, startTime + 220);
+
+        // Ocultar y recolocar silenciosamente detrás de la pila derecha para reiniciar ciclo
+        tl.add(leafId, {
+          opacity: [1, 0],
+          duration: 80
+        }, startTime + 1100);
+
+        tl.add(leafId, {
+          rotateY: 0,
+          translateZ: 0,
+          duration: 10
+        }, startTime + 1200);
+
+        tl.add(leafId, {
+          opacity: [0, 1],
+          duration: 100
+        }, startTime + 1220);
+      }
+
+      addContinuousFlip('#leaf-1', '#leaf-body-1', '#curl-shadow-1', -5, 0);
+      addContinuousFlip('#leaf-2', '#leaf-body-2', '#curl-shadow-2', -2, 700);
+      addContinuousFlip('#leaf-3', '#leaf-body-3', '#curl-shadow-3', 1, 1400);
+
+      tl.add({}, { duration: 350 });
+
+      currentTimeline = tl;
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      if (typeof anime === 'undefined') {
+        console.warn('Anime.js UMD no disponible');
+        return;
+      }
+      buildCycleTimeline();
     });
   </script>
 </body>

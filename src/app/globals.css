@@ -941,3 +941,446 @@
   }
 }
 
+/* ==========================================================================
+   Notebook 3D Loader (Anime.js Realistic Notebook Animation)
+   ========================================================================== */
+
+.nb-loader-root {
+  --nb-bg: #0f172a;
+  --nb-card-bg: #1e293b;
+  --nb-text: #f1f5f9;
+  --nb-text-muted: #94a3b8;
+  --nb-primary: #4f46e5;
+  --nb-primary-dark: #3730a3;
+  --nb-teal: #14b8a6;
+  --nb-teal-glow: rgba(20, 184, 166, 0.4);
+  --nb-page-bg: #f8fafc;
+  --nb-page-line: #e2e8f0;
+  --nb-hole-color: rgba(15, 23, 42, 0.85);
+  --nb-wire-color: #ffffff;
+  --nb-wire-shadow: rgba(15, 23, 42, 0.45);
+  --nb-border: #334155;
+  --nb-bar-bg: rgba(255, 255, 255, 0.08);
+  --nb-scale: 1.5;
+
+  font-family: var(--font-sans, "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif);
+  color: var(--nb-text);
+  background-color: var(--nb-bg);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+/* Modo claro automático (cuando no hay .dark) o explícito */
+.nb-loader-root[data-theme="light"],
+:root:not(.dark) .nb-loader-root:not([data-theme="dark"]):not([data-theme="atelier"]) {
+  --nb-bg: #f8fafc;
+  --nb-card-bg: #ffffff;
+  --nb-text: #0f172a;
+  --nb-text-muted: #64748b;
+  --nb-primary: #4f46e5;
+  --nb-primary-dark: #3730a3;
+  --nb-teal: #0d9488;
+  --nb-teal-glow: rgba(20, 184, 166, 0.25);
+  --nb-page-bg: #ffffff;
+  --nb-page-line: #f1f5f9;
+  --nb-hole-color: rgba(15, 23, 42, 0.7);
+  --nb-border: #e2e8f0;
+  --nb-bar-bg: rgba(15, 23, 42, 0.06);
+}
+
+/* Modo oscuro explícito o automático con .dark */
+.nb-loader-root[data-theme="dark"],
+.dark .nb-loader-root:not([data-theme="light"]):not([data-theme="atelier"]) {
+  --nb-bg: #0f172a;
+  --nb-card-bg: #1e293b;
+  --nb-text: #f1f5f9;
+  --nb-text-muted: #94a3b8;
+  --nb-primary: #4f46e5;
+  --nb-primary-dark: #3730a3;
+  --nb-teal: #14b8a6;
+  --nb-teal-glow: rgba(20, 184, 166, 0.4);
+  --nb-page-bg: #f8fafc;
+  --nb-page-line: #e2e8f0;
+  --nb-hole-color: rgba(15, 23, 42, 0.85);
+  --nb-border: #334155;
+  --nb-bar-bg: rgba(255, 255, 255, 0.08);
+}
+
+/* Modo atelier explícito o contextual */
+.nb-loader-root[data-theme="atelier"],
+[data-tema="atelier"] .nb-loader-root:not([data-theme="dark"]):not([data-theme="light"]) {
+  --nb-bg: #1c1712;
+  --nb-card-bg: #251f18;
+  --nb-text: #f2ece0;
+  --nb-text-muted: #ab9c86;
+  --nb-primary: #caa15a;
+  --nb-primary-dark: #8c6b30;
+  --nb-teal: #caa15a;
+  --nb-teal-glow: rgba(202, 161, 90, 0.35);
+  --nb-page-bg: #fdfbf7;
+  --nb-page-line: #ece7db;
+  --nb-hole-color: rgba(28, 23, 18, 0.85);
+  --nb-border: #334155;
+  --nb-bar-bg: rgba(255, 255, 255, 0.08);
+}
+
+/* Ambient background glow */
+.nb-loader-ambient-glow {
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 580px;
+  height: 580px;
+  background: radial-gradient(circle, var(--nb-teal-glow) 0%, transparent 68%);
+  opacity: 0.5;
+  filter: blur(60px);
+  pointer-events: none;
+  transition: all 0.5s ease;
+  animation: nb-ambient-pulse 4.5s ease-in-out infinite alternate;
+}
+
+@keyframes nb-ambient-pulse {
+  0% { transform: translate(-50%, -50%) scale(0.85); opacity: 0.35; }
+  100% { transform: translate(-50%, -50%) scale(1.15); opacity: 0.65; }
+}
+
+/* Main Container */
+.nb-loader-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 10;
+  user-select: none;
+}
+
+/* Book Scene */
+.nb-loader-book-scene {
+  width: calc(220px * var(--nb-scale));
+  height: calc(165px * var(--nb-scale));
+  perspective: 1500px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+  animation: nb-gentle-levitation 4s ease-in-out infinite alternate;
+}
+
+@keyframes nb-gentle-levitation {
+  0% { transform: translateY(0px) rotate(-0.5deg); }
+  100% { transform: translateY(-8px) rotate(0.8deg); }
+}
+
+/* Isometric Rig */
+.nb-loader-book-rig {
+  width: 160px;
+  height: 120px;
+  position: relative;
+  transform-style: preserve-3d;
+  transform: rotateX(54deg) rotateZ(-36deg);
+}
+
+/* Base Teal Accent Layer (Nouttbuk signature offset) */
+.nb-loader-teal-base {
+  position: absolute;
+  width: 164px;
+  height: 124px;
+  left: 8px;
+  top: 8px;
+  border-radius: 16px;
+  background: var(--nb-teal);
+  opacity: 0.95;
+  box-shadow: 0 0 28px var(--nb-teal-glow), 0 20px 40px rgba(15, 23, 42, 0.45);
+  transform: translateZ(-20px);
+  transition: background 0.3s;
+}
+
+/* Solid Back Cover */
+.nb-loader-book-back-cover {
+  position: absolute;
+  width: 160px;
+  height: 120px;
+  border-radius: 14px;
+  background: var(--nb-primary-dark);
+  transform: translateZ(-16px);
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.35);
+}
+
+/* Right static page stack */
+.nb-loader-page-stack-right {
+  position: absolute;
+  left: 16px;
+  top: 5px;
+  width: 135px;
+  height: 110px;
+  background: var(--nb-page-bg);
+  border-radius: 0 10px 10px 0;
+  transform: translateZ(-10px);
+  box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.14);
+  overflow: hidden;
+}
+
+/* Faint ruling lines for student notes */
+.nb-loader-page-ruled-lines,
+.nb-loader-paper-ruled-lines {
+  width: 100%;
+  height: 100%;
+  padding: 12px 14px 12px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+}
+
+.nb-loader-page-ruled-lines::before,
+.nb-loader-paper-ruled-lines::before {
+  content: '';
+  position: absolute;
+  left: 24px;
+  top: 0;
+  bottom: 0;
+  width: 1.5px;
+  background: rgba(20, 184, 166, 0.28);
+  pointer-events: none;
+}
+
+.nb-loader-paper-backface .nb-loader-page-ruled-lines::before {
+  left: auto;
+  right: 24px;
+}
+
+.nb-loader-p-line {
+  height: 2px;
+  background: var(--nb-page-line);
+  border-radius: 2px;
+  width: 100%;
+}
+.nb-loader-p-line.nb-loader-w-short { width: 52%; }
+.nb-loader-p-line.nb-loader-w-mid { width: 75%; }
+.nb-loader-p-line.nb-loader-accent {
+  background: linear-gradient(90deg, var(--nb-teal), var(--nb-page-line));
+  opacity: 0.85;
+}
+
+/* Moving Dynamic Under-page Shadows */
+.nb-loader-under-page-shadow-right {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.25) 0%, transparent 65%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.nb-loader-under-page-shadow-left {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(-90deg, rgba(0, 0, 0, 0.25) 0%, transparent 65%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Anime.js Articulated Flipping Leaf */
+.nb-loader-paper-leaf {
+  position: absolute;
+  left: 16px;
+  top: 5px;
+  width: 135px;
+  height: 110px;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  pointer-events: none;
+  z-index: 20;
+}
+
+/* The flexible curved paper surface */
+.nb-loader-paper-body {
+  width: 100%;
+  height: 100%;
+  background: var(--nb-page-bg);
+  border-radius: 0 10px 10px 0;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  position: relative;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Dynamic Paper Curvature Shadow */
+.nb-loader-paper-curl-shadow {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(15, 23, 42, 0.12) 28%, rgba(255, 255, 255, 0.45) 50%, rgba(15, 23, 42, 0.16) 72%, transparent 100%);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* Backface of turning paper */
+.nb-loader-paper-backface {
+  position: absolute;
+  inset: 0;
+  background: var(--nb-page-bg);
+  border-radius: 10px 0 0 10px;
+  transform: rotateY(180deg);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  overflow: hidden;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.12);
+}
+
+/* Front Cover with "tt" cutout - Sits on top of pages when closed (Z: 8px) */
+.nb-loader-front-cover {
+  position: absolute;
+  left: 14px;
+  top: 0;
+  width: 142px;
+  height: 120px;
+  background: var(--nb-primary);
+  border-radius: 0 14px 14px 0;
+  transform-origin: 2px center;
+  transform-style: preserve-3d;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.38);
+  z-index: 40;
+  transform: translateZ(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nb-loader-cover-backface {
+  position: absolute;
+  inset: 0;
+  background: var(--nb-primary-dark);
+  border-radius: 14px 0 0 14px;
+  transform: rotateY(180deg);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.nb-loader-cover-frontface {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 0 14px 14px 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* 3D Binder Spine Container (Anillado Metálico Realista de Cuaderno) */
+.nb-loader-binder-spine-3d {
+  position: absolute;
+  left: 3px;
+  top: 2px;
+  width: 26px;
+  height: 116px;
+  transform-style: preserve-3d;
+  transform: translateZ(14px);
+  z-index: 100;
+  pointer-events: none;
+}
+
+.nb-loader-binder-spine-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+.nb-loader-wire-arch-path {
+  transition: stroke 0.25s ease, filter 0.25s ease;
+}
+
+.nb-loader-wire-ring-group {
+  transform-origin: center;
+  transition: transform 0.2s ease;
+}
+
+.nb-loader-punch-hole-left {
+  transition: opacity 0.3s ease;
+}
+
+/* Swiss Progress Bar */
+.nb-loader-progress-bar-container {
+  width: 230px;
+  height: 3px;
+  background: var(--nb-bar-bg);
+  border-radius: 9999px;
+  margin-top: 16px;
+  overflow: hidden;
+  position: relative;
+}
+
+.nb-loader-progress-bar-indicator {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 45%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, transparent, var(--nb-primary), var(--nb-teal), transparent);
+  animation: nb-progress-slide 2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+@keyframes nb-progress-slide {
+  0% { left: -50%; width: 30%; }
+  50% { width: 60%; }
+  100% { left: 120%; width: 30%; }
+}
+
+/* Message Rotator */
+.nb-loader-message-container {
+  margin-top: 20px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.nb-loader-status-text {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--nb-text);
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+  white-space: nowrap;
+}
+
+.nb-loader-status-text.active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.nb-loader-sub-brand {
+  margin-top: 22px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--nb-text-muted);
+  opacity: 0.6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nb-loader-ambient-glow,
+  .nb-loader-book-scene,
+  .nb-loader-progress-bar-indicator {
+    animation: none !important;
+  }
+}
+
